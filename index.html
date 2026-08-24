@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R58 Beta</title>
+<title>鴻繽科技 CRM｜R59 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2766,6 +2766,18 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r59-clean-print">
+.q-page-no{font-size:11px;color:#666;text-align:right;margin-top:10px}
+#quotePages .quote-paper-shell{page-break-after:always;break-after:page}
+#quotePages .quote-paper-shell:last-child{page-break-after:auto;break-after:auto}
+@media print{
+  @page{size:A4 portrait;margin:5mm}
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  .q-page-no{display:block!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3017,7 +3029,7 @@ input,select,textarea{font-size:16px!important}
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
-    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="exportQuotePdf()">產生 PDF</button></div>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="openCleanPrint()">列印／儲存 PDF</button></div>
   </div>
   <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
@@ -3030,7 +3042,7 @@ input,select,textarea{font-size:16px!important}
       <table class="q-table"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id="qpItems"></tbody></table>
       <div class="q-terms">交貨日期：<span id="qpDelivery"></span><br>付款條件：<span id="qpPayment"></span><br>交貨地點：<span id="qpPlace"></span><br>有效期限：<span id="qpValid"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>
       <div class="q-notes">備　註：<br><span id="qpNotes"></span></div>
-      <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div>
+      <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div><div class="q-page-no"></div>
     </div></div></div><div class="quote-preview-note">手機預覽會自動縮放；每 4 個品項一頁，正式 PDF 為 A4 直式。</div>
   </div>
 </section>
@@ -3057,7 +3069,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R58</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R59</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -3809,19 +3821,25 @@ function fillQuotePaperClone(paper,items){
 }
 function paginateQuotePages(){
   const pages=$('quotePages'),first=$('quotePaper');if(!pages||!first)return;
-  pages.querySelectorAll('.quote-paper-shell[data-r58-extra]').forEach(x=>x.remove());
+  pages.querySelectorAll('.quote-paper-shell[data-r58-extra],.quote-paper-shell[data-r59-extra]').forEach(x=>x.remove());
   const chunks=[];for(let i=0;i<window.quoteDocItems.length;i+=4)chunks.push(window.quoteDocItems.slice(i,i+4));
   if(!chunks.length)chunks.push([]);
   fillQuotePaperClone(first,chunks[0]);
+  let shells=[first.parentElement];
   for(let i=1;i<chunks.length;i++){
     const shell=first.parentElement.cloneNode(true);
-    shell.dataset.r58Extra='1';
+    shell.dataset.r59Extra='1';
     const paper=shell.querySelector('.quote-paper');
     paper.removeAttribute('id');
     paper.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
     fillQuotePaperClone(paper,chunks[i]);
     pages.appendChild(shell);
+    shells.push(shell);
   }
+  shells.forEach((shell,i)=>{
+    const no=shell.querySelector('.q-page-no');
+    if(no)no.textContent=shells.length>1?`第 ${i+1} / ${shells.length} 頁`:'';
+  });
   scheduleQuoteFitAll();
 }
 function scheduleQuoteFitAll(){
@@ -3894,20 +3912,7 @@ function buildJpegPdf(jpegs){
  push(`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
  return new Blob(parts,{type:'application/pdf'});
 }
-window.exportQuotePdf=async function(){
- renderQuoteDocument();paginateQuotePages();
- const btn=event?.currentTarget;if(btn)btn.disabled=true;
- try{
-   toast('正在產生 PDF…');
-   const pages=[...document.querySelectorAll('#quotePages .quote-paper')];
-   const imgs=[];for(const p of pages)imgs.push(await nodeToJpeg(p));
-   const pdf=buildJpegPdf(imgs),url=URL.createObjectURL(pdf);
-   const a=document.createElement('a');a.href=url;a.download=`報價單_${qdVal('qdCustomer')||'客戶'}_${qdVal('qdDate')||localToday()}.pdf`;
-   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
-   toast('PDF 已產生');
- }catch(e){console.error(e);alert('PDF 產生失敗，請截圖給我，不會改用有網址頁尾的列印方式。')}
- finally{if(btn)btn.disabled=false}
-}
+window.exportQuotePdf=function(){openCleanPrint()}
 
 // ===== R51 正式報價單產生器 =====
 window.quoteDocItems=[];
@@ -4123,6 +4128,61 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R58";</script>
+<script>window.CRM_VERSION="R59";</script>
+<script>
+window.openCleanPrint=function(){
+  renderQuoteDocument();
+  paginateQuotePages();
+  const shells=[...document.querySelectorAll('#quotePages .quote-paper-shell')];
+  if(!shells.length)return alert('目前沒有可列印的報價單');
+
+  const headStyles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('\n');
+  const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.outerHTML).join('\n');
+  const bodyHtml=shells.map(shell=>{
+    const c=shell.cloneNode(true);
+    const paper=c.querySelector('.quote-paper');
+    if(paper){
+      paper.style.transform='none';
+      paper.style.width='200mm';
+      paper.style.minWidth='200mm';
+      paper.style.maxWidth='200mm';
+      paper.style.minHeight='287mm';
+      paper.style.margin='0 auto';
+      paper.style.boxShadow='none';
+    }
+    c.style.height='auto';
+    c.style.width='100%';
+    c.style.margin='0';
+    c.style.padding='0';
+    c.style.background='#fff';
+    return c.outerHTML;
+  }).join('\n');
+
+  const w=window.open('','_blank');
+  if(!w)return alert('Safari 阻擋了列印視窗，請允許彈出式視窗後再試一次。');
+
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>報價單</title>
+${links}
+${headStyles}
+<style>
+html,body{margin:0!important;padding:0!important;background:#fff!important}
+body{width:210mm!important}
+.quote-paper-shell{width:100%!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}
+.quote-paper-shell:last-child{page-break-after:auto!important;break-after:auto!important}
+.quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:5mm 6mm!important;box-shadow:none!important;overflow:hidden!important}
+.quote-preview-note,.card,.nav,.top-shell{display:none!important}
+@page{size:A4 portrait;margin:5mm}
+</style></head><body>${bodyHtml}</body></html>`);
+  w.document.close();
+
+  const imgs=[...w.document.images];
+  Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res}))).then(()=>{
+    setTimeout(()=>{w.focus();w.print();},250);
+  });
+}
+</script>
 </body>
 </html>
