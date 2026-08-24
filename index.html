@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R52 報價單功能修正版</title>
+<title>鴻繽科技 CRM｜R54 共用標準報價單母版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2865,20 +2865,83 @@ main:not(:has(.panel:target)) #home{display:block}
 
 
 
-<style id="r51-quotation-document">
-.quote-doc-wrap{background:#d9d9d9;padding:12px;border-radius:5px;margin-top:10px}
-.quote-paper{width:100%;max-width:794px;margin:auto;background:#fff;color:#111;padding:28px 38px 34px;box-sizing:border-box;font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;box-shadow:0 2px 10px #0005}
-.q-letterhead{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:14px}
-.q-logo-mark{height:108px;border:5px solid #c8231d;color:#c8231d;font-weight:1000;font-size:70px;line-height:94px;text-align:center;position:relative}.q-logo-mark:after{content:"HON BOND";position:absolute;font-size:13px;line-height:1;left:21px;bottom:-21px;font-style:italic}
-.q-company h1{font-family:serif;font-size:32px;letter-spacing:5px;margin:0;color:#2b2130}.q-company .en{font-size:18px;font-weight:900;color:#8b2720;letter-spacing:1px}.q-company .addr{font-size:13px;font-weight:800;color:#8b2720;line-height:1.45}
-.q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:34px 0 22px;text-decoration:underline;text-underline-offset:7px}
-.q-party{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;font-family:serif;font-size:17px;line-height:1.55}.q-party-row{display:grid;grid-template-columns:150px 1fr}.q-party-label{font-family:serif}
-.q-table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;font-size:16px}.q-table th,.q-table td{border:1px solid #555;padding:8px 7px;vertical-align:top}.q-table th{text-align:center;font-weight:900}.q-table td{height:44px}.q-table th:nth-child(1){width:26%}.q-table th:nth-child(2){width:20%}.q-table th:nth-child(3){width:15%}.q-table th:nth-child(4){width:20%}.q-table th:nth-child(5){width:19%}
-.q-terms{font-size:16px;line-height:1.45;margin:10px 18px}.q-notes{font-size:16px;line-height:1.6;margin:8px 18px}.q-sales{text-align:right;font-size:17px;margin:34px 80px 0 0}
-.q-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.q-editor-grid .wide{grid-column:1/-1}.q-items-editor{overflow-x:auto}.q-items-editor table{min-width:760px;width:100%;border-collapse:collapse}.q-items-editor td{padding:4px}.q-items-editor input{min-height:38px!important;margin:0!important}.q-item-del{width:auto!important;min-height:38px!important;padding:5px 9px!important}
-@media(max-width:640px){.quote-paper{padding:20px 18px}.q-letterhead{grid-template-columns:92px 1fr}.q-logo-mark{height:72px;font-size:45px;line-height:62px}.q-company h1{font-size:21px;letter-spacing:2px}.q-company .en{font-size:12px}.q-company .addr{font-size:9px}.q-title{font-size:27px;margin:26px 0 18px}.q-party{grid-template-columns:1fr;font-size:14px;gap:4px}.q-party-row{grid-template-columns:110px 1fr}.q-table{font-size:12px}.q-table th,.q-table td{padding:5px 3px}.q-terms,.q-notes{font-size:13px;margin-left:5px;margin-right:5px}.q-sales{font-size:14px;margin-right:10px}.q-editor-grid{grid-template-columns:1fr}}
-@media print{body *{visibility:hidden!important}.quote-paper,.quote-paper *{visibility:visible!important}.quote-paper{position:absolute;left:0;top:0;width:210mm;max-width:none;box-shadow:none;padding:12mm 15mm}.quote-doc-wrap{padding:0;background:#fff}}
+
+<style id="r53-quotation-document">
+#quoteDocument{overflow-x:hidden}
+.quote-doc-wrap{
+  background:#11161a;padding:10px;border-radius:6px;margin-top:10px;
+  overflow:hidden
+}
+.quote-paper-shell{
+  width:100%;
+  overflow:hidden;
+  display:flex;
+  justify-content:center
+}
+.quote-paper{
+  width:794px;
+  min-width:794px;
+  background:#fff;color:#111;
+  padding:24px 44px 34px;
+  box-sizing:border-box;
+  font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;
+  box-shadow:0 2px 10px #0005;
+  transform-origin:top center;
+}
+.q-letterhead{width:100%;height:179px;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+.q-letterhead-img{display:block;width:100%;height:auto;object-fit:contain}
+.q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:8px 0 22px;text-decoration:underline;text-underline-offset:7px}
+.q-party{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;font-family:serif;font-size:17px;line-height:1.55}
+.q-party-row{display:grid;grid-template-columns:150px 1fr}
+.q-party-label{font-family:serif}
+.q-table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;font-size:16px}
+.q-table th,.q-table td{border:1px solid #555;padding:8px 7px;vertical-align:top;overflow-wrap:anywhere}
+.q-table th{text-align:center;font-weight:900}
+.q-table td{height:44px}
+.q-table th:nth-child(1){width:26%}.q-table th:nth-child(2){width:20%}.q-table th:nth-child(3){width:15%}.q-table th:nth-child(4){width:20%}.q-table th:nth-child(5){width:19%}
+.q-terms{font-size:16px;line-height:1.45;margin:10px 18px}
+.q-notes{font-size:16px;line-height:1.6;margin:8px 18px}
+.q-sales{text-align:right;font-size:17px;margin:34px 80px 0 0}
+.q-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.q-editor-grid .wide{grid-column:1/-1}
+.q-items-editor{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid #3d444a;
+  border-radius:5px;
+  padding:4px;
+  background:#0b0f12
+}
+.q-items-editor table{min-width:760px;width:100%;border-collapse:collapse}
+.q-items-editor td{padding:4px}
+.q-items-editor input{min-height:38px!important;margin:0!important}
+.q-item-del{width:auto!important;min-height:38px!important;padding:5px 9px!important}
+.quote-preview-note{
+  margin:8px 0 0;
+  color:#9c948a;
+  font-size:12px;
+  text-align:center
+}
+@media(max-width:640px){
+  #quoteDocument .card{overflow:hidden}
+  .q-editor-grid{grid-template-columns:1fr}
+  .q-editor-grid .wide{grid-column:auto}
+  .q-items-editor{max-width:100%}
+  .quote-doc-wrap{padding:6px}
+}
+@media print{
+  body *{visibility:hidden!important}
+  .quote-paper,.quote-paper *{visibility:visible!important}
+  .quote-paper{
+    position:absolute;left:0;top:0;
+    width:210mm;min-width:210mm;
+    transform:none!important;
+    box-shadow:none;padding:12mm 15mm
+  }
+  .quote-doc-wrap,.quote-paper-shell{padding:0;background:#fff;overflow:visible}
+}
 </style>
+
 
 <section class="panel" id="quoteDocument">
   <div class="card">
@@ -2905,12 +2968,9 @@ main:not(:has(.panel:target)) #home{display:block}
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
     <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="window.print()">列印／儲存 PDF</button></div>
   </div>
-  <div class="quote-doc-wrap">
+  <div class="quote-doc-wrap"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
-      <div class="q-letterhead">
-        <div class="q-logo-mark">H</div>
-        <div class="q-company"><h1>鴻繽科技有限公司</h1><div class="en">HONBIN TECHNOLOGY CO., LTD.</div><div class="addr">台南市安南區安西二街108號<br>No.108, Anxi 2nd. St., Annan Dist., Tainan City 70958, Taiwan (R.O.C.)<br>TEL:+886-6-2453737　FAX:+886-6-2463328</div></div>
-      </div>
+      <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭"></div>
       <div class="q-title">報價單</div>
       <div class="q-party">
         <div><div class="q-party-row"><span class="q-party-label">Messers.</span><b id="qpCustomer"></b></div><div class="q-party-row"><span></span><span>TEL： <span id="qpTel"></span></span></div><div class="q-party-row"><span></span><span>FAX： <span id="qpFax"></span></span></div></div>
@@ -2920,7 +2980,7 @@ main:not(:has(.panel:target)) #home{display:block}
       <div class="q-terms">交貨日期：<span id="qpDelivery"></span><br>付款條件：<span id="qpPayment"></span><br>交貨地點：<span id="qpPlace"></span><br>有效期限：<span id="qpValid"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>
       <div class="q-notes">備　註：<br>1：　以上價格為未稅價。<br>2：　本報價僅供參考，實際價格以訂單確認為準。<br>3：　特殊規格或需求，請先行告知。<br>4：　如有任何問題，歡迎隨時與我們聯繫。</div>
       <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div>
-    </div>
+    </div></div><div class="quote-preview-note">手機預覽會自動縮放；列印／儲存 PDF 時會使用完整 A4 尺寸。</div>
   </div>
 </section>
 
@@ -3632,6 +3692,19 @@ window.openTimelineRecord=function(page,id,type){location.hash=page;const map={'
 function renderHomeCRM(){const today=localToday(),end=new Date();end.setDate(end.getDate()+7);const endStr=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;const dates=[...db.projects.map(x=>x.followDate),...db.contacts.map(x=>x.nextContactDate),...db.commands.map(x=>x.confirmDate),...db.quotes.map(x=>x.followDate),...db.todos.filter(x=>!x.done).map(x=>x.date),...db.visits.map(x=>x.nextVisitDate)].filter(Boolean);if($('homeTodayCount'))$('homeTodayCount').textContent=reminderDefs().length;if($('homeOpenTodoCount'))$('homeOpenTodoCount').textContent=db.todos.filter(x=>!x.done).length;if($('homeWeekCount'))$('homeWeekCount').textContent=dates.filter(d=>d>=today&&d<=endStr).length}
 
 
+
+function fitQuotePreview(){
+  const paper=$('quotePaper');
+  if(!paper)return;
+  const shell=paper.closest('.quote-paper-shell');
+  if(!shell)return;
+  const available=Math.max(280,shell.clientWidth);
+  const scale=Math.min(1,available/794);
+  paper.style.transform=`scale(${scale})`;
+  shell.style.height=`${Math.ceil(paper.offsetHeight*scale)}px`;
+}
+window.addEventListener('resize',()=>setTimeout(fitQuotePreview,50));
+
 // ===== R51 正式報價單產生器 =====
 window.quoteDocItems=[];
 function qdVal(id){const e=$(id);return e?e.value.trim():''}
@@ -3659,6 +3732,7 @@ window.openQuoteDocument=function(quoteId){
  renderQuoteDocEditor();
  renderQuoteDocument();
  location.hash='quoteDocument';
+ setTimeout(fitQuotePreview,80);
 }
 window.addQuoteDocItem=function(){window.quoteDocItems.push({name:'',model:'',spec:'',price:'',moq:''});renderQuoteDocEditor()}
 window.removeQuoteDocItem=function(i){window.quoteDocItems.splice(i,1);if(!window.quoteDocItems.length)addQuoteDocItem();else renderQuoteDocEditor()}
@@ -3667,7 +3741,7 @@ window.renderQuoteDocEditor=function(){
 }
 window.renderQuoteDocument=function(){
  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v||''};set('qpCustomer',qdVal('qdCustomer'));set('qpContact',qdVal('qdContact'));set('qpTel',qdVal('qdTel'));set('qpFax',qdVal('qdFax'));set('qpNo',qdVal('qdNo'));set('qpDate',(qdVal('qdDate')||'').replaceAll('-','/'));set('qpDelivery',qdVal('qdDelivery'));set('qpPayment',qdVal('qdPayment'));set('qpPlace',qdVal('qdPlace'));set('qpValid',qdVal('qdValid'));set('qpSales',qdVal('qdSales'));set('qpSalesTel',qdVal('qdSalesTel'));
- const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');
+ const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');setTimeout(fitQuotePreview,20);
 }
 
 function reminderDefs(){
