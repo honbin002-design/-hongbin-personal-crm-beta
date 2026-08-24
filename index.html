@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R54 共用標準報價單母版</title>
+<title>鴻繽科技 CRM｜R56 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2668,6 +2668,35 @@ main:not(:has(.panel:target)) #home{display:block}
 @media(max-width:640px){.crm-tools{grid-template-columns:1fr 1fr}.crm-tools .crm-search{grid-column:1/-1}.crm-tools select{width:100%}.mini-stat b{font-size:20px}}
 </style>
 
+
+<style id="r56-fixes">
+/* iPhone：所有可輸入控制至少 16px，避免 Safari focus 自動放大 */
+input,select,textarea{font-size:16px!important}
+@supports (-webkit-touch-callout:none){
+  input,select,textarea{font-size:16px!important}
+}
+/* 報價輸入區不得撐出手機 */
+#quoteDocument,#quotation,.quote-doc-wrap,.quote-paper-shell{max-width:100%!important}
+.q-editor-grid,.quote-item-card{min-width:0!important;max-width:100%!important}
+.q-editor-grid input,.q-editor-grid textarea,.quote-item-card input,.quote-item-card textarea{max-width:100%!important}
+
+/* 正式列印固定 A4 直式接近滿版 */
+@page{size:A4 portrait;margin:6mm}
+@media print{
+  html,body{width:210mm!important;min-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+  body *{visibility:hidden!important}
+  #quotePaper,#quotePaper *{visibility:visible!important}
+  #quotePaper{
+    position:absolute!important;left:0!important;top:0!important;
+    width:198mm!important;min-width:198mm!important;max-width:198mm!important;
+    min-height:285mm!important;margin:0!important;padding:5mm 6mm!important;
+    transform:none!important;box-shadow:none!important;overflow:hidden!important;
+    background:#fff!important;color:#111!important
+  }
+  .quote-doc-wrap,.quote-paper-shell{width:198mm!important;overflow:visible!important;background:#fff!important;padding:0!important;margin:0!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -2911,6 +2940,10 @@ main:not(:has(.panel:target)) #home{display:block}
       <div><label>有效期限</label><input id="qdValid" value="三十日"></div>
       <div><label>業務代表</label><input id="qdSales"></div>
       <div class="wide"><label>業務電話</label><input id="qdSalesTel"></div>
+      <div class="wide"><label>備註（可修改）</label><textarea id="qdNotes">1：　以上價格為未稅價。
+2：　本報價僅供參考，實際價格以訂單確認為準。
+3：　特殊規格或需求，請先行告知。
+4：　如有任何問題，歡迎隨時與我們聯繫。</textarea></div>
     </div>
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
@@ -2927,7 +2960,7 @@ main:not(:has(.panel:target)) #home{display:block}
       </div>
       <table class="q-table"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id="qpItems"></tbody></table>
       <div class="q-terms">交貨日期：<span id="qpDelivery"></span><br>付款條件：<span id="qpPayment"></span><br>交貨地點：<span id="qpPlace"></span><br>有效期限：<span id="qpValid"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>
-      <div class="q-notes">備　註：<br>1：　以上價格為未稅價。<br>2：　本報價僅供參考，實際價格以訂單確認為準。<br>3：　特殊規格或需求，請先行告知。<br>4：　如有任何問題，歡迎隨時與我們聯繫。</div>
+      <div class="q-notes">備　註：<br><span id="qpNotes"></span></div>
       <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div>
     </div></div><div class="quote-preview-note">手機預覽會自動縮放；列印／儲存 PDF 時會使用完整 A4 尺寸。</div>
   </div>
@@ -2984,6 +3017,29 @@ main:not(:has(.panel:target)) #home{display:block}
     <button class="danger" type="button" style="width:100%" onclick="clearAllData()">清空全部資料</button>
     <div class="status">按「匯出備份」後可從 iPhone 分享選單選擇「儲存到檔案」，自行指定儲存位置。若裝置不支援，才會改用一般下載。</div>
   </div>
+</section>
+
+
+<section id="businessCardScan" class="panel">
+ <div class="card">
+  <h2 class="section-title">📇 名片識別</h2>
+  <p class="status">照片只在本機處理；辨識完成後預設不保存原始名片照片。</p>
+  <label>拍攝／選擇名片</label>
+  <input id="bcImage" type="file" accept="image/*" capture="environment">
+  <button class="primary" type="button" onclick="scanBusinessCardLocal()">本機辨識名片</button>
+  <div id="bcStatus" class="status"></div>
+  <div class="grid" style="margin-top:12px">
+   <div class="full"><label>公司名稱</label><input id="bcCompany"></div>
+   <div><label>姓名</label><input id="bcName"></div>
+   <div><label>職稱</label><input id="bcTitle"></div>
+   <div><label>手機</label><input id="bcMobile" inputmode="tel"></div>
+   <div><label>公司電話</label><input id="bcTel" inputmode="tel"></div>
+   <div><label>FAX</label><input id="bcFax" inputmode="tel"></div>
+   <div class="full"><label>Email</label><input id="bcEmail" inputmode="email"></div>
+   <div class="full"><label>地址</label><input id="bcAddress"></div>
+   <div class="full"><label>網址</label><input id="bcWebsite"></div>
+  </div>
+ </div>
 </section>
 
 </main>
@@ -3842,5 +3898,30 @@ window.addEventListener('offline',()=>{const el=$('offlineReady');const sw=('ser
 
 
 
+<script>
+async function scanBusinessCardLocal(){
+ const f=$('bcImage')?.files?.[0], s=$('bcStatus');
+ if(!f){if(s)s.textContent='請先拍攝或選擇名片';return}
+ if(!window.Tesseract){if(s)s.textContent='離線 OCR 引擎尚未安裝到此測試包；不會上傳照片或改用雲端辨識。';return}
+ try{
+   if(s)s.textContent='本機辨識中…';
+   const r=await Tesseract.recognize(f,'chi_tra+eng',{logger:m=>{if(s&&m.progress)s.textContent=`本機辨識中 ${Math.round(m.progress*100)}%`}});
+   const t=r?.data?.text||'';
+   parseBusinessCardText(t);
+   if(s)s.textContent='辨識完成，請確認欄位後再存入客戶資料。';
+ }catch(e){if(s)s.textContent='辨識失敗：'+(e?.message||e)}
+}
+function parseBusinessCardText(t){
+ const lines=(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+ const email=(t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
+ const web=(t.match(/(?:https?:\/\/|www\.)[^\s]+/i)||[])[0]||'';
+ const phones=[...t.matchAll(/(?:\+?886[-\s]?)?(?:0\d{1,2}[-\s]?)?\d{3,4}[-\s]?\d{3,4}/g)].map(x=>x[0]);
+ const company=lines.find(x=>/(公司|企業|科技|實業|股份|有限公司|CO\.|LTD|INC)/i.test(x))||'';
+ const addr=lines.find(x=>/(路|街|巷|弄|號|樓|區|市|縣)/.test(x))||'';
+ const set=(id,v)=>{const e=$(id);if(e&&!e.value)e.value=v||''};
+ set('bcCompany',company);set('bcEmail',email);set('bcWebsite',web);set('bcAddress',addr);
+ set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
+}
+</script>
 </body>
 </html>
