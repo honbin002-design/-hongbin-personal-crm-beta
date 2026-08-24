@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R56 Beta</title>
+<title>鴻繽科技 CRM｜R57 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2697,6 +2697,57 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r57-print-fixes">
+/* 手機表單：日期欄與其他欄位完整同框，不可缺右側框線 */
+#quotation input,#quotation select,#quotation textarea,
+#quoteDocument input,#quoteDocument select,#quoteDocument textarea{
+  width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+}
+#qdDate{-webkit-appearance:none!important;appearance:none!important;display:block!important}
+
+/* 預覽：A4 本體縮放只能由外層處理，本體五欄永遠在紙張內 */
+#quotePaper{box-sizing:border-box!important;overflow:hidden!important}
+#quotePaper .q-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
+#quotePaper .q-table th,#quotePaper .q-table td{
+  box-sizing:border-box!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;
+}
+#quotePaper .q-table th:nth-child(1),#quotePaper .q-table td:nth-child(1){width:26%!important}
+#quotePaper .q-table th:nth-child(2),#quotePaper .q-table td:nth-child(2){width:20%!important}
+#quotePaper .q-table th:nth-child(3),#quotePaper .q-table td:nth-child(3){width:16%!important}
+#quotePaper .q-table th:nth-child(4),#quotePaper .q-table td:nth-child(4){width:20%!important}
+#quotePaper .q-table th:nth-child(5),#quotePaper .q-table td:nth-child(5){width:18%!important}
+
+/* 正式輸出：只印正式報價內容，不印「可修改」或輸入框 */
+.quote-print-notes{display:none}
+@page{size:A4 portrait;margin:5mm}
+@media print{
+  html,body{width:auto!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important}
+  body{overflow:visible!important}
+  body>*:not(#app){display:none!important}
+  #app>*{display:none!important}
+  #app #quotation{display:block!important}
+  #quotation>*{display:none!important}
+  #quotation #quoteDocument{display:block!important}
+  #quoteDocument>*{display:none!important}
+  #quoteDocument .quote-paper-shell{display:block!important;width:auto!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  #quotePaper{
+    display:block!important;position:static!important;
+    width:200mm!important;min-width:200mm!important;max-width:200mm!important;
+    min-height:287mm!important;height:auto!important;
+    margin:0 auto!important;padding:5mm 6mm!important;
+    box-sizing:border-box!important;transform:none!important;zoom:1!important;
+    overflow:hidden!important;box-shadow:none!important;background:#fff!important;color:#111!important
+  }
+  #quotePaper *{visibility:visible!important}
+  #quotePaper .q-table{width:100%!important;max-width:100%!important;table-layout:fixed!important}
+  #quotePaper .q-table th,#quotePaper .q-table td{font-size:10.5pt!important}
+  .quote-print-notes{display:inline!important}
+  .quote-edit-label,.quote-edit-control,.quote-mobile-help{display:none!important}
+}
+</style>
+
+<style>@media print{#quotePaper{break-inside:avoid!important;page-break-inside:avoid!important} #quotePaper .q-notes:before{content:none!important}}</style>
 </head>
 <body>
 <div class="app">
