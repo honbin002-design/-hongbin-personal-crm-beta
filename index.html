@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R59 Beta</title>
+<title>鴻繽科技 CRM｜R60 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2778,6 +2778,71 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r60-quote-layout-fix">
+/* A4 預覽本體固定寬度，所有內容都必須在紙內 */
+#quotePaper,.quote-paper{
+  width:794px!important;
+  min-width:794px!important;
+  max-width:794px!important;
+  padding:18px 28px 26px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.q-party{grid-template-columns:1.55fr .95fr!important;gap:14px!important;font-size:15px!important;line-height:1.35!important}
+.q-party-row{grid-template-columns:118px minmax(0,1fr)!important}
+.q-table{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+  font-size:13px!important;
+}
+.q-table th,.q-table td{
+  box-sizing:border-box!important;
+  padding:5px 4px!important;
+  min-width:0!important;
+  max-width:none!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  white-space:normal!important;
+}
+.q-table th:nth-child(1),.q-table td:nth-child(1){width:25%!important}
+.q-table th:nth-child(2),.q-table td:nth-child(2){width:20%!important}
+.q-table th:nth-child(3),.q-table td:nth-child(3){width:16%!important}
+.q-table th:nth-child(4),.q-table td:nth-child(4){width:19%!important}
+.q-table th:nth-child(5),.q-table td:nth-child(5){width:20%!important}
+.q-terms{font-size:13.5px!important;line-height:1.32!important;margin:8px 14px 0!important}
+.q-notes{font-size:14.5px!important;line-height:1.45!important;margin:10px 14px 0!important;min-height:88px!important}
+.q-notes #qpNotes{display:inline!important;color:#111!important}
+.q-sales{font-size:14px!important;margin:24px 55px 0 0!important}
+.q-page-no{font-size:10px!important}
+
+/* 手機只縮放外層，不改紙張內部比例 */
+.quote-paper-shell{overflow:hidden!important;max-width:100%!important}
+#quotePages{overflow:hidden!important;max-width:100%!important}
+
+/* 列印：A4 直式單頁/多頁，禁止欄位越界 */
+@page{size:A4 portrait;margin:5mm}
+@media print{
+  .quote-paper{
+    width:200mm!important;min-width:200mm!important;max-width:200mm!important;
+    min-height:287mm!important;
+    padding:5mm 6mm!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    transform:none!important;
+  }
+  .q-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important}
+  .q-table th,.q-table td{font-size:9.5pt!important;padding:1.7mm 1.2mm!important}
+  .q-terms{font-size:10pt!important;line-height:1.3!important}
+  .q-notes{font-size:10.5pt!important;line-height:1.42!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3069,7 +3134,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R59</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R60</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -3798,6 +3863,13 @@ window.addEventListener('resize',scheduleQuoteFit);
 window.addEventListener('load',scheduleQuoteFit);
 
 
+
+function r60SyncNotes(){
+ const qn=$('qdNotes'),out=$('qpNotes'); if(!out)return;
+ const text=(qn&&qn.value.trim())?qn.value:`1：　以上價格為未稅價。\n2：　本報價僅供參考，實際價格以訂單確認為準。\n3：　特殊規格或需求，請先行告知。\n4：　如有任何問題，歡迎隨時與我們聯繫。`;
+ out.innerHTML=esc(text).replace(/\n/g,'<br>');
+}
+
 // ===== R58 報價單：估價直接帶入 / 每4品項分頁 / 無頁尾PDF =====
 window.openQuoteDocumentFromEstimate=function(){
   const customer=$('qCustomer').value.trim();
@@ -3954,6 +4026,8 @@ window.renderQuoteDocument=function(){
  const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');scheduleQuoteFit();
 
  paginateQuotePages();
+
+ r60SyncNotes();
 }
 
 function reminderDefs(){
@@ -4128,46 +4202,33 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R59";</script>
+<script>window.CRM_VERSION="R60";</script>
 <script>
 window.openCleanPrint=function(){
-  renderQuoteDocument();
-  paginateQuotePages();
-  const shells=[...document.querySelectorAll('#quotePages .quote-paper-shell')];
-  if(!shells.length)return alert('目前沒有可列印的報價單');
-
-  const headStyles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('\n');
-  const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.outerHTML).join('\n');
-  const bodyHtml=shells.map(shell=>{
-    const c=shell.cloneNode(true);
-    const paper=c.querySelector('.quote-paper');
-    if(paper){
-      paper.style.transform='none';
-      paper.style.width='200mm';
-      paper.style.minWidth='200mm';
-      paper.style.maxWidth='200mm';
-      paper.style.minHeight='287mm';
-      paper.style.margin='0 auto';
-      paper.style.boxShadow='none';
-    }
-    c.style.height='auto';
-    c.style.width='100%';
-    c.style.margin='0';
-    c.style.padding='0';
-    c.style.background='#fff';
-    return c.outerHTML;
-  }).join('\n');
-
-  const w=window.open('','_blank');
-  if(!w)return alert('Safari 阻擋了列印視窗，請允許彈出式視窗後再試一次。');
-
-  w.document.open();
-  w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>報價單</title>
-${links}
-${headStyles}
-<style>
+  const w=window.open('about:blank','_blank');
+  if(!w)return alert('Safari 阻擋了列印視窗。請允許此網站開啟彈出式視窗後再按一次。');
+  try{
+    renderQuoteDocument();paginateQuotePages();r60SyncNotes();
+    const shells=[...document.querySelectorAll('#quotePages .quote-paper-shell')];
+    if(!shells.length){w.close();return alert('目前沒有可列印的報價單');}
+    const headStyles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('\n');
+    const bodyHtml=shells.map(shell=>{
+      const c=shell.cloneNode(true);
+      const paper=c.querySelector('.quote-paper');
+      if(paper){
+        paper.style.transform='none';
+        paper.style.width='200mm';
+        paper.style.minWidth='200mm';
+        paper.style.maxWidth='200mm';
+        paper.style.minHeight='287mm';
+        paper.style.margin='0 auto';
+        paper.style.boxShadow='none';
+      }
+      c.style.height='auto'; c.style.width='100%'; c.style.margin='0'; c.style.padding='0'; c.style.background='#fff';
+      return c.outerHTML;
+    }).join('\n');
+    w.document.open();
+    w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>報價單</title>${headStyles}<style>
 html,body{margin:0!important;padding:0!important;background:#fff!important}
 body{width:210mm!important}
 .quote-paper-shell{width:100%!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}
@@ -4176,12 +4237,12 @@ body{width:210mm!important}
 .quote-preview-note,.card,.nav,.top-shell{display:none!important}
 @page{size:A4 portrait;margin:5mm}
 </style></head><body>${bodyHtml}</body></html>`);
-  w.document.close();
-
-  const imgs=[...w.document.images];
-  Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res}))).then(()=>{
-    setTimeout(()=>{w.focus();w.print();},250);
-  });
+    w.document.close();
+    const imgs=[...w.document.images];
+    Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res}))).then(()=>{
+      setTimeout(()=>{w.focus();w.print();},300);
+    });
+  }catch(e){console.error(e);try{w.close()}catch(_){ } alert('列印準備失敗，請截圖給我。');}
 }
 </script>
 </body>
