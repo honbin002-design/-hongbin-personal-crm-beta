@@ -1,0 +1,10 @@
+{
+  "name": "鴻繽科技 CRM",
+  "short_name": "鴻繽CRM",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020304",
+  "theme_color": "#020304",
+  "lang": "zh-Hant"
+}

@@ -1,0 +1,3821 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020304">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="鴻繽CRM">
+<link rel="manifest" href="manifest.webmanifest">
+<title>鴻繽科技 CRM｜R52 報價單功能修正版</title>
+<style>
+:root{
+  --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
+  --brand:#0b63ce;--brand2:#eaf3ff;--danger:#c62828;--ok:#15803d;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",sans-serif;font-size:18px}
+.app{max-width:900px;margin:auto;padding:14px 12px 50px}
+header{padding:6px 2px 12px}
+h1{font-size:30px;line-height:1.2;margin:4px 0 5px}
+.sub{color:var(--muted);font-size:16px}
+.nav{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;position:sticky;top:0;z-index:20;
+  padding:10px 0;background:rgba(244,246,248,.94);backdrop-filter:blur(12px)
+}
+.nav a{
+  min-height:54px;display:flex;align-items:center;justify-content:center;text-align:center;
+  text-decoration:none;color:#1f2937;background:#fff;border:1px solid var(--line);
+  border-radius:14px;font-size:17px;font-weight:800;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,.04)
+}
+.nav a:active{transform:scale(.98)}
+.panel{display:none;scroll-margin-top:145px}
+.panel:target{display:block}
+main:not(:has(.panel:target)) #home{display:block}
+.card{background:var(--card);border:1px solid #e8ebf0;border-radius:18px;padding:16px;margin:0 0 14px;box-shadow:0 6px 20px rgba(0,0,0,.04)}
+.section-title{font-size:24px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+label{display:block;font-size:17px;font-weight:700;margin:0 0 7px;color:#344054}
+input,textarea,select,button{font:inherit}
+input,textarea,select{
+  width:100%;border:1px solid var(--line);border-radius:13px;background:#fff;
+  padding:14px;font-size:19px;outline:none;color:var(--text)
+}
+textarea{min-height:110px;resize:vertical;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+input:focus,textarea:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,99,206,.10)}
+.primary{width:100%;border:0;border-radius:13px;background:var(--brand);color:#fff;font-size:19px;font-weight:800;padding:15px}
+.secondary{border:0;border-radius:12px;background:var(--brand2);color:#084a9c;font-weight:800;padding:11px 13px}
+.danger{border:0;border-radius:11px;background:#fff0f0;color:var(--danger);font-weight:800;padding:9px 11px}
+.item{border:1px solid var(--line);border-radius:15px;padding:13px;margin-top:11px;background:#fff}
+.item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.item-title{font-size:20px;font-weight:900;overflow-wrap:anywhere;word-break:break-word}
+.meta{font-size:16px;color:var(--muted);margin-top:6px;line-height:1.6;overflow-wrap:anywhere;word-break:break-word}
+.content{font-size:18px;line-height:1.7;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:18px 6px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#f1f6fc;border-radius:14px;padding:12px}
+.kpi span{font-size:15px;color:var(--muted)}
+.kpi b{display:block;font-size:25px;margin-top:4px}
+.copybox{background:#f7f8fa;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:120px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.7}
+.todo-line{display:flex;gap:10px;align-items:flex-start}
+.todo-line input{width:24px;height:24px;margin-top:1px}
+.done .item-title,.done .content{text-decoration:line-through;color:#98a2b3}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:11px 9px;border-bottom:1px solid var(--line);text-align:left;font-size:16px}
+th{color:var(--muted)}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status{font-size:15px;color:var(--muted);padding-top:8px}
+@media(max-width:640px){
+  body{font-size:18px}
+  .app{padding:10px 9px 42px}
+  h1{font-size:28px}
+  .nav{grid-template-columns:repeat(3,1fr);gap:7px}
+  .nav a{font-size:15px;min-height:52px;padding:7px 3px}
+  .grid{grid-template-columns:1fr}
+  .full{grid-column:auto}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpis .kpi:last-child{grid-column:1/-1}
+}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#111827;color:#fff;padding:12px 18px;border-radius:12px;font-size:17px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:99;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+
+
+<style id="industrial-r15">
+:root{--bg:#070a0d;--panel:#11161c;--panel2:#171d24;--steel:#3b4148;--text:#d8d0c5;--muted:#b8ada1;--gold:#d39a39;--red:#7b1717;--line:#4b5056}
+*{-webkit-tap-highlight-color:transparent}
+html{background:#050709}
+body{margin:0;color:var(--text);font-family:"PingFang TC","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% -8%,rgba(103,113,126,.12),transparent 26%),linear-gradient(180deg,#050709 0%,#0a0e12 45%,#050709 100%)}
+.app{max-width:900px;margin:auto;padding:10px 10px 34px}
+.system-hidden{display:none!important}
+.top-shell{display:grid;grid-template-columns:48px 1fr 48px;gap:10px;align-items:center;margin:0 0 10px;padding:0;background:transparent;border:0;box-shadow:none}
+.brand-plaque{min-height:74px;display:flex;align-items:center;justify-content:center;padding:10px 16px;border:1px solid #555a60;border-radius:9px;background:linear-gradient(135deg,rgba(255,255,255,.07),transparent 26%),linear-gradient(180deg,#242a31 0%,#151a20 48%,#0c1014 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 5px rgba(0,0,0,.55),0 5px 0 #040506,0 10px 22px rgba(0,0,0,.34)}
+.brand-plaque h1{margin:0;font-size:30px;line-height:1;letter-spacing:.6px;font-weight:900;color:#c9c2b9;text-shadow:0 1px 0 #fff4,0 2px 0 #6d6d6d,0 4px 5px #000}
+.brand-plaque h1 span{color:#d6a34f;text-shadow:0 1px 0 #f8d98f88,0 2px 0 #6c4718,0 4px 7px #000}
+.top-icon{height:48px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:24px;border:1px solid #4c5259;border-radius:8px;background:linear-gradient(180deg,#242a31,#10151a);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 3px 0 #030405,0 6px 12px rgba(0,0,0,.35)}
+.app > .card:first-of-type{padding:8px 10px!important;margin-bottom:9px!important;border:1px solid #4b5056!important;border-radius:9px!important;background:linear-gradient(180deg,#1b2026,#0d1115)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 #030405,0 8px 16px rgba(0,0,0,.28)!important}
+.kpis{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:0!important;margin:0!important}
+.kpi{padding:7px 8px!important;border:0!important;border-right:1px solid #444a50!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:center}
+.kpi:last-child{border-right:0!important}.kpi span{font-size:17px!important;color:#c9c0b7!important}.kpi b{display:block!important;margin-top:1px!important;font-size:27px!important;line-height:1!important;color:var(--gold)!important;text-shadow:0 1px 0 #f8d98f55,0 3px 5px #000!important}
+.nav{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:8px!important;position:sticky;top:0;z-index:20;padding:7px 0 9px!important;background:linear-gradient(180deg,rgba(7,10,13,.97),rgba(7,10,13,.92))!important;backdrop-filter:blur(12px)}
+.nav a{min-height:42px!important;height:42px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;padding:5px 6px!important;border:1px solid #464c53!important;border-radius:7px!important;color:#d8d0c5!important;text-decoration:none!important;font-size:16px!important;font-weight:800!important;background:linear-gradient(135deg,rgba(255,255,255,.055),transparent 28%),linear-gradient(180deg,#21272e,#10151a)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -2px 4px rgba(0,0,0,.5),0 3px 0 #030405,0 6px 12px rgba(0,0,0,.25)!important}
+.nav a:active{transform:translateY(2px)!important;box-shadow:inset 0 2px 5px rgba(0,0,0,.45),0 1px 0 #030405!important}
+.panel{scroll-margin-top:108px}.card{border:1px solid #454b51!important;border-radius:8px!important;background:linear-gradient(135deg,rgba(255,255,255,.035),transparent 25%),linear-gradient(180deg,#171c22,#0d1115)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 4px 0 #030405,0 8px 16px rgba(0,0,0,.24)!important}
+.section-title{color:#d3a24d!important;font-size:23px!important;text-shadow:0 2px 4px #000}
+label{color:#c3b8ac!important}
+input,select,textarea{color:#ddd4ca!important;background:linear-gradient(180deg,#0f1419,#090d11)!important;border:1px solid #434a51!important;border-radius:7px!important;box-shadow:inset 0 2px 5px rgba(0,0,0,.5)!important}
+input::placeholder,textarea::placeholder{color:#756f69!important}
+.primary{color:#17110a!important;border:1px solid #bd8a37!important;border-radius:7px!important;background:linear-gradient(180deg,#d8a13f,#8c5b1e)!important;box-shadow:inset 0 1px 0 rgba(255,235,190,.5),0 3px 0 #3a220b,0 6px 12px rgba(0,0,0,.28)!important}
+.secondary{color:#d9c9b6!important;border:1px solid #4d5359!important;background:linear-gradient(180deg,#242a31,#11161b)!important}
+.danger{color:#e16b63!important;border:1px solid #a83232!important;border-radius:7px!important;background:linear-gradient(180deg,#651818,#2e0909)!important;box-shadow:inset 0 1px 0 rgba(255,132,120,.14),0 3px 0 #160303,0 6px 10px rgba(0,0,0,.25)!important}
+.item{border:1px solid #3f464d!important;border-radius:8px!important;padding:13px!important;background:linear-gradient(180deg,#151a20,#0d1115)!important}
+.item-title{font-size:18px!important;font-weight:800!important;color:#d3c7bb!important}.meta{font-size:19px!important;line-height:1.55!important;color:#c8bbb0!important}.content{font-size:20px!important;line-height:1.62!important;color:#ddd1c5!important}
+#customerGroupList > .item > .item-head .item-title{font-size:17px!important;color:#cabdae!important}#customerGroupList > .item > .meta{font-size:17px!important}#customerGroupList .item .meta,#customerGroupList .item .content{font-size:20px!important}#customerGroupList .item .content b{color:#d5a34e!important}
+.status,.sub,.muted{color:#a79b8f!important}
+@media(max-width:640px){.app{padding:8px 8px 30px}.brand-plaque{min-height:66px;padding:8px 10px}.brand-plaque h1{font-size:26px}.top-icon{height:44px;font-size:22px}.top-shell{grid-template-columns:44px 1fr 44px;gap:7px}.nav{gap:6px!important}.nav a{height:39px!important;min-height:39px!important;font-size:15px!important;padding:4px 5px!important}.kpi span{font-size:15px!important}.kpi b{font-size:24px!important}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{font-size:19px!important}.meta{font-size:18px!important}}
+</style>
+
+
+<style id="r16-lock-fix">
+/* R41：依鎖定預覽圖，只修正幾何比例與質感，不改功能邏輯 */
+:root{
+  --r16-black:#06080b;
+  --r16-black2:#0c1014;
+  --r16-gun:#141a20;
+  --r16-gun2:#20262d;
+  --r16-edge:#555b61;
+  --r16-gold:#d09a45;
+  --r16-gold2:#8d5a1e;
+  --r16-red:#731818;
+}
+
+/* 整體背景與內容密度 */
+html,body{background:#05070a!important}
+body{
+  background:
+    radial-gradient(circle at 50% -8%,rgba(100,108,118,.11),transparent 24%),
+    linear-gradient(180deg,#05070a 0%,#090d11 48%,#040608 100%)!important;
+}
+.app{padding:8px 8px 28px!important}
+
+/* 第一排：設定 / 鴻繽科技 CRM / 通知 */
+.top-shell{
+  grid-template-columns:44px minmax(0,1fr) 44px!important;
+  gap:7px!important;
+  margin-bottom:8px!important;
+}
+.brand-plaque{
+  min-height:64px!important;
+  height:64px!important;
+  padding:6px 10px!important;
+  border:1px solid #555b61!important;
+  background:
+    linear-gradient(155deg,rgba(255,255,255,.10),rgba(255,255,255,.015) 28%,transparent 29%),
+    linear-gradient(180deg,#262c33 0%,#151a20 50%,#0b0f13 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -3px 7px rgba(0,0,0,.65),
+    0 3px 0 #020304,
+    0 7px 14px rgba(0,0,0,.38)!important;
+}
+.brand-plaque h1{
+  font-size:25px!important;
+  white-space:nowrap!important;
+  color:#bdb7ae!important;
+  letter-spacing:.2px!important;
+}
+.brand-plaque h1 span{color:#d3a04e!important}
+.top-icon{
+  height:44px!important;
+  width:44px!important;
+  font-size:21px!important;
+  border-radius:7px!important;
+}
+
+/* 第二排：KPI 永遠單排三格，不允許第三格掉行 */
+.app > .card:first-of-type{
+  padding:4px 7px!important;
+  margin:0 0 7px!important;
+  min-height:58px!important;
+}
+.kpis{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:1fr!important;
+  gap:0!important;
+  margin:0!important;
+}
+.kpis .kpi,
+.kpis .kpi:last-child{
+  grid-column:auto!important;
+  min-width:0!important;
+  min-height:50px!important;
+  padding:5px 4px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+}
+.kpi span{font-size:14px!important;line-height:1.05!important}
+.kpi b{font-size:23px!important;line-height:1!important;margin-top:2px!important}
+
+/* 第三、四排：固定兩排 x 三個，高度再收斂，讓下面操作區上移 */
+.nav{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-rows:36px!important;
+  gap:5px!important;
+  padding:5px 0 7px!important;
+}
+.nav a{
+  height:36px!important;
+  min-height:36px!important;
+  padding:3px 4px!important;
+  font-size:14px!important;
+  line-height:1!important;
+  gap:5px!important;
+  border-radius:6px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  background:
+    linear-gradient(155deg,rgba(255,255,255,.08),transparent 26%),
+    linear-gradient(180deg,#222931,#10151a 55%,#0a0e12 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15),
+    inset 0 -2px 5px rgba(0,0,0,.55),
+    0 2px 0 #020304,
+    0 5px 9px rgba(0,0,0,.28)!important;
+}
+
+/* 下方實際操作區：加高視覺重量、字放大，不浪費上方省下來的空間 */
+.panel{scroll-margin-top:92px!important}
+.card{
+  margin-bottom:10px!important;
+  padding:14px!important;
+}
+.section-title{
+  font-size:22px!important;
+  margin-bottom:12px!important;
+  color:#d2a04c!important;
+}
+label{
+  font-size:17px!important;
+  margin-bottom:6px!important;
+  color:#c5bbb0!important;
+}
+input,select,textarea{
+  font-size:19px!important;
+  padding:13px!important;
+  min-height:49px!important;
+}
+textarea{min-height:120px!important}
+.primary{font-size:18px!important;padding:13px!important}
+
+/* 紀錄區：小標題略小，真正內容放大 */
+.item{padding:12px!important;margin-top:9px!important}
+.item-title{font-size:17px!important}
+.meta{font-size:19px!important;line-height:1.58!important}
+.content{font-size:20px!important;line-height:1.62!important}
+#customerGroupList > .item > .item-head .item-title{font-size:16px!important}
+#customerGroupList > .item > .meta{font-size:16px!important}
+#customerGroupList .item .meta,
+#customerGroupList .item .content{font-size:20px!important}
+
+/* 禁止任何舊版白色背景殘留 */
+.nav,.card,.kpi,.item,.copybox{background-color:transparent!important}
+.copybox{
+  color:#d4cbc1!important;
+  border-color:#434950!important;
+  background:linear-gradient(180deg,#11161b,#090d11)!important;
+}
+
+/* 小螢幕仍維持與鎖定稿相同：KPI 3欄、功能鍵 3欄 */
+@media(max-width:640px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .kpis .kpi:last-child{grid-column:auto!important}
+  .nav{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:34px!important}
+  .nav a{height:34px!important;min-height:34px!important;font-size:13px!important}
+  .brand-plaque h1{font-size:24px!important}
+  .content{font-size:19px!important}
+  .meta{font-size:18px!important}
+}
+</style>
+
+
+
+
+<style id="r19-clean-metal">
+:root{
+  --bg0:#020405;
+  --bg1:#070a0d;
+  --gun0:#0a0d10;
+  --gun1:#11161b;
+  --gun2:#1a2026;
+  --edge:#5a6065;
+  --edge2:#2b3034;
+  --gold:#d0a25b;
+  --gold2:#8b5b1b;
+  --red:#7e1714;
+  --red2:#300605;
+  --text:#d8d0c7;
+  --muted:#a89f95;
+}
+html,body{background:#020405!important;color:var(--text)!important}
+body{
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(95,104,114,.14),transparent 30%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.012) 0 1px,rgba(0,0,0,.012) 1px 3px),
+    linear-gradient(180deg,#020405,#080b0e 45%,#020405)!important;
+  font-family:"PingFang TC","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.app{max-width:900px!important;margin:auto!important;padding:7px 8px 28px!important}
+
+/* unified clean metal surface */
+.brand-plaque,.top-icon,.app>.card:first-of-type,.nav a,.card,.item,.primary,.secondary,.danger{
+  position:relative;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.018) 18%,rgba(0,0,0,.16) 62%,rgba(0,0,0,.44)),
+    repeating-linear-gradient(105deg,rgba(255,255,255,.018) 0 1px,rgba(0,0,0,.018) 1px 4px),
+    linear-gradient(180deg,#1a2026 0%,#10151a 58%,#090d10 100%)!important;
+  border:1px solid var(--edge)!important;
+  border-radius:4px!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -3px 5px rgba(0,0,0,.70),
+    inset 2px 0 0 rgba(255,255,255,.03),
+    inset -2px 0 0 rgba(0,0,0,.40),
+    0 2px 0 #1d2023,
+    0 4px 0 #000,
+    0 8px 14px rgba(0,0,0,.40)!important;
+}
+.brand-plaque,.app>.card:first-of-type,.nav a,.card,.item{
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+}
+
+/* header */
+.top-shell{
+  grid-template-columns:44px minmax(0,1fr) 44px!important;
+  gap:8px!important;
+  margin:0 0 8px!important;
+}
+.top-icon{
+  width:44px!important;height:44px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font-size:21px!important;
+}
+.brand-plaque{
+  height:64px!important;min-height:64px!important;padding:6px 10px!important;
+}
+.brand-plaque h1{
+  margin:0!important;font-size:25px!important;line-height:1!important;font-weight:900!important;
+  white-space:nowrap!important;letter-spacing:.1px!important;color:#c9c3bc!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.28),0 2px 0 #6b6b6b,0 4px 1px #222,0 6px 7px #000!important;
+}
+.brand-plaque h1 span{
+  color:#d2a14f!important;
+  text-shadow:0 1px 0 rgba(255,226,160,.42),0 2px 0 #704819,0 4px 6px #000!important;
+}
+
+/* KPI locked as one compact row */
+.app>.card:first-of-type{
+  min-height:70px!important;padding:5px 4px!important;margin:0 0 8px!important;
+}
+.kpis{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:1fr!important;gap:0!important;margin:0!important;
+}
+.kpis .kpi,.kpis .kpi:last-child{
+  grid-column:auto!important;min-width:0!important;min-height:58px!important;padding:4px 2px!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  background:none!important;box-shadow:none!important;border:0!important;border-right:1px solid #454a4f!important;border-radius:0!important;
+}
+.kpis .kpi:last-child{border-right:0!important}
+.kpi span{font-size:15px!important;line-height:1.05!important;color:#cec6bd!important}
+.kpi b{
+  font-size:24px!important;line-height:1!important;margin-top:3px!important;color:#cb913d!important;
+  text-shadow:0 1px 0 rgba(255,225,160,.35),0 3px 4px #000!important;
+}
+
+/* exactly 2 rows x 3, compact */
+.nav{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-rows:40px!important;gap:6px!important;padding:5px 0 8px!important;
+  background:transparent!important;position:sticky!important;top:0!important;z-index:20!important;
+}
+.nav a{
+  min-height:40px!important;height:40px!important;padding:3px 5px!important;
+  font-size:13.5px!important;font-weight:800!important;line-height:1!important;gap:5px!important;color:#d8d1c8!important;
+}
+.nav a:nth-child(1){box-shadow:inset 0 -2px 0 #315e72,0 2px 0 #1d2023,0 4px 0 #000,0 8px 14px rgba(0,0,0,.40)!important}
+.nav a:nth-child(4){box-shadow:inset 0 -2px 0 #8e641f,0 2px 0 #1d2023,0 4px 0 #000,0 8px 14px rgba(0,0,0,.40)!important}
+.nav a:nth-child(5),.nav a:nth-child(6){box-shadow:inset 0 -2px 0 #6f1a17,0 2px 0 #1d2023,0 4px 0 #000,0 8px 14px rgba(0,0,0,.40)!important}
+
+/* content */
+.panel{scroll-margin-top:90px!important}
+.card{margin-bottom:10px!important;padding:12px!important}
+.section-title{
+  font-size:21px!important;margin:0 0 10px!important;color:#d2a04c!important;
+  text-shadow:0 2px 3px #000!important;
+}
+label{font-size:17px!important;color:#cec4ba!important}
+input,textarea,select{
+  color:#d8d0c7!important;
+  background:
+    linear-gradient(180deg,#0b0f12,#050709)!important;
+  border:1px solid #474d52!important;border-radius:4px!important;
+  box-shadow:inset 0 2px 7px rgba(0,0,0,.86),0 1px 0 rgba(255,255,255,.025)!important;
+  font-size:19px!important;padding:12px!important;
+}
+input::placeholder,textarea::placeholder{color:#716a63!important}
+textarea{min-height:112px!important}
+
+/* red metal CTA matching locked visual */
+.primary{
+  color:#d9b96f!important;border-color:#9a6523!important;
+  background:
+    linear-gradient(180deg,rgba(128,28,23,.92),rgba(48,6,5,.98)),
+    repeating-linear-gradient(105deg,rgba(255,255,255,.015) 0 1px,rgba(0,0,0,.015) 1px 4px)!important;
+  text-shadow:0 2px 3px #000!important;
+}
+.danger{
+  color:#eb6d62!important;border-color:#a82923!important;
+  background:linear-gradient(180deg,#6d1713,#2c0504)!important;
+}
+.secondary{color:#d0c3b4!important}
+
+/* record typography */
+.item{padding:11px!important;margin-top:8px!important}
+.item-title{font-size:16px!important;color:#cfc3b6!important}
+.meta{font-size:19px!important;line-height:1.55!important;color:#c9bcad!important}
+.content{font-size:20px!important;line-height:1.62!important;color:#dfd6cc!important}
+#customerGroupList>.item>.item-head .item-title{font-size:15px!important}
+#customerGroupList>.item>.meta{font-size:15px!important}
+#customerGroupList .item .meta,#customerGroupList .item .content{font-size:20px!important}
+
+/* kill every possible legacy white surface */
+.nav,.kpi,.copybox{background-color:transparent!important}
+.copybox{
+  color:#d7cec4!important;background:linear-gradient(180deg,#0b0f12,#050709)!important;
+  border:1px solid #474d52!important;
+}
+
+@media(max-width:640px){
+  .app{padding:7px 8px 24px!important}
+  .top-shell{grid-template-columns:42px minmax(0,1fr) 42px!important;gap:7px!important}
+  .top-icon{width:42px!important;height:42px!important}
+  .brand-plaque{height:61px!important;min-height:61px!important}
+  .brand-plaque h1{font-size:23px!important}
+  .app>.card:first-of-type{min-height:66px!important;padding:4px 3px!important}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .kpis .kpi:last-child{grid-column:auto!important}
+  .nav{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:37px!important}
+  .nav a{height:37px!important;min-height:37px!important;font-size:13px!important}
+  .meta{font-size:18px!important}.content{font-size:19px!important}
+}
+</style>
+
+
+<style id="r20-locked-industrial">
+/* R41：依鎖定參考圖重建更完整的工業金屬層次。只改視覺，不改功能邏輯。 */
+:root{
+  --bg:#030507;
+  --bg2:#080b0f;
+  --metal0:#080b0e;
+  --metal1:#11161b;
+  --metal2:#1b2127;
+  --metal3:#2a3036;
+  --edge:#70757a;
+  --edgeDark:#202428;
+  --gold:#d3a258;
+  --gold2:#9b641e;
+  --red:#8a1814;
+  --red2:#3b0705;
+  --ivory:#ded6cd;
+  --muted:#a89f96;
+}
+
+/* ---------- global ---------- */
+html,body{
+  background:
+    radial-gradient(ellipse at 50% -8%,rgba(115,125,136,.16),transparent 30%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.012) 0 1px,rgba(0,0,0,.012) 1px 4px),
+    linear-gradient(180deg,#020405 0%,#090d10 48%,#020405 100%)!important;
+  color:var(--ivory)!important;
+}
+body{
+  font-family:"PingFang TC","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.app{max-width:900px!important;margin:auto!important;padding:7px 8px 28px!important}
+.system-hidden{display:none!important}
+
+/* industrial panel recipe */
+.brand-plaque,
+.top-icon,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  border:1px solid var(--edge)!important;
+  border-radius:2px!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.012) 20%,rgba(0,0,0,.12) 60%,rgba(0,0,0,.46)),
+    repeating-linear-gradient(105deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.016) 1px 4px),
+    linear-gradient(180deg,var(--metal3) 0%,var(--metal1) 48%,var(--metal0) 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -3px 0 rgba(0,0,0,.80),
+    inset 2px 0 0 rgba(255,255,255,.03),
+    inset -2px 0 0 rgba(0,0,0,.45),
+    0 2px 0 #2b2f33,
+    0 4px 0 #000,
+    0 9px 18px rgba(0,0,0,.42)!important;
+}
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)!important;
+}
+
+/* brushed metal + corner bolts */
+.brand-plaque::before,
+.top-icon::before,
+.app>.card:first-of-type::before,
+.nav a::before,
+.card::before,
+.item::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:-1!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 9px 9px,#9aa0a5 0 1px,#3b4045 2px,#0b0d10 3px,transparent 4px),
+    radial-gradient(circle at calc(100% - 9px) 9px,#9aa0a5 0 1px,#3b4045 2px,#0b0d10 3px,transparent 4px),
+    radial-gradient(circle at 9px calc(100% - 9px),#9aa0a5 0 1px,#3b4045 2px,#0b0d10 3px,transparent 4px),
+    radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#9aa0a5 0 1px,#3b4045 2px,#0b0d10 3px,transparent 4px),
+    linear-gradient(135deg,rgba(255,255,255,.08),transparent 24%);
+  opacity:.95!important;
+}
+.brand-plaque::after,
+.app>.card:first-of-type::after,
+.nav a::after,
+.card::after,
+.item::after{
+  content:""!important;
+  position:absolute!important;
+  inset:4px!important;
+  border:1px solid rgba(255,255,255,.035)!important;
+  clip-path:inherit!important;
+  pointer-events:none!important;
+}
+
+/* ---------- top title ---------- */
+.top-shell{
+  grid-template-columns:46px minmax(0,1fr) 46px!important;
+  gap:8px!important;
+  margin:0 0 9px!important;
+}
+.top-icon{
+  width:46px!important;height:46px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font-size:22px!important;
+  border-color:#676c71!important;
+  background:
+    linear-gradient(180deg,#23292f,#0c1014)!important;
+}
+.brand-plaque{
+  height:70px!important;
+  min-height:70px!important;
+  padding:6px 14px!important;
+  border-color:#777b80!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.02) 18%,rgba(0,0,0,.20) 68%,rgba(0,0,0,.52)),
+    repeating-linear-gradient(105deg,rgba(255,255,255,.018) 0 1px,rgba(0,0,0,.018) 1px 4px),
+    linear-gradient(180deg,#2d3339,#171c21 52%,#090d10)!important;
+}
+.brand-plaque h1{
+  margin:0!important;
+  white-space:nowrap!important;
+  font-size:27px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  letter-spacing:.2px!important;
+  color:#c9c2ba!important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.45),
+    0 2px 0 #6a6a6a,
+    0 4px 1px #1c1c1c,
+    0 6px 8px #000!important;
+}
+.brand-plaque h1 span{
+  color:#d3a154!important;
+  text-shadow:
+    0 1px 0 rgba(255,226,160,.55),
+    0 2px 0 #754a16,
+    0 4px 6px #000!important;
+}
+.brand-plaque{border-bottom-color:#6f2a20!important}
+.brand-plaque::after{box-shadow:inset 0 -2px 0 rgba(160,25,18,.55)!important}
+
+/* ---------- KPI strip ---------- */
+.app>.card:first-of-type{
+  min-height:76px!important;
+  padding:6px 8px!important;
+  margin:0 0 9px!important;
+  border-color:#676c71!important;
+}
+.kpis{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:1fr!important;
+  gap:0!important;
+  margin:0!important;
+}
+.kpis .kpi,
+.kpis .kpi:last-child{
+  grid-column:auto!important;
+  min-width:0!important;
+  min-height:62px!important;
+  padding:5px 3px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:0!important;
+  border-right:1px solid #51565b!important;
+  border-radius:0!important;
+  background:none!important;
+  box-shadow:none!important;
+}
+.kpis .kpi:last-child{border-right:0!important}
+.kpi span{font-size:15px!important;line-height:1.05!important;color:#d3cbc2!important}
+.kpi b{
+  font-size:25px!important;
+  line-height:1!important;
+  margin-top:4px!important;
+  color:#d09a43!important;
+  text-shadow:0 1px 0 rgba(255,225,160,.35),0 3px 5px #000!important;
+}
+
+/* ---------- 6 metal shortcut buttons ---------- */
+.nav{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-rows:47px!important;
+  gap:7px!important;
+  padding:6px 0 9px!important;
+  background:transparent!important;
+  position:sticky!important;
+  top:0!important;
+  z-index:20!important;
+}
+.nav a{
+  min-height:47px!important;
+  height:47px!important;
+  padding:4px 6px!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  gap:6px!important;
+  color:#ddd6ce!important;
+  border-color:#656a70!important;
+}
+.nav a:nth-child(1){box-shadow:inset 0 -2px 0 #2f718f,0 2px 0 #2b2f33,0 4px 0 #000,0 9px 18px rgba(0,0,0,.42)!important}
+.nav a:nth-child(4){box-shadow:inset 0 -2px 0 #a46f20,0 2px 0 #2b2f33,0 4px 0 #000,0 9px 18px rgba(0,0,0,.42)!important}
+.nav a:nth-child(5),.nav a:nth-child(6){box-shadow:inset 0 -2px 0 #7d1d19,0 2px 0 #2b2f33,0 4px 0 #000,0 9px 18px rgba(0,0,0,.42)!important}
+
+/* ---------- content panels ---------- */
+.panel{scroll-margin-top:98px!important}
+.card{
+  margin-bottom:11px!important;
+  padding:13px!important;
+  border-color:#5e6368!important;
+}
+.section-title{
+  position:relative!important;
+  display:inline-block!important;
+  margin:0 0 13px!important;
+  padding:7px 18px 7px 12px!important;
+  font-size:21px!important;
+  line-height:1!important;
+  color:#d8aa58!important;
+  text-shadow:0 2px 4px #000!important;
+  background:
+    linear-gradient(180deg,#3a1613,#190806)!important;
+  border:1px solid #8a3a2d!important;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,155,110,.13),
+    inset 0 -2px 0 rgba(0,0,0,.55),
+    0 2px 0 #130302,
+    0 5px 10px rgba(0,0,0,.28)!important;
+}
+label{
+  font-size:17px!important;
+  color:#d0c7be!important;
+}
+input,textarea,select{
+  color:#ddd5cc!important;
+  background:
+    linear-gradient(180deg,#0c1013,#050709)!important;
+  border:1px solid #4b5156!important;
+  border-radius:3px!important;
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,.90),
+    inset 0 0 0 1px rgba(255,255,255,.018)!important;
+  font-size:19px!important;
+  padding:12px!important;
+}
+input::placeholder,textarea::placeholder{color:#736c65!important}
+textarea{min-height:118px!important}
+
+/* CTA metal red */
+.primary{
+  color:#d9b86e!important;
+  border:1px solid #9c6826!important;
+  border-radius:3px!important;
+  background:
+    linear-gradient(180deg,#741c17,#2b0705)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,130,100,.16),
+    inset 0 -2px 0 rgba(0,0,0,.65),
+    0 2px 0 #1a0302,
+    0 5px 11px rgba(0,0,0,.35)!important;
+  text-shadow:0 2px 3px #000!important;
+}
+.secondary{
+  color:#d1c4b5!important;
+  border:1px solid #575c61!important;
+  background:linear-gradient(180deg,#22282e,#0d1114)!important;
+}
+.danger{
+  color:#ef7065!important;
+  border:1px solid #a92b25!important;
+  background:linear-gradient(180deg,#6f1814,#2e0504)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,130,115,.15),
+    inset 0 -2px 0 rgba(0,0,0,.6),
+    0 2px 0 #160302,
+    0 5px 10px rgba(0,0,0,.33)!important;
+}
+
+/* ---------- list cards ---------- */
+.item{
+  padding:12px!important;
+  margin-top:9px!important;
+  border-color:#5b6065!important;
+}
+.item-title{
+  font-size:16px!important;
+  color:#d3c7ba!important;
+}
+.meta{
+  font-size:19px!important;
+  line-height:1.55!important;
+  color:#cdbfaf!important;
+}
+.content{
+  font-size:20px!important;
+  line-height:1.62!important;
+  color:#e2d9d0!important;
+}
+#customerGroupList>.item>.item-head .item-title{font-size:15px!important}
+#customerGroupList>.item>.meta{font-size:15px!important}
+#customerGroupList .item .meta,
+#customerGroupList .item .content{font-size:20px!important}
+
+/* Remove every legacy white surface */
+.kpi,.nav,.copybox{background-color:transparent!important}
+.copybox{
+  color:#d7cec4!important;
+  background:linear-gradient(180deg,#0b0f12,#050709)!important;
+  border:1px solid #4a5055!important;
+}
+
+/* ---------- small-screen lock ---------- */
+@media(max-width:640px){
+  .app{padding:7px 8px 24px!important}
+  .top-shell{grid-template-columns:42px minmax(0,1fr) 42px!important;gap:7px!important}
+  .top-icon{width:42px!important;height:42px!important}
+  .brand-plaque{height:62px!important;min-height:62px!important}
+  .brand-plaque h1{font-size:23px!important}
+  .app>.card:first-of-type{min-height:68px!important;padding:4px 4px!important}
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .kpis .kpi:last-child{grid-column:auto!important}
+  .nav{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:43px!important}
+  .nav a{height:43px!important;min-height:43px!important;font-size:13.5px!important}
+  .meta{font-size:18px!important}
+  .content{font-size:19px!important}
+}
+</style>
+
+
+<style id="r21-depth-pass">
+/* R41：針對 R41 實機與鎖定圖差距做第二層立體深化。
+   不改功能、不改按鈕數量、不改 KPI 幾何。 */
+
+/* 1) 主內容不要灰：壓回接近鎖定圖的近黑槍灰 */
+.card{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.008) 18%,rgba(0,0,0,.18) 55%,rgba(0,0,0,.58)),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.012) 0 1px,rgba(0,0,0,.015) 1px 4px),
+    linear-gradient(180deg,#151a1f 0%,#0d1115 52%,#06080a 100%)!important;
+}
+
+/* 2) 所有主要框增加真正的雙層金屬邊與下陷深度 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  outline:1px solid #14181b!important;
+  outline-offset:-5px!important;
+}
+.brand-plaque::after,
+.app>.card:first-of-type::after,
+.nav a::after,
+.card::after,
+.item::after{
+  inset:5px!important;
+  border:1px solid rgba(188,194,199,.07)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 0 rgba(0,0,0,.55)!important;
+}
+
+/* 3) 頂部銘牌增加金屬邊、下方紅光與厚度 */
+.brand-plaque{
+  border-color:#7a7e82!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -4px 7px rgba(0,0,0,.78),
+    0 2px 0 #3a3e42,
+    0 5px 0 #090b0d,
+    0 7px 0 #000,
+    0 10px 18px rgba(0,0,0,.46),
+    0 12px 16px rgba(122,14,10,.12)!important;
+}
+.brand-plaque::before{
+  background:
+    radial-gradient(circle at 9px 9px,#aaa 0 1px,#3d4247 2px,#0c0e11 3px,transparent 4px),
+    radial-gradient(circle at calc(100% - 9px) 9px,#aaa 0 1px,#3d4247 2px,#0c0e11 3px,transparent 4px),
+    linear-gradient(180deg,transparent 0 88%,rgba(164,25,18,.8) 89% 91%,transparent 92%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 1px,rgba(0,0,0,.02) 1px 4px)!important;
+}
+
+/* 4) KPI 外框更像一整條金屬儀表板 */
+.app>.card:first-of-type{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.008) 16%,rgba(0,0,0,.30) 72%),
+    repeating-linear-gradient(108deg,rgba(255,255,255,.012) 0 1px,rgba(0,0,0,.017) 1px 4px),
+    linear-gradient(180deg,#171c21,#090c0f)!important;
+}
+.kpis .kpi{
+  position:relative!important;
+}
+.kpis .kpi:not(:last-child)::after{
+  content:""!important;
+  position:absolute!important;
+  right:-1px!important;
+  top:9px!important;
+  bottom:9px!important;
+  width:1px!important;
+  background:linear-gradient(180deg,transparent,#6b7075 18%,#262a2e 82%,transparent)!important;
+}
+
+/* 5) 六顆功能鍵：厚一點但不改高度，增加金屬切面與底部色光 */
+.nav a{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.11),transparent 22%),
+    linear-gradient(180deg,#252b31 0%,#14191e 48%,#080b0e 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.23),
+    inset 0 -3px 5px rgba(0,0,0,.75),
+    0 2px 0 #34383c,
+    0 4px 0 #050607,
+    0 7px 10px rgba(0,0,0,.42)!important;
+}
+.nav a:nth-child(1)::after{box-shadow:inset 0 -2px 0 #2f718f!important}
+.nav a:nth-child(4)::after{box-shadow:inset 0 -2px 0 #9b6d23!important}
+.nav a:nth-child(5)::after,
+.nav a:nth-child(6)::after{box-shadow:inset 0 -2px 0 #81211c!important}
+
+/* 6) 標題條更接近鎖定圖：黑金屬主體 + 暗紅切角 */
+.section-title{
+  display:block!important;
+  width:max-content!important;
+  max-width:100%!important;
+  min-width:180px!important;
+  padding:8px 28px 8px 14px!important;
+  color:#d7a958!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),transparent 20%),
+    linear-gradient(90deg,#11161b 0%,#11161b 72%,#45100d 100%)!important;
+  border:1px solid #5e6266!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 0 rgba(0,0,0,.65),
+    0 2px 0 #050607,
+    0 5px 10px rgba(0,0,0,.32)!important;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%)!important;
+}
+
+/* 7) 表單框體減少「普通網頁 input」感 */
+input,textarea,select{
+  border-color:#596068!important;
+  background:
+    linear-gradient(180deg,#090c0f,#030405)!important;
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,.92),
+    inset 0 0 0 1px rgba(255,255,255,.018),
+    0 1px 0 rgba(255,255,255,.025)!important;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:#9a6b28!important;
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,.92),
+    0 0 0 1px rgba(210,155,70,.18),
+    0 0 10px rgba(125,73,14,.10)!important;
+}
+
+/* 8) 紅色 CTA 做出厚金屬邊，不再像一般矩形按鈕 */
+.primary{
+  border-color:#b17628!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.05),transparent 15%),
+    linear-gradient(180deg,#761c17 0%,#4b0e0b 45%,#240403 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,184,140,.16),
+    inset 0 -3px 0 rgba(0,0,0,.72),
+    0 2px 0 #6a4316,
+    0 4px 0 #180302,
+    0 7px 12px rgba(0,0,0,.40)!important;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)!important;
+}
+
+/* 9) 內容空間收緊，避免整個操作區看起來鬆散 */
+.grid{gap:10px!important}
+label{margin-bottom:5px!important}
+input,select{min-height:48px!important}
+.card{padding:11px!important}
+.section-title{margin-bottom:11px!important}
+
+/* 10) iPhone 寬度下仍維持鎖定版密度 */
+@media(max-width:640px){
+  .brand-plaque h1{font-size:24px!important}
+  .section-title{font-size:20px!important;min-width:168px!important}
+  .nav a{font-size:13px!important}
+  .card{padding:10px!important}
+}
+</style>
+
+
+<style id="r22-precision-metal">
+/* R41：在 R41 基礎上深化「鎖定圖」的金屬厚度、切角、光影與暗紅/金色細節。
+   不改資料、不改功能、不改 3+3 功能鍵與 KPI 結構。 */
+
+:root{
+  --r22-steel-hi:#7c8186;
+  --r22-steel-mid:#353b40;
+  --r22-steel-lo:#0a0d10;
+  --r22-gold:#d6a45b;
+  --r22-gold-dark:#704613;
+  --r22-red:#8b1c16;
+  --r22-red-dark:#2b0504;
+}
+
+/* 更深的背景，讓金屬面板浮起來 */
+body{
+  background:
+    radial-gradient(ellipse at 50% -3%,rgba(119,128,139,.13),transparent 26%),
+    radial-gradient(ellipse at 50% 40%,rgba(40,45,50,.08),transparent 42%),
+    repeating-linear-gradient(112deg,rgba(255,255,255,.010) 0 1px,rgba(0,0,0,.012) 1px 4px),
+    linear-gradient(180deg,#010203 0%,#06090c 44%,#010203 100%)!important;
+}
+
+/* 共用：增加外框第二層高光與厚度 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  border-color:#646a6f!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -3px 0 rgba(0,0,0,.82),
+    inset 2px 0 0 rgba(255,255,255,.035),
+    inset -2px 0 0 rgba(0,0,0,.46),
+    0 1px 0 #7b8084,
+    0 3px 0 #262a2e,
+    0 5px 0 #000,
+    0 10px 18px rgba(0,0,0,.48)!important;
+}
+
+/* 內框不再只是細線，做出「凹槽」 */
+.brand-plaque::after,
+.app>.card:first-of-type::after,
+.nav a::after,
+.card::after,
+.item::after{
+  inset:5px!important;
+  border:1px solid rgba(188,194,199,.09)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -2px 0 rgba(0,0,0,.68),
+    0 0 0 1px rgba(0,0,0,.45)!important;
+}
+
+/* 鉚釘更接近參考圖 */
+.brand-plaque::before,
+.top-icon::before,
+.app>.card:first-of-type::before,
+.nav a::before,
+.card::before,
+.item::before{
+  background:
+    radial-gradient(circle at 10px 10px,#b8bdc1 0 1px,#656a6e 1.5px,#24282c 2.5px,#07090b 3.5px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px,#b8bdc1 0 1px,#656a6e 1.5px,#24282c 2.5px,#07090b 3.5px,transparent 4.5px),
+    radial-gradient(circle at 10px calc(100% - 10px),#b8bdc1 0 1px,#656a6e 1.5px,#24282c 2.5px,#07090b 3.5px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#b8bdc1 0 1px,#656a6e 1.5px,#24282c 2.5px,#07090b 3.5px,transparent 4.5px),
+    linear-gradient(135deg,rgba(255,255,255,.07),transparent 24%)!important;
+}
+
+/* 標題銘牌：加金屬金邊和底部紅光 */
+.brand-plaque{
+  border-color:#7a7f84!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.018) 18%,rgba(0,0,0,.18) 62%,rgba(0,0,0,.55)),
+    repeating-linear-gradient(108deg,rgba(255,255,255,.019) 0 1px,rgba(0,0,0,.019) 1px 4px),
+    linear-gradient(180deg,#2e343a 0%,#161b20 52%,#080b0e 100%)!important;
+}
+.brand-plaque::after{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -2px 0 rgba(166,25,18,.82),
+    0 0 0 1px rgba(0,0,0,.45)!important;
+}
+.brand-plaque h1{
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.52),
+    0 2px 0 #737373,
+    0 3px 0 #4a4a4a,
+    0 5px 2px #151515,
+    0 7px 9px #000!important;
+}
+.brand-plaque h1 span{
+  color:#d6a352!important;
+  text-shadow:
+    0 1px 0 rgba(255,230,170,.62),
+    0 2px 0 #7a4f16,
+    0 4px 1px #3b2309,
+    0 6px 7px #000!important;
+}
+
+/* KPI 儀表列：底部加入金/紅弱光 */
+.app>.card:first-of-type{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.008) 15%,rgba(0,0,0,.32) 74%),
+    linear-gradient(180deg,#171c21,#080b0e)!important;
+}
+.kpi b{
+  text-shadow:
+    0 1px 0 rgba(255,228,164,.45),
+    0 2px 0 #6d4717,
+    0 4px 5px #000!important;
+}
+
+/* 功能鍵：比 R41 更像厚實獨立金屬鍵，但高度不變 */
+.nav a{
+  background:
+    linear-gradient(150deg,rgba(255,255,255,.12),transparent 21%),
+    linear-gradient(180deg,#292f35 0%,#151a1f 50%,#070a0d 100%)!important;
+}
+.nav a::after{
+  inset:4px!important;
+}
+.nav a:nth-child(1)::after{
+  box-shadow:inset 0 -2px 0 #2d6f8b,0 0 0 1px rgba(0,0,0,.5)!important;
+}
+.nav a:nth-child(4)::after{
+  box-shadow:inset 0 -2px 0 #a26d22,0 0 0 1px rgba(0,0,0,.5)!important;
+}
+.nav a:nth-child(5)::after,
+.nav a:nth-child(6)::after{
+  box-shadow:inset 0 -2px 0 #81201c,0 0 0 1px rgba(0,0,0,.5)!important;
+}
+
+/* 主內容卡片：不要大片灰，改回近黑帶金屬層次 */
+.card{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.006) 18%,rgba(0,0,0,.22) 52%,rgba(0,0,0,.62)),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.011) 0 1px,rgba(0,0,0,.014) 1px 4px),
+    linear-gradient(180deg,#14191e 0%,#0b0f12 54%,#050709 100%)!important;
+}
+
+/* 標題牌更像鎖定圖：深黑主體 + 暗紅右切角 */
+.section-title{
+  color:#d8a755!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),transparent 19%),
+    linear-gradient(90deg,#12171c 0%,#12171c 72%,#5b120e 100%)!important;
+  border-color:#6a6f73!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -2px 0 rgba(0,0,0,.70),
+    0 2px 0 #303438,
+    0 4px 0 #000,
+    0 7px 11px rgba(0,0,0,.35)!important;
+}
+
+/* 表單框：增加金屬邊框層次 */
+input,textarea,select{
+  border-color:#555d64!important;
+  background:
+    linear-gradient(180deg,#090c0f 0%,#030405 100%)!important;
+  box-shadow:
+    inset 0 3px 9px rgba(0,0,0,.94),
+    inset 0 0 0 1px rgba(255,255,255,.018),
+    0 1px 0 rgba(255,255,255,.025),
+    0 0 0 1px rgba(0,0,0,.45)!important;
+}
+
+/* 新增按鈕：更厚、更暗紅、更金邊 */
+.primary{
+  color:#dcb96d!important;
+  border-color:#a87329!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.045),transparent 14%),
+    linear-gradient(180deg,#7f2019 0%,#4c0d0a 48%,#230403 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,193,145,.18),
+    inset 0 -3px 0 rgba(0,0,0,.76),
+    0 1px 0 #c18b3a,
+    0 3px 0 #593411,
+    0 5px 0 #150302,
+    0 9px 14px rgba(0,0,0,.42)!important;
+}
+
+/* 壓縮垂直空隙，讓畫面更接近鎖定圖的密度 */
+.grid{gap:9px!important}
+.card{padding:10px!important}
+.section-title{margin-bottom:9px!important}
+label{margin-bottom:4px!important}
+
+/* iPhone 上的比例再鎖緊一點 */
+@media(max-width:640px){
+  .brand-plaque{height:60px!important;min-height:60px!important}
+  .brand-plaque h1{font-size:23px!important}
+  .app>.card:first-of-type{min-height:66px!important}
+  .nav{grid-auto-rows:41px!important}
+  .nav a{height:41px!important;min-height:41px!important}
+}
+</style>
+
+
+<style id="r24-return-structure">
+/* R41：回到 R41（50分）骨架，只做結構級立體強化；不再換框架技術。 */
+
+:root{
+  --m0:#030506;
+  --m1:#0a0e11;
+  --m2:#14191e;
+  --m3:#23292f;
+  --edge:#646a70;
+  --edgeHi:#8b9095;
+  --gold:#d3a45b;
+  --goldDark:#7b4d17;
+  --red:#861914;
+  --redDark:#350604;
+  --text:#ddd5cc;
+}
+
+/* 全頁更黑，拉高面板對比 */
+html,body{
+  background:
+    radial-gradient(ellipse at 50% -4%,rgba(115,124,134,.11),transparent 28%),
+    repeating-linear-gradient(112deg,rgba(255,255,255,.009) 0 1px,rgba(0,0,0,.011) 1px 4px),
+    linear-gradient(180deg,#010203 0%,#06090c 45%,#010203 100%)!important;
+}
+.app{padding:7px 8px 26px!important}
+
+/* 共用金屬面板：保留 R41 骨架，只增加內外層次 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  position:relative!important;
+  border:1px solid #666c71!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.014) 16%,rgba(0,0,0,.16) 62%,rgba(0,0,0,.50)),
+    repeating-linear-gradient(108deg,rgba(255,255,255,.014) 0 1px,rgba(0,0,0,.016) 1px 4px),
+    linear-gradient(180deg,#1f252b 0%,#11161b 52%,#070a0d 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -3px 6px rgba(0,0,0,.72),
+    0 1px 0 #8a8f94,
+    0 3px 0 #2d3236,
+    0 5px 0 #000,
+    0 9px 16px rgba(0,0,0,.42)!important;
+}
+
+/* 內框 */
+.brand-plaque::after,
+.app>.card:first-of-type::after,
+.nav a::after,
+.card::after,
+.item::after{
+  content:""!important;
+  position:absolute!important;
+  inset:5px!important;
+  pointer-events:none!important;
+  border:1px solid rgba(205,210,214,.07)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 0 rgba(0,0,0,.62),
+    0 0 0 1px rgba(0,0,0,.38)!important;
+  clip-path:inherit!important;
+}
+
+/* 四角鉚釘 + 角落切面 */
+.brand-plaque::before,
+.app>.card:first-of-type::before,
+.nav a::before,
+.card::before,
+.item::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 10px 10px,#b3b8bd 0 1px,#62676c 1.5px,#24282c 2.5px,#080a0c 3.5px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px,#b3b8bd 0 1px,#62676c 1.5px,#24282c 2.5px,#080a0c 3.5px,transparent 4.5px),
+    radial-gradient(circle at 10px calc(100% - 10px),#b3b8bd 0 1px,#62676c 1.5px,#24282c 2.5px,#080a0c 3.5px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#b3b8bd 0 1px,#62676c 1.5px,#24282c 2.5px,#080a0c 3.5px,transparent 4.5px),
+    linear-gradient(135deg,rgba(255,255,255,.065),transparent 24%)!important;
+}
+
+/* 標題列 */
+.top-shell{
+  grid-template-columns:46px minmax(0,1fr) 46px!important;
+  gap:8px!important;
+  margin-bottom:8px!important;
+}
+.top-icon{
+  width:46px!important;height:46px!important;
+  font-size:22px!important;
+  border:1px solid #686e73!important;
+  border-radius:3px!important;
+  background:
+    linear-gradient(180deg,#252b31,#0b0f12)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -3px 6px rgba(0,0,0,.72),
+    0 2px 0 #383d41,
+    0 5px 0 #000,
+    0 8px 13px rgba(0,0,0,.42)!important;
+}
+.brand-plaque{
+  height:68px!important;min-height:68px!important;
+  padding:6px 14px!important;
+  border-color:#777d82!important;
+}
+.brand-plaque h1{
+  font-size:26px!important;
+  letter-spacing:.25px!important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.46),
+    0 2px 0 #737373,
+    0 3px 0 #4c4c4c,
+    0 5px 1px #1f1f1f,
+    0 7px 8px #000!important;
+}
+.brand-plaque h1 span{
+  color:#d7a34e!important;
+  text-shadow:
+    0 1px 0 rgba(255,232,175,.56),
+    0 2px 0 #7a4f17,
+    0 4px 1px #392208,
+    0 6px 7px #000!important;
+}
+/* 底部紅光，不改版面尺寸 */
+.brand-plaque{border-bottom-color:#6f211b!important}
+.brand-plaque::after{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 0 rgba(118,18,13,.85),
+    0 0 0 1px rgba(0,0,0,.38)!important;
+}
+
+/* KPI 一排固定 */
+.app>.card:first-of-type{
+  min-height:72px!important;
+  padding:5px 5px!important;
+  margin-bottom:8px!important;
+}
+.kpis{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;
+}
+.kpis .kpi,
+.kpis .kpi:last-child{
+  min-height:58px!important;
+  grid-column:auto!important;
+  background:none!important;
+  box-shadow:none!important;
+  border:0!important;
+  border-right:1px solid #4f555a!important;
+  border-radius:0!important;
+}
+.kpis .kpi:last-child{border-right:0!important}
+.kpi span{font-size:15px!important;color:#d2cac1!important}
+.kpi b{
+  font-size:25px!important;
+  color:#d39a42!important;
+  text-shadow:
+    0 1px 0 rgba(255,225,160,.45),
+    0 2px 0 #6d4717,
+    0 4px 5px #000!important;
+}
+
+/* 功能鍵維持 2 x 3，不放大，只把立體感補足 */
+.nav{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-rows:42px!important;
+  gap:6px!important;
+  padding:5px 0 8px!important;
+}
+.nav a{
+  height:42px!important;min-height:42px!important;
+  padding:3px 5px!important;
+  font-size:13.5px!important;
+  background:
+    linear-gradient(150deg,rgba(255,255,255,.10),transparent 22%),
+    linear-gradient(180deg,#242a30 0%,#14191e 50%,#070a0d 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -3px 5px rgba(0,0,0,.74),
+    0 1px 0 #74797e,
+    0 3px 0 #2a2e32,
+    0 5px 0 #000,
+    0 8px 13px rgba(0,0,0,.40)!important;
+}
+.nav a:nth-child(1)::after{box-shadow:inset 0 -2px 0 #34718b,0 0 0 1px rgba(0,0,0,.4)!important}
+.nav a:nth-child(4)::after{box-shadow:inset 0 -2px 0 #a16c22,0 0 0 1px rgba(0,0,0,.4)!important}
+.nav a:nth-child(5)::after,
+.nav a:nth-child(6)::after{box-shadow:inset 0 -2px 0 #84201b,0 0 0 1px rgba(0,0,0,.4)!important}
+
+/* 主內容框：更黑，不再像灰色大卡片 */
+.card{
+  padding:10px!important;
+  margin-bottom:10px!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.005) 18%,rgba(0,0,0,.23) 55%,rgba(0,0,0,.62)),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.010) 0 1px,rgba(0,0,0,.014) 1px 4px),
+    linear-gradient(180deg,#12171c 0%,#090d10 56%,#040607 100%)!important;
+}
+
+/* 區塊標題：黑金屬 + 暗紅右切角 */
+.section-title{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-width:186px!important;
+  padding:8px 32px 8px 12px!important;
+  margin:0 0 10px!important;
+  font-size:21px!important;
+  color:#d8a755!important;
+  border:1px solid #62676c!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),transparent 18%),
+    linear-gradient(90deg,#12171b 0%,#12171b 70%,#54110d 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -2px 0 rgba(0,0,0,.70),
+    0 2px 0 #303438,
+    0 4px 0 #000,
+    0 7px 11px rgba(0,0,0,.34)!important;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%)!important;
+}
+
+/* 內嵌表單槽 */
+input,select,textarea{
+  border:1px solid #555d64!important;
+  border-radius:2px!important;
+  background:linear-gradient(180deg,#080b0e,#020304)!important;
+  box-shadow:
+    inset 0 4px 10px rgba(0,0,0,.95),
+    inset 0 0 0 1px rgba(255,255,255,.012),
+    0 1px 0 rgba(255,255,255,.025)!important;
+}
+input::placeholder,textarea::placeholder{color:#706962!important}
+
+/* 紅色 CTA 做厚金屬 */
+.primary{
+  color:#dcb96f!important;
+  border-color:#a87329!important;
+  border-radius:2px!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.045),transparent 14%),
+    linear-gradient(180deg,#7c1e18 0%,#4a0d0a 48%,#230403 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,194,150,.18),
+    inset 0 -3px 0 rgba(0,0,0,.76),
+    0 1px 0 #c08a3a,
+    0 3px 0 #5c3510,
+    0 5px 0 #150302,
+    0 8px 13px rgba(0,0,0,.42)!important;
+}
+
+/* 清除不必要空隙 */
+.grid{gap:9px!important}
+label{margin-bottom:4px!important}
+
+/* iPhone 比例鎖定 */
+@media(max-width:640px){
+  .top-shell{grid-template-columns:42px minmax(0,1fr) 42px!important;gap:7px!important}
+  .top-icon{width:42px!important;height:42px!important}
+  .brand-plaque{height:60px!important;min-height:60px!important}
+  .brand-plaque h1{font-size:23px!important}
+  .app>.card:first-of-type{min-height:66px!important}
+  .nav{grid-auto-rows:40px!important}
+  .nav a{height:40px!important;min-height:40px!important;font-size:13px!important}
+  .section-title{font-size:20px!important;min-width:174px!important}
+}
+</style>
+
+
+<style id="r25-no-floating-bars">
+/* R41：移除 R41 面板下方「浮空橫條」，保留厚重金屬感。
+   不改功能、不改 KPI、不改 2x3 功能鍵尺寸與排列。 */
+
+/* 1) 所有面板取消脫離框體的底部橫條，只保留貼框陰影 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -3px 6px rgba(0,0,0,.72),
+    inset 2px 0 0 rgba(255,255,255,.028),
+    inset -2px 0 0 rgba(0,0,0,.42),
+    0 2px 0 #272b2f,
+    0 5px 10px rgba(0,0,0,.38)!important;
+}
+
+/* 2) 取消 R41 造成橫條感的外部亮邊 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card,
+.item{
+  border-bottom-color:#4d5358!important;
+}
+
+/* 3) 標題框底部紅光改成「框內嵌光」，不再延伸到框外 */
+.brand-plaque{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -3px 6px rgba(0,0,0,.74),
+    inset 0 -5px 0 rgba(111,20,15,.62),
+    0 2px 0 #2b3034,
+    0 5px 10px rgba(0,0,0,.40)!important;
+}
+.brand-plaque::after{
+  inset:5px!important;
+  border:1px solid rgba(205,210,214,.07)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    inset 0 -2px 0 rgba(125,22,16,.78),
+    0 0 0 1px rgba(0,0,0,.36)!important;
+}
+
+/* 4) KPI 只保留完整單框，不再像框下面多一條底座 */
+.app>.card:first-of-type{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -3px 6px rgba(0,0,0,.72),
+    0 2px 0 #25292d,
+    0 5px 9px rgba(0,0,0,.36)!important;
+}
+
+/* 5) 六顆功能鍵：保留色光，但色光嵌在按鈕內，不在外面多一條 */
+.nav a{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.21),
+    inset 0 -3px 5px rgba(0,0,0,.73),
+    0 2px 0 #252a2e,
+    0 5px 9px rgba(0,0,0,.36)!important;
+}
+.nav a::after{
+  inset:4px!important;
+  border:1px solid rgba(205,210,214,.055)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -2px 0 #384047,
+    0 0 0 1px rgba(0,0,0,.38)!important;
+}
+.nav a:nth-child(1)::after{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -2px 0 #34718b,
+    0 0 0 1px rgba(0,0,0,.38)!important;
+}
+.nav a:nth-child(4)::after{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -2px 0 #9c6822,
+    0 0 0 1px rgba(0,0,0,.38)!important;
+}
+.nav a:nth-child(5)::after,
+.nav a:nth-child(6)::after{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -2px 0 #7d1d18,
+    0 0 0 1px rgba(0,0,0,.38)!important;
+}
+
+/* 6) 主內容外框：把底部條拿掉，改成框本身厚度 */
+.card{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -4px 7px rgba(0,0,0,.74),
+    0 2px 0 #24282c,
+    0 6px 11px rgba(0,0,0,.36)!important;
+}
+
+/* 7) 新增專案按鈕也取消底部脫離式橫條 */
+.primary{
+  box-shadow:
+    inset 0 1px 0 rgba(255,194,150,.18),
+    inset 0 -3px 0 rgba(0,0,0,.76),
+    0 2px 0 #5b3410,
+    0 5px 10px rgba(0,0,0,.38)!important;
+}
+
+/* 8) 再補一點面板高光，讓立體感來自面本身而不是外部橫線 */
+.brand-plaque,
+.app>.card:first-of-type,
+.nav a,
+.card{
+  background:
+    linear-gradient(165deg,rgba(255,255,255,.085),transparent 19%),
+    linear-gradient(180deg,rgba(255,255,255,.028),rgba(0,0,0,.22) 58%,rgba(0,0,0,.54)),
+    repeating-linear-gradient(108deg,rgba(255,255,255,.011) 0 1px,rgba(0,0,0,.014) 1px 4px),
+    linear-gradient(180deg,#1c2228 0%,#10151a 53%,#06090b 100%)!important;
+}
+
+/* 9) 讓大內容框更接近目標的近黑色，不要灰面 */
+.card{
+  background:
+    linear-gradient(165deg,rgba(255,255,255,.045),transparent 18%),
+    linear-gradient(180deg,rgba(255,255,255,.012),rgba(0,0,0,.30) 60%,rgba(0,0,0,.64)),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.009) 0 1px,rgba(0,0,0,.013) 1px 4px),
+    linear-gradient(180deg,#10151a 0%,#080c0f 56%,#030506 100%)!important;
+}
+
+/* 10) iPhone 鎖定：不改幾何，只改陰影來源 */
+@media(max-width:640px){
+  .nav a{box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 -3px 5px rgba(0,0,0,.72),0 2px 0 #25292d,0 4px 8px rgba(0,0,0,.34)!important}
+}
+</style>
+
+
+<style id="r26-structural-shell">
+/* R41：不再疊陰影數值，改成真正多層結構件：
+   內嵌邊框、四角金屬件、按鍵圖示座、內凹槽。功能與尺寸不變。 */
+
+.metalized{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+}
+.metalized > .r26-bevel,
+.metalized > .r26-corner,
+.nav a > .r26-bevel,
+.nav a > .r26-corner{
+  position:absolute!important;
+  pointer-events:none!important;
+  z-index:1!important;
+}
+.metalized > :not(.r26-bevel):not(.r26-corner),
+.nav a > :not(.r26-bevel):not(.r26-corner){
+  position:relative;
+  z-index:2;
+}
+
+/* 內凹金屬框 */
+.r26-bevel{
+  inset:5px!important;
+  border:1px solid rgba(195,201,206,.08)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -2px 0 rgba(0,0,0,.67),
+    inset 2px 0 0 rgba(255,255,255,.018),
+    inset -2px 0 0 rgba(0,0,0,.40)!important;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)!important;
+}
+
+/* 四角小型金屬壓板，不再只是點狀鉚釘 */
+.r26-corner{
+  width:13px!important;
+  height:13px!important;
+  background:
+    radial-gradient(circle at 50% 50%,#b8bdc2 0 1px,#5f656a 1.5px,#22272b 2.5px,#07090b 3.6px,transparent 4.4px),
+    linear-gradient(135deg,#353b40,#101418)!important;
+  border:1px solid #4c5257!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -2px 2px rgba(0,0,0,.62)!important;
+  clip-path:polygon(3px 0,100% 0,100% 100%,0 100%,0 3px)!important;
+}
+.r26-tl{left:2px!important;top:2px!important}
+.r26-tr{right:2px!important;top:2px!important;transform:rotate(90deg)}
+.r26-br{right:2px!important;bottom:2px!important;transform:rotate(180deg)}
+.r26-bl{left:2px!important;bottom:2px!important;transform:rotate(270deg)}
+
+/* 標題牌：更像獨立重型銘牌 */
+.brand-plaque{
+  background:
+    linear-gradient(165deg,rgba(255,255,255,.11),transparent 18%),
+    linear-gradient(180deg,#292f35 0%,#151a20 48%,#080b0e 100%)!important;
+  border-color:#70767b!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -4px 7px rgba(0,0,0,.74),
+    0 3px 0 #24292d,
+    0 7px 14px rgba(0,0,0,.45)!important;
+}
+.brand-plaque .r26-bevel{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -2px 0 rgba(113,18,13,.82),
+    0 0 0 1px rgba(0,0,0,.42)!important;
+}
+.brand-plaque h1{
+  transform:translateY(-1px)!important;
+  letter-spacing:.3px!important;
+}
+
+/* KPI：整條機械面板，三格之間像真正分艙 */
+.kpis .kpi{
+  position:relative!important;
+}
+.kpis .kpi:not(:last-child)::before{
+  content:""!important;
+  position:absolute!important;
+  right:-1px!important;
+  top:8px!important;
+  bottom:8px!important;
+  width:2px!important;
+  background:
+    linear-gradient(90deg,#111417,#777c80,#111417)!important;
+  opacity:.8!important;
+}
+
+/* 六顆按鈕：emoji 變成獨立金屬圖示座，不再只是文字前一個 emoji */
+.nav a{
+  justify-content:flex-start!important;
+  gap:6px!important;
+  padding-left:7px!important;
+}
+.nav a .r26-nav-icon{
+  width:29px!important;
+  height:29px!important;
+  flex:0 0 29px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid #545a60!important;
+  background:
+    radial-gradient(circle at 50% 40%,rgba(255,255,255,.10),transparent 42%),
+    linear-gradient(180deg,#252b31,#0a0d10)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15),
+    inset 0 -2px 3px rgba(0,0,0,.65),
+    0 1px 0 #31363a!important;
+  clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px)!important;
+  font-size:17px!important;
+}
+.nav a .r26-nav-label{
+  flex:1 1 auto!important;
+  text-align:center!important;
+  padding-right:5px!important;
+  color:#ddd5cc!important;
+  text-shadow:0 2px 3px #000!important;
+}
+
+/* 主卡片：真正「框中框」而不是大片灰 */
+.card{
+  background:
+    linear-gradient(165deg,rgba(255,255,255,.042),transparent 17%),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.008) 0 1px,rgba(0,0,0,.012) 1px 4px),
+    linear-gradient(180deg,#10151a,#070a0d 58%,#030405)!important;
+}
+.card > .r26-bevel{
+  inset:6px!important;
+}
+
+/* 區塊標題：改成框內獨立名牌，暗紅只留右端 */
+.section-title{
+  position:relative!important;
+  z-index:3!important;
+  border-color:#676c71!important;
+  background:
+    linear-gradient(165deg,rgba(255,255,255,.06),transparent 18%),
+    linear-gradient(90deg,#151a1f 0%,#11161a 70%,#53110d 100%)!important;
+}
+
+/* 輸入槽更像機台內嵌槽 */
+input,select,textarea{
+  border-color:#5a6167!important;
+  box-shadow:
+    inset 0 4px 10px rgba(0,0,0,.96),
+    inset 0 0 0 1px rgba(255,255,255,.014),
+    0 1px 0 rgba(255,255,255,.025)!important;
+}
+
+/* 紅色主要按鈕：加內框，不在外面加橫條 */
+.primary{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.primary::after{
+  content:""!important;
+  position:absolute!important;
+  inset:4px!important;
+  border:1px solid rgba(255,196,130,.075)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -2px 0 rgba(0,0,0,.55)!important;
+  pointer-events:none!important;
+  clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px)!important;
+}
+
+/* iPhone 保持現有尺寸，不回到放大錯誤 */
+@media(max-width:640px){
+  .nav a .r26-nav-icon{
+    width:27px!important;height:27px!important;flex-basis:27px!important;font-size:16px!important;
+  }
+  .nav a{padding-left:6px!important}
+}
+</style>
+
+
+<style id="r27-high-contrast-shell">
+/* R41：做「肉眼明顯」的差異。
+   不放大 KPI / 2x3 功能鍵；只把材質、邊框、色彩與立體層次大幅拉高。 */
+
+:root{
+  --g1:#f0c46e;
+  --g2:#b87520;
+  --g3:#6f3f0d;
+  --r1:#9e2118;
+  --r2:#5a0d09;
+  --s1:#9ca3a9;
+  --s2:#4a5157;
+  --s3:#161b20;
+  --b0:#020304;
+}
+
+/* 背景：從「黑色網頁」變成明顯工業機台面板 */
+html,body{
+  background:
+    radial-gradient(ellipse at 50% -10%,rgba(120,130,140,.18),transparent 30%),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(0deg,rgba(255,255,255,.012) 1px,transparent 1px),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.014) 0 1px,rgba(0,0,0,.017) 1px 4px),
+    linear-gradient(180deg,#020304,#070a0d 48%,#010203)!important;
+  background-size:auto,24px 24px,24px 24px,auto,auto!important;
+}
+
+/* ---------- 標題：明顯金屬銘牌 ---------- */
+.brand-plaque{
+  border:1px solid #8a9095!important;
+  background:
+    linear-gradient(155deg,rgba(255,255,255,.18),transparent 16%),
+    linear-gradient(180deg,#343b42 0%,#1c2228 42%,#0a0d10 100%)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.28),
+    inset 0 -5px 8px rgba(0,0,0,.78),
+    0 0 0 2px #171b1f,
+    0 0 0 3px #7e5b26,
+    0 3px 0 #3b4146,
+    0 7px 0 #000,
+    0 12px 22px rgba(0,0,0,.55)!important;
+}
+.brand-plaque .r26-bevel{
+  inset:6px!important;
+  border:1px solid rgba(240,196,110,.22)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -3px 0 rgba(126,18,12,.88),
+    0 0 0 1px rgba(0,0,0,.55)!important;
+}
+.brand-plaque h1{
+  color:#d5d0ca!important;
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,.30),
+    1px 1px 0 #848484,
+    2px 2px 0 #555,
+    4px 4px 0 #252525,
+    6px 8px 10px #000!important;
+}
+.brand-plaque h1 span{
+  color:#e2aa49!important;
+  text-shadow:
+    0 1px 0 rgba(255,236,185,.72),
+    1px 2px 0 #8b5515,
+    3px 4px 0 #3b2107,
+    5px 7px 9px #000!important;
+}
+
+/* 左右圖示也改成更有厚度 */
+.top-icon{
+  border-color:#7b8187!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,255,255,.16),transparent 44%),
+    linear-gradient(180deg,#30373d,#0a0e11)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.24),
+    inset 0 -4px 6px rgba(0,0,0,.76),
+    0 0 0 2px #171b1f,
+    0 3px 0 #363b3f,
+    0 7px 12px rgba(0,0,0,.48)!important;
+}
+
+/* ---------- KPI：金色上下框，更像儀表板 ---------- */
+.app>.card:first-of-type{
+  border-color:#73797e!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.09),transparent 17%),
+    linear-gradient(180deg,#1e242a,#0a0e11)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.17),
+    inset 0 -4px 7px rgba(0,0,0,.76),
+    inset 0 2px 0 rgba(240,196,110,.15),
+    0 0 0 2px #13171a,
+    0 0 0 3px #6a4515,
+    0 5px 12px rgba(0,0,0,.45)!important;
+}
+.kpi span{
+  color:#d9d0c7!important;
+  font-weight:700!important;
+}
+.kpi b{
+  color:#e1a43f!important;
+  text-shadow:
+    0 1px 0 rgba(255,230,170,.50),
+    0 2px 0 #8b5517,
+    0 4px 6px #000!important;
+}
+
+/* ---------- 六顆功能鍵：尺寸不變，但材質差異拉大 ---------- */
+.nav a{
+  border-color:#747b81!important;
+  background:
+    linear-gradient(150deg,rgba(255,255,255,.17),transparent 18%),
+    linear-gradient(180deg,#2d343a 0%,#171c21 45%,#080b0e 100%)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.21),
+    inset 0 -4px 6px rgba(0,0,0,.77),
+    0 0 0 1px #121518,
+    0 3px 0 #33383d,
+    0 7px 12px rgba(0,0,0,.45)!important;
+}
+.nav a .r26-nav-icon{
+  border-color:#7c8388!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,255,255,.20),transparent 45%),
+    linear-gradient(180deg,#353c43,#0b0f12)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.21),
+    inset 0 -3px 4px rgba(0,0,0,.72),
+    0 2px 0 #202428!important;
+}
+.nav a .r26-nav-label{
+  color:#e1dad2!important;
+  text-shadow:0 2px 4px #000!important;
+}
+.nav a:nth-child(1){border-bottom-color:#4e9ec2!important}
+.nav a:nth-child(4){border-bottom-color:#cf902b!important}
+.nav a:nth-child(5),
+.nav a:nth-child(6){border-bottom-color:#b82d24!important}
+
+/* ---------- 主內容區：改成深黑鋼板，不再灰平 ---------- */
+.card{
+  border-color:#666d73!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.08),transparent 16%),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.012) 0 1px,rgba(0,0,0,.016) 1px 4px),
+    linear-gradient(180deg,#141a1f 0%,#080b0e 58%,#030405 100%)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.12),
+    inset 0 -5px 9px rgba(0,0,0,.80),
+    0 0 0 2px #111417,
+    0 3px 0 #30353a,
+    0 8px 16px rgba(0,0,0,.44)!important;
+}
+
+/* 區塊標題：金屬黑 + 暗紅斜切，差異加大 */
+.section-title{
+  color:#e0ad55!important;
+  border:1px solid #7b8186!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.09),transparent 18%),
+    linear-gradient(90deg,#1b2126 0%,#12171b 65%,#6a1510 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.17),
+    inset 0 -3px 0 rgba(0,0,0,.67),
+    0 0 0 1px #111417,
+    0 3px 0 #2c3135,
+    0 7px 12px rgba(0,0,0,.40)!important;
+}
+
+/* ---------- 表單：內凹黑槽 + 金屬外框 ---------- */
+input,select,textarea{
+  border-color:#6d747a!important;
+  color:#e1d9d0!important;
+  background:
+    linear-gradient(180deg,#07090b,#010203)!important;
+  box-shadow:
+    inset 0 5px 12px rgba(0,0,0,.98),
+    inset 0 0 0 1px rgba(255,255,255,.012),
+    0 0 0 1px #15191c,
+    0 1px 0 rgba(255,255,255,.05)!important;
+}
+input::placeholder,textarea::placeholder{
+  color:#746d65!important;
+}
+
+/* CTA：改成明顯暗紅金屬按鍵，肉眼差異最大 */
+.primary{
+  color:#f0c36b!important;
+  font-weight:900!important;
+  border:1px solid #c08029!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.10),transparent 14%),
+    linear-gradient(180deg,#9a281e 0%,#5d100c 48%,#260403 100%)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,210,165,.18),
+    inset 0 -4px 0 rgba(0,0,0,.78),
+    0 0 0 2px #2c0a07,
+    0 2px 0 #d09538,
+    0 5px 0 #5d3510,
+    0 9px 16px rgba(0,0,0,.48)!important;
+  text-shadow:
+    0 1px 0 rgba(255,235,190,.34),
+    0 3px 4px #000!important;
+}
+
+/* 角壓板改金/紅混合，讓整體更接近概念圖 */
+.brand-plaque .r26-corner,
+.app>.card:first-of-type .r26-corner,
+.card>.r26-corner{
+  border-color:#6b7075!important;
+  background:
+    radial-gradient(circle at 50% 50%,#c1c5c8 0 1px,#686d71 1.5px,#272b2f 2.5px,#07090b 3.6px,transparent 4.4px),
+    linear-gradient(135deg,#4a3a26,#15191c)!important;
+}
+.nav a:nth-child(5) .r26-corner,
+.nav a:nth-child(6) .r26-corner{
+  background:
+    radial-gradient(circle at 50% 50%,#c1c5c8 0 1px,#686d71 1.5px,#272b2f 2.5px,#07090b 3.6px,transparent 4.4px),
+    linear-gradient(135deg,#54231f,#14181b)!important;
+}
+
+/* 尺寸不動 */
+@media(max-width:640px){
+  .brand-plaque{height:60px!important;min-height:60px!important}
+  .app>.card:first-of-type{min-height:66px!important}
+  .nav{grid-auto-rows:40px!important}
+  .nav a{height:40px!important;min-height:40px!important}
+}
+</style>
+
+
+<style id="r28-svg-components">
+/* R41：真正圖形元件化。HTML 仍負責功能與文字；金屬外殼改用獨立 SVG 元件。 */
+
+body{
+  background:
+    radial-gradient(ellipse at 50% -6%,rgba(130,140,150,.14),transparent 28%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.010) 0 1px,rgba(0,0,0,.013) 1px 4px),
+    linear-gradient(180deg,#010203,#06090c 48%,#010203)!important;
+}
+
+.brand-plaque{
+  background-image:url("data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNjAwIDExMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CjxkZWZzPgogPGxpbmVhckdyYWRpZW50IGlkPSJzdGVlbCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzM1M2M0MyIvPgogIDxzdG9wIG9mZnNldD0iLjE2IiBzdG9wLWNvbG9yPSIjMjUyYjMxIi8+CiAgPHN0b3Agb2Zmc2V0PSIuNTUiIHN0b3AtY29sb3I9IiMxMjE3MWMiLz4KICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNjA5MGIiLz4KIDwvbGluZWFyR3JhZGllbnQ+CiA8bGluZWFyR3JhZGllbnQgaWQ9ImVkZ2UiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhZWI0YjkiLz4KICA8c3RvcCBvZmZzZXQ9Ii4xOCIgc3RvcC1jb2xvcj0iIzQ2NGM1MiIvPgogIDxzdG9wIG9mZnNldD0iLjU1IiBzdG9wLWNvbG9yPSIjMTMxNzFhIi8+CiAgPHN0b3Agb2Zmc2V0PSIuODQiIHN0b3AtY29sb3I9IiM3YTdmODQiLz4KICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMyMjI3MmIiLz4KIDwvbGluZWFyR3JhZGllbnQ+CiA8bGluZWFyR3JhZGllbnQgaWQ9ImdvbGQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM1ZTNiMTIiLz4KICA8c3RvcCBvZmZzZXQ9Ii41IiBzdG9wLWNvbG9yPSIjZDJhMjU4Ii8+CiAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNmU0NDEzIi8+CiA8L2xpbmVhckdyYWRpZW50PgogPGZpbHRlciBpZD0iZ2xvdyI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iNCIvPjwvZmlsdGVyPgo8L2RlZnM+CjxwYXRoIGQ9Ik0xOCAyIEg1ODIgTDU5OCAxOCBWOTIgTDU4MiAxMDggSDE4IEwyIDkyIFYxOCBaIiBmaWxsPSJ1cmwoI3N0ZWVsKSIgc3Ryb2tlPSJ1cmwoI2VkZ2UpIiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTI3IDEwIEg1NzMgTDU5MCAyNyBWODMgTDU3MyAxMDAgSDI3IEwxMCA4MyBWMjcgWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTcxYjFmIiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTM0IDE1IEg1NjYiIHN0cm9rZT0iI2M1YzljYyIgc3Ryb2tlLW9wYWNpdHk9Ii4yNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KPHBhdGggZD0iTTExMCAxMDIgSDQ5MCIgc3Ryb2tlPSIjYzEyYjIxIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9Ii44NSIvPgo8cGF0aCBkPSJNMTc1IDEwMyBINDI1IiBzdHJva2U9IiNlZjRiMzgiIHN0cm9rZS13aWR0aD0iNCIgb3BhY2l0eT0iLjMyIiBmaWx0ZXI9InVybCgjZ2xvdykiLz4KPHBhdGggZD0iTTE4IDIgSDEwNSIgc3Ryb2tlPSJ1cmwoI2dvbGQpIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9Ii43NSIvPgo8cGF0aCBkPSJNNDk1IDEwOCBINTgyIiBzdHJva2U9InVybCgjZ29sZCkiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iLjc1Ii8+CjxnIGZpbGw9IiMwNzA5MGIiIHN0cm9rZT0iIzhjOTI5NyIgc3Ryb2tlLXdpZHRoPSIxLjUiPgogPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNCIvPjxjaXJjbGUgY3g9IjU4MCIgY3k9IjIwIiByPSI0Ii8+PGNpcmNsZSBjeD0iMjAiIGN5PSI5MCIgcj0iNCIvPjxjaXJjbGUgY3g9IjU4MCIgY3k9IjkwIiByPSI0Ii8+CjwvZz4KPGcgZmlsbD0iI2I4YmRjMSI+CiA8Y2lyY2xlIGN4PSIxOSIgY3k9IjE5IiByPSIxLjIiLz48Y2lyY2xlIGN4PSI1NzkiIGN5PSIxOSIgcj0iMS4yIi8+PGNpcmNsZSBjeD0iMTkiIGN5PSI4OSIgcj0iMS4yIi8+PGNpcmNsZSBjeD0iNTc5IiBjeT0iODkiIHI9IjEuMiIvPgo8L2c+Cjwvc3ZnPgo=")!important;
+  background-size:100% 100%!important;
+  background-repeat:no-repeat!important;
+  background-color:transparent!important;
+  border:0!important;
+  clip-path:none!important;
+  box-shadow:none!important;
+  height:68px!important;
+  min-height:68px!important;
+  padding:0 18px!important;
+}
+.brand-plaque::before,.brand-plaque::after,
+.app>.card:first-of-type::before,.app>.card:first-of-type::after,
+.nav a::before,.nav a::after,
+.card::before,.card::after{
+  content:none!important;
+}
+.brand-plaque h1{
+  font-size:27px!important;
+  letter-spacing:.4px!important;
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,.28),
+    1px 1px 0 #818181,
+    2px 2px 0 #555,
+    4px 4px 0 #222,
+    6px 7px 9px #000!important;
+}
+.brand-plaque h1 span{
+  color:#dda64c!important;
+  text-shadow:0 1px 0 #ffe0a3,1px 2px 0 #805016,3px 4px 0 #352006,5px 6px 8px #000!important;
+}
+
+/* KPI and content use actual SVG metal panels */
+.app>.card:first-of-type,
+.card{
+  background-image:url("data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNjAwIDE1MCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CjxkZWZzPgogPGxpbmVhckdyYWRpZW50IGlkPSJwIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMjIyODJlIi8+CiAgPHN0b3Agb2Zmc2V0PSIuMTgiIHN0b3AtY29sb3I9IiMxNzFjMjEiLz4KICA8c3RvcCBvZmZzZXQ9Ii42NiIgc3RvcC1jb2xvcj0iIzBhMGUxMSIvPgogIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA1MDcwOCIvPgogPC9saW5lYXJHcmFkaWVudD4KIDxsaW5lYXJHcmFkaWVudCBpZD0iZSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzlhYTBhNSIvPgogIDxzdG9wIG9mZnNldD0iLjE1IiBzdG9wLWNvbG9yPSIjM2Y0NTRiIi8+CiAgPHN0b3Agb2Zmc2V0PSIuNSIgc3RvcC1jb2xvcj0iIzEwMTQxNyIvPgogIDxzdG9wIG9mZnNldD0iLjg1IiBzdG9wLWNvbG9yPSIjNmU3NDc5Ii8+CiAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMjAyNDI4Ii8+CiA8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+CjxwYXRoIGQ9Ik0xNiAyIEg1ODQgTDU5OCAxNiBWMTM0IEw1ODQgMTQ4IEgxNiBMMiAxMzQgVjE2IFoiIGZpbGw9InVybCgjcCkiIHN0cm9rZT0idXJsKCNlKSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxwYXRoIGQ9Ik0yNSAxMCBINTc1IEw1OTAgMjUgVjEyNSBMNTc1IDE0MCBIMjUgTDEwIDEyNSBWMjUgWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTkxZDIxIiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTI4IDEzIEg1NzIiIHN0cm9rZT0iI2MzYzdjYSIgc3Ryb2tlLW9wYWNpdHk9Ii4yMiIvPgo8ZyBmaWxsPSIjMDcwOTBiIiBzdHJva2U9IiM3Zjg1OGEiIHN0cm9rZS13aWR0aD0iMS4zIj4KIDxjaXJjbGUgY3g9IjE4IiBjeT0iMTgiIHI9IjQiLz48Y2lyY2xlIGN4PSI1ODIiIGN5PSIxOCIgcj0iNCIvPjxjaXJjbGUgY3g9IjE4IiBjeT0iMTMyIiByPSI0Ii8+PGNpcmNsZSBjeD0iNTgyIiBjeT0iMTMyIiByPSI0Ii8+CjwvZz4KPC9zdmc+Cg==")!important;
+  background-size:100% 100%!important;
+  background-repeat:no-repeat!important;
+  background-color:transparent!important;
+  border:0!important;
+  clip-path:none!important;
+  box-shadow:none!important;
+}
+.app>.card:first-of-type{
+  min-height:74px!important;
+  padding:7px 10px!important;
+}
+.card{
+  padding:14px!important;
+  margin-bottom:10px!important;
+}
+
+/* six shortcut buttons use actual component artwork */
+.nav a{
+  background-image:url("data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj4KPGRlZnM+CiA8bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzMDM3M2QiLz4KICA8c3RvcCBvZmZzZXQ9Ii4xNCIgc3RvcC1jb2xvcj0iIzIyMjgyZSIvPgogIDxzdG9wIG9mZnNldD0iLjU4IiBzdG9wLWNvbG9yPSIjMTAxNTFhIi8+CiAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDYwODBhIi8+CiA8L2xpbmVhckdyYWRpZW50PgogPGxpbmVhckdyYWRpZW50IGlkPSJlIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjOWRhM2E4Ii8+CiAgPHN0b3Agb2Zmc2V0PSIuMiIgc3RvcC1jb2xvcj0iIzQ1NGI1MCIvPgogIDxzdG9wIG9mZnNldD0iLjYiIHN0b3AtY29sb3I9IiMxNDE4MWIiLz4KICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM2NjZjNzEiLz4KIDwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHBhdGggZD0iTTEwIDIgSDE5MCBMMTk4IDEwIFY3MCBMMTkwIDc4IEgxMCBMMiA3MCBWMTAgWiIgZmlsbD0idXJsKCNiKSIgc3Ryb2tlPSJ1cmwoI2UpIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTE2IDggSDE4NCBMMTkyIDE2IFY2NCBMMTg0IDcyIEgxNiBMOCA2NCBWMTYgWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTYxYTFlIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTIxIDExIEgxNzkiIHN0cm9rZT0iI2M5Y2RkMCIgc3Ryb2tlLW9wYWNpdHk9Ii4yMiIvPgo8ZyBmaWxsPSIjMDcwOTBiIiBzdHJva2U9IiM3NzdkODIiIHN0cm9rZS13aWR0aD0iMSI+CiA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTg4IiBjeT0iMTIiIHI9IjMiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjY4IiByPSIzIi8+PGNpcmNsZSBjeD0iMTg4IiBjeT0iNjgiIHI9IjMiLz4KPC9nPgo8L3N2Zz4K")!important;
+  background-size:100% 100%!important;
+  background-repeat:no-repeat!important;
+  background-color:transparent!important;
+  border:0!important;
+  clip-path:none!important;
+  box-shadow:none!important;
+  height:42px!important;
+  min-height:42px!important;
+  padding:5px 8px!important;
+  justify-content:flex-start!important;
+}
+.nav a .r26-nav-icon{
+  width:28px!important;height:28px!important;flex:0 0 28px!important;
+  border:0!important;background:transparent!important;box-shadow:none!important;clip-path:none!important;
+  font-size:0!important;
+  background-position:center!important;background-size:contain!important;background-repeat:no-repeat!important;
+}
+.nav a[data-r28-icon="專案"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxwYXRoIGQ9Ik0xMCAxOWg0NHYzMkgxMHoiIGZpbGw9IiNhOWFkYjAiIHN0cm9rZT0iIzMwMzQzOCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHBhdGggZD0iTTEyIDE5bDgtOGgxNGw2IDgiIGZpbGw9IiM2YzcwNzQiIHN0cm9rZT0iI2Q0ZDZkNyIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTExIDI2aDQyIiBzdHJva2U9IiM3Mzc4N2MiLz48cGF0aCBkPSJNMTggMzNsMTAtNmgxOGwtOSA3eiIgZmlsbD0iI2Q2YTU1MiIgb3BhY2l0eT0iLjgiLz48L3N2Zz4=")!important}
+.nav a[data-r28-icon="聯絡"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxyZWN0IHg9IjE0IiB5PSI5IiB3aWR0aD0iMzciIGhlaWdodD0iNDYiIHJ4PSI0IiBmaWxsPSIjYjhiYWI5IiBzdHJva2U9IiMzNDM4M2IiIHN0cm9rZS13aWR0aD0iMyIvPjxjaXJjbGUgY3g9IjMzIiBjeT0iMjQiIHI9IjgiIGZpbGw9IiMyMDI0MjgiLz48cGF0aCBkPSJNMjIgNDVjMi04IDIwLTggMjIgMCIgZmlsbD0iIzM0MzgzYiIvPjxwYXRoIGQ9Ik0xMCAxNHYzNk04IDE5aDhNOCAyOWg4TTggMzloOCIgc3Ryb2tlPSIjODQyMDFiIiBzdHJva2Utd2lkdGg9IjMiLz48L3N2Zz4=")!important}
+.nav a[data-r28-icon="指令"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxwYXRoIGQ9Ik05IDE1aDQ2djMxSDI1TDE0IDU1bDMtOUg5eiIgZmlsbD0iI2MxYzNjNCIgc3Ryb2tlPSIjMzQzODNiIiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjMwIiByPSIzIi8+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMCIgcj0iMyIvPjxjaXJjbGUgY3g9IjQwIiBjeT0iMzAiIHI9IjMiLz48L3N2Zz4=")!important}
+.nav a[data-r28-icon="報價"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxwYXRoIGQ9Ik0xNyAxN2gzMGw1IDEwLTUgMjdIMTdsLTUtMjd6IiBmaWxsPSIjYjI3NzJiIiBzdHJva2U9IiMzZjI5MGQiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik0yMiAxN2MwLTcgMjAtNyAyMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNkNmE1NTYiIHN0cm9rZS13aWR0aD0iNCIvPjx0ZXh0IHg9IjMyIiB5PSI0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMTcxMTBhIj4kPC90ZXh0Pjwvc3ZnPg==")!important}
+.nav a[data-r28-icon="待辦"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxwYXRoIGQ9Ik0xNSAzOEw0MiAxMWw4IDgtMjcgMjd6IiBmaWxsPSIjYjkyNjIwIiBzdHJva2U9IiM1YTA5MDciIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik0xMCA1MGwxNS0xNSIgc3Ryb2tlPSIjZDU0YTNlIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzYgMTJsMTYgMTYiIHN0cm9rZT0iI2UwNmE2MSIgc3Ryb2tlLXdpZHRoPSIzIi8+PC9zdmc+")!important}
+.nav a[data-r28-icon="客戶"] .r26-nav-icon{background-image:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjQgNjQiPjxjaXJjbGUgY3g9IjMyIiBjeT0iMjEiIHI9IjExIiBmaWxsPSIjYzFjM2MzIiBzdHJva2U9IiM0MzQ3NGEiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik0xMyA1NGMyLTE1IDM2LTE1IDM4IDB6IiBmaWxsPSIjYWViMWIyIiBzdHJva2U9IiMzYTNlNDEiIHN0cm9rZS13aWR0aD0iMyIvPjwvc3ZnPg==")!important}
+
+.nav a .r26-nav-label{
+  font-size:14px!important;
+  font-weight:800!important;
+  letter-spacing:.2px!important;
+  color:#e2dbd2!important;
+  text-shadow:0 2px 4px #000!important;
+}
+.nav a:nth-child(1){filter:drop-shadow(0 2px 0 #245d76)}
+.nav a:nth-child(4){filter:drop-shadow(0 2px 0 #8d5e1c)}
+.nav a:nth-child(5),.nav a:nth-child(6){filter:drop-shadow(0 2px 0 #6e1612)}
+
+/* top icons: stronger independent mechanical modules */
+.top-icon{
+  width:46px!important;height:46px!important;
+  border:2px solid #5f666c!important;
+  border-radius:2px!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,255,255,.16),transparent 44%),
+    linear-gradient(180deg,#30373e,#0a0e11)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    inset 0 -4px 6px rgba(0,0,0,.75),
+    0 0 0 2px #0f1316,
+    0 3px 0 #33383c,
+    0 7px 12px rgba(0,0,0,.48)!important;
+}
+
+/* section title becomes a separate hard-edged metal/red nameplate */
+.section-title{
+  display:inline-flex!important;
+  align-items:center!important;
+  width:auto!important;
+  min-width:198px!important;
+  margin:0 0 10px!important;
+  padding:8px 36px 8px 14px!important;
+  color:#e0ad57!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.08),transparent 18%),
+    linear-gradient(90deg,#171d22 0%,#12171b 66%,#65130f 100%)!important;
+  border:1px solid #777d82!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.17),
+    inset 0 -3px 0 rgba(0,0,0,.70),
+    0 2px 0 #2e3337,
+    0 5px 10px rgba(0,0,0,.40)!important;
+  clip-path:polygon(0 0,calc(100% - 20px) 0,100% 50%,calc(100% - 20px) 100%,0 100%)!important;
+}
+
+/* fields: cleaner inset metal wells */
+input,select,textarea{
+  border:1px solid #636b72!important;
+  border-radius:2px!important;
+  background:linear-gradient(180deg,#090c0f,#010203)!important;
+  box-shadow:
+    inset 0 5px 12px rgba(0,0,0,.98),
+    inset 0 0 0 1px rgba(255,255,255,.012),
+    0 1px 0 rgba(255,255,255,.045)!important;
+}
+
+/* CTA stays dynamic HTML but more like dedicated hardware key */
+.primary{
+  border:2px solid #a86d24!important;
+  border-radius:2px!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.10),transparent 13%),
+    linear-gradient(180deg,#92231b,#540e0a 50%,#220403)!important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,210,165,.18),
+    inset 0 -4px 0 rgba(0,0,0,.78),
+    0 0 0 2px #250805,
+    0 3px 0 #6b3c10,
+    0 7px 14px rgba(0,0,0,.45)!important;
+  color:#efc16a!important;
+  font-weight:900!important;
+}
+
+/* remove old decorative helpers so they no longer fight with SVG component art */
+.r26-bevel,.r26-corner{display:none!important}
+
+@media(max-width:640px){
+  .brand-plaque{height:60px!important;min-height:60px!important}
+  .brand-plaque h1{font-size:23px!important}
+  .app>.card:first-of-type{min-height:66px!important}
+  .nav a{height:40px!important;min-height:40px!important}
+  .nav a .r26-nav-icon{width:26px!important;height:26px!important;flex-basis:26px!important}
+}
+</style>
+
+
+<style id="r29-dashboard-rebuild">
+/* R41: visually restructure the landing page to match the locked reference.
+   Feature forms stay intact behind their six shortcuts. */
+
+/* dashboard is the default actual homepage */
+.r29-home{display:none}
+.r29-home:target{display:block}
+main:not(:has(.panel:target)) #home{display:block}
+
+/* strong title plaque */
+.brand-plaque{
+  height:76px!important;min-height:76px!important;
+  cursor:pointer!important;
+}
+.brand-plaque h1{
+  font-size:31px!important;
+  transform:none!important;
+  letter-spacing:.3px!important;
+}
+.brand-plaque h1 span{font-size:1.04em!important}
+
+/* KPI becomes icon + label + number, as in target */
+.app>.card:first-of-type{
+  min-height:88px!important;
+  padding:5px 7px!important;
+}
+.kpis .kpi{
+  min-height:74px!important;
+  display:grid!important;
+  grid-template-columns:54px 1fr!important;
+  grid-template-rows:auto auto!important;
+  column-gap:6px!important;
+  align-content:center!important;
+  text-align:left!important;
+  padding:5px 8px!important;
+}
+.kpi::before{
+  content:""!important;
+  grid-row:1/3!important;
+  width:52px!important;height:48px!important;
+  background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;
+  filter:drop-shadow(0 3px 3px #000)!important;
+}
+.kpi:nth-child(1)::before{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA2NSI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIHN0b3AtY29sb3I9IiNkN2E3NTgiLz48c3RvcCBvZmZzZXQ9Ii41IiBzdG9wLWNvbG9yPSIjOWI1ZTFjIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNGEyNzA4Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxwYXRoIGQ9Ik0xMyAyMWg1NHYzNEgxM3oiIHJ4PSI1IiBmaWxsPSJ1cmwoI2cpIiBzdHJva2U9IiMyYzFhMDgiIHN0cm9rZS13aWR0aD0iMyIvPgo8cGF0aCBkPSJNMjcgMjF2LTdoMjZ2NyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTdiZDc1IiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTEzIDM0aDU0TTM5IDMxdjciIHN0cm9rZT0iIzNhMjIwOCIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjwvc3ZnPg==")!important}
+.kpi:nth-child(2)::before{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA2NSI+CjxyZWN0IHg9IjIwIiB5PSI5IiB3aWR0aD0iNDMiIGhlaWdodD0iNTAiIHJ4PSI0IiBmaWxsPSIjYjA3YTMxIiBzdHJva2U9IiMzYjI2MGQiIHN0cm9rZS13aWR0aD0iMyIvPgo8cGF0aCBkPSJNMzAgN2gyMnY5SDMweiIgZmlsbD0iI2Q3YTc1OCIgc3Ryb2tlPSIjNWUzYTEwIiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTI4IDI3bDUgNSA4LTEwTTI4IDQybDUgNSA4LTEwTTQ1IDI3aDExTTQ1IDQyaDExIiBmaWxsPSJub25lIiBzdHJva2U9IiMyMjE4MGQiIHN0cm9rZS13aWR0aD0iMyIvPgo8L3N2Zz4=")!important}
+.kpi:nth-child(3)::before{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA2NSI+CjxjaXJjbGUgY3g9IjMyIiBjeT0iMjQiIHI9IjEzIiBmaWxsPSIjYmZjMmMzIiBzdHJva2U9IiMzNDM4M2IiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI1MyIgY3k9IjI4IiByPSIxMCIgZmlsbD0iIzkyOTY5OSIgc3Ryb2tlPSIjMzQzODNiIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTEwIDU5YzItMTggNDAtMTggNDMgME0zOCA1OWMyLTE0IDI5LTE0IDMxIDAiIGZpbGw9IiNhZWIyYjQiIHN0cm9rZT0iIzM0MzgzYiIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjwvc3ZnPg==")!important}
+.kpi span{
+  grid-column:2!important;
+  font-size:15px!important;
+  align-self:end!important;
+}
+.kpi b{
+  grid-column:2!important;
+  font-size:25px!important;
+  align-self:start!important;
+  margin-top:1px!important;
+}
+
+/* six shortcuts visually become larger hardware modules without increasing total row count */
+.nav{
+  grid-auto-rows:52px!important;
+  gap:7px!important;
+  padding:7px 0 10px!important;
+}
+.nav a{
+  height:52px!important;min-height:52px!important;
+  padding:4px 9px!important;
+}
+.nav a .r26-nav-icon{
+  width:39px!important;height:39px!important;flex-basis:39px!important;
+  filter:drop-shadow(0 3px 3px #000)!important;
+}
+.nav a .r26-nav-label{
+  font-size:16px!important;
+}
+
+/* home records header exactly as a separate metal title strip */
+.r29-section-head{
+  height:52px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:stretch;
+  margin:0 0 7px;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.10),transparent 17%),
+    linear-gradient(180deg,#242a30,#0b0f12);
+  border:1px solid #666c72;
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 -3px 5px rgba(0,0,0,.72),0 4px 9px rgba(0,0,0,.38);
+}
+.r29-section-title{
+  display:flex;align-items:center;
+  padding:0 14px;
+  color:#d9aa58;
+  font-size:21px;font-weight:900;
+  letter-spacing:.4px;
+  text-shadow:0 2px 4px #000;
+}
+.r29-view-all{
+  min-width:116px;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 13px;
+  color:#e0b869;text-decoration:none;font-weight:800;
+  background:linear-gradient(135deg,#3b0907,#761711 58%,#250403);
+  border-left:1px solid #973126;
+  clip-path:polygon(18px 0,100% 0,100% 100%,0 100%);
+  text-shadow:0 2px 3px #000;
+}
+
+/* actual visit cards become the visual focus */
+.r29-home-visits{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.r29-record{
+  position:relative;
+  display:grid;
+  grid-template-columns:64px 1fr auto;
+  gap:10px;
+  align-items:center;
+  min-height:112px;
+  padding:11px 12px;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.055),transparent 16%),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.009) 0 1px,rgba(0,0,0,.012) 1px 4px),
+    linear-gradient(180deg,#12171c,#06090b);
+  border:1px solid #62686e;
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -3px 6px rgba(0,0,0,.72),0 4px 9px rgba(0,0,0,.36);
+}
+.r29-company-icon{
+  width:58px;height:76px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;
+  background:linear-gradient(180deg,#262c32,#0a0e11);
+  border:1px solid #686e74;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 -3px 5px rgba(0,0,0,.7);
+}
+.r29-record-name{
+  font-size:19px;font-weight:900;color:#ddd4cb;margin-bottom:2px;
+}
+.r29-record-count{font-size:13px;color:#b8ada1;margin-bottom:4px}
+.r29-record-line{
+  font-size:17px;line-height:1.45;color:#ddd2c7;
+  display:flex;gap:6px;align-items:flex-start;
+}
+.r29-record-line .ico{color:#d7a44e;min-width:18px}
+.r29-record-next{font-size:18px!important;margin-top:3px}
+.r29-record-delete{
+  align-self:start;
+  color:#ff6c60;
+  border:1px solid #aa2b24;
+  background:linear-gradient(180deg,#751914,#2c0504);
+  padding:9px 11px;
+  font-weight:900;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  box-shadow:inset 0 1px 0 rgba(255,140,120,.15),0 3px 7px rgba(0,0,0,.35);
+}
+.r29-empty{
+  padding:26px 16px;
+  text-align:center;
+  color:#a99f95;
+  background:linear-gradient(180deg,#10151a,#050709);
+  border:1px solid #545b61;
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
+}
+
+/* when navigating to feature panels, form remains available as before */
+#projects,#contacts,#commands,#quotes,#todos,#customers,#settings{scroll-margin-top:112px!important}
+
+@media(max-width:640px){
+  .brand-plaque{height:68px!important;min-height:68px!important}
+  .brand-plaque h1{font-size:27px!important}
+  .app>.card:first-of-type{min-height:82px!important}
+  .kpis .kpi{grid-template-columns:46px 1fr!important;min-height:68px!important;padding:4px!important}
+  .kpi::before{width:44px!important;height:43px!important}
+  .nav{grid-auto-rows:48px!important}
+  .nav a{height:48px!important;min-height:48px!important}
+  .nav a .r26-nav-icon{width:34px!important;height:34px!important;flex-basis:34px!important}
+  .nav a .r26-nav-label{font-size:15px!important}
+  .r29-record{grid-template-columns:54px 1fr auto!important;gap:8px!important;padding:10px 9px!important}
+  .r29-company-icon{width:50px!important;height:68px!important;font-size:31px!important}
+  .r29-record-line{font-size:16px!important}
+  .r29-record-next{font-size:17px!important}
+  .r29-record-delete{padding:8px 9px!important}
+}
+</style>
+
+
+<style id="r30-fix-dashboard">
+/* R41：只修 R41 新造成的兩個問題：
+   1) KPI 客戶格跑版
+   2) 首頁拜訪紀錄沒有渲染
+   其他視覺先不動。 */
+
+/* KPI: force all three cells into identical stable layout */
+.kpis{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:1fr!important;
+  align-items:stretch!important;
+}
+.kpis .kpi,
+.kpis .kpi:last-child{
+  display:grid!important;
+  grid-template-columns:48px 1fr!important;
+  grid-template-rows:1fr 1fr!important;
+  align-items:center!important;
+  justify-items:start!important;
+  min-width:0!important;
+  min-height:68px!important;
+  padding:5px 8px!important;
+  border-right:1px solid #4f555a!important;
+}
+.kpis .kpi:last-child{border-right:0!important}
+.kpi::before{
+  grid-column:1!important;
+  grid-row:1 / 3!important;
+  align-self:center!important;
+  justify-self:center!important;
+  width:44px!important;
+  height:44px!important;
+  margin:0!important;
+}
+.kpi span{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:end!important;
+  justify-self:start!important;
+  font-size:15px!important;
+  line-height:1.05!important;
+  margin:0 0 2px 0!important;
+  white-space:nowrap!important;
+}
+.kpi b{
+  grid-column:2!important;
+  grid-row:2!important;
+  align-self:start!important;
+  justify-self:start!important;
+  font-size:25px!important;
+  line-height:1!important;
+  margin:0!important;
+}
+
+/* Homepage visit section */
+.r29-home{
+  padding-bottom:2px!important;
+}
+.r29-home-visits{
+  min-height:0!important;
+}
+.r29-record{
+  grid-template-columns:58px minmax(0,1fr) auto!important;
+}
+.r29-record-name{
+  font-size:18px!important;
+}
+.r29-record-count{
+  font-size:13px!important;
+}
+.r29-record-line{
+  font-size:16px!important;
+}
+.r29-record-next{
+  font-size:17px!important;
+}
+
+/* Empty state should not create huge dead space */
+.r29-empty{
+  padding:18px 14px!important;
+  margin-bottom:0!important;
+}
+</style>
+
+
+<style id="r31-local-fixture">
+/* R41: local preview data + target-like home record cards. */
+.r29-home-visits{gap:7px!important}
+.r29-record{
+  min-height:108px!important;
+  grid-template-columns:72px minmax(0,1fr) auto!important;
+  padding:10px 11px!important;
+  border-color:#646a70!important;
+  background:
+    linear-gradient(155deg,rgba(255,255,255,.055),transparent 15%),
+    repeating-linear-gradient(110deg,rgba(255,255,255,.009) 0 1px,rgba(0,0,0,.012) 1px 4px),
+    linear-gradient(180deg,#11161b,#050708)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -3px 6px rgba(0,0,0,.72),
+    0 3px 8px rgba(0,0,0,.36)!important;
+}
+.r29-company-icon{
+  width:62px!important;
+  height:78px!important;
+  font-size:0!important;
+  position:relative!important;
+  border-color:#666c72!important;
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.10),transparent 18%),
+    linear-gradient(180deg,#252b31,#090d10)!important;
+}
+.r29-company-icon::before{
+  content:"▥"!important;
+  font-size:40px!important;
+  color:#aeb2b5!important;
+  text-shadow:0 2px 0 #41464a,0 4px 6px #000!important;
+}
+.r29-company-icon::after{
+  content:""!important;
+  position:absolute!important;
+  left:-1px!important;top:-1px!important;
+  width:16px!important;height:16px!important;
+  background:linear-gradient(135deg,#8c1c16 0 50%,transparent 51%)!important;
+}
+.r29-record-name{
+  font-size:20px!important;
+  line-height:1.1!important;
+  margin-bottom:3px!important;
+}
+.r29-record-count{
+  font-size:14px!important;
+  color:#c3b7aa!important;
+  margin-bottom:4px!important;
+}
+.r29-record-line{
+  font-size:17px!important;
+  line-height:1.42!important;
+  color:#ddd4ca!important;
+}
+.r29-record-next{
+  font-size:18px!important;
+  margin-top:3px!important;
+}
+.r29-record-delete{
+  align-self:start!important;
+  margin-top:2px!important;
+  padding:10px 12px!important;
+  font-size:16px!important;
+  color:#ff6e62!important;
+  border-color:#ad2d25!important;
+  background:linear-gradient(180deg,#7b1a15,#2f0504)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,140,120,.17),
+    inset 0 -2px 0 rgba(0,0,0,.65),
+    0 2px 0 #1a0302,
+    0 5px 9px rgba(0,0,0,.35)!important;
+}
+@media(max-width:640px){
+  .r29-record{
+    grid-template-columns:58px minmax(0,1fr) auto!important;
+    padding:9px 8px!important;
+  }
+  .r29-company-icon{width:52px!important;height:70px!important}
+  .r29-company-icon::before{font-size:34px!important}
+  .r29-record-name{font-size:18px!important}
+  .r29-record-count{font-size:13px!important}
+  .r29-record-line{font-size:15.5px!important}
+  .r29-record-next{font-size:16.5px!important}
+  .r29-record-delete{padding:8px 9px!important;font-size:14px!important}
+}
+</style>
+
+
+
+<style id="r35-center-nav-text">
+/* R41：修正 R41 六個功能鍵圖示消失後文字偏位。
+   不改按鈕尺寸、兩排三個配置、顏色、金屬框或其他版面。 */
+
+.nav a{
+  justify-content:center!important;
+  align-items:center!important;
+  text-align:center!important;
+  padding-left:6px!important;
+  padding-right:6px!important;
+  gap:0!important;
+}
+
+/* 圖示目前未顯示，就完全移除其佔位，避免文字被擠偏。 */
+.nav a .r26-nav-icon{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+  flex:0 0 0!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+.nav a .r26-nav-label{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  flex:1 1 auto!important;
+  padding:0!important;
+  margin:0!important;
+  text-align:center!important;
+  font-size:15px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:640px){
+  .nav a .r26-nav-label{
+    font-size:15px!important;
+  }
+}
+</style>
+
+
+
+
+
+<style id="r40-reminders-editing">
+/* 標題：稍放大並減少模糊陰影 */
+.brand-plaque h1{
+  font-size:31px!important;
+  font-weight:900!important;
+  letter-spacing:.35px!important;
+  color:#ddd7cf!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.28),0 2px 0 #646464,0 3px 2px #141414!important;
+}
+.brand-plaque h1 span{
+  color:#dda84f!important;
+  text-shadow:0 1px 0 rgba(255,235,185,.42),0 2px 0 #704816,0 3px 3px #111!important;
+}
+.notify-button{position:relative!important}
+.notify-badge{
+  position:absolute;right:-5px;top:-6px;min-width:19px;height:19px;padding:0 5px;
+  display:none;align-items:center;justify-content:center;border-radius:10px;
+  background:#9d211a;color:#fff;font-size:11px;font-weight:900;
+  border:1px solid #d76155;box-shadow:0 2px 5px #0009;
+}
+.notify-badge.show{display:flex}
+.date-option{display:flex;align-items:end}
+.no-date{
+  width:100%;min-height:48px;display:flex!important;align-items:center;gap:8px;
+  padding:9px 11px;margin:0!important;border:1px solid #444b51;border-radius:4px;
+  background:linear-gradient(180deg,#12171b,#080b0e);color:#c8beb3!important;font-weight:700!important;
+}
+.no-date input{width:22px!important;height:22px!important;min-height:0!important;padding:0!important}
+.form-actions{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important}
+.edit-cancel{display:none}
+.editing .edit-cancel{display:block}
+.record-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.edit-btn{
+  border:1px solid #8b6a2e;border-radius:5px;background:linear-gradient(180deg,#3c2d16,#171008);
+  color:#e4bd71;font-weight:800;padding:8px 10px;
+}
+.record-highlight{animation:r40flash 1.8s ease}
+@keyframes r40flash{
+  0%,100%{box-shadow:inherit}
+  20%,65%{box-shadow:0 0 0 2px #d5a34d,0 0 18px rgba(213,163,77,.55)!important}
+}
+.notification-help{font-size:16px!important}
+.reminder-item{
+  cursor:pointer!important;display:grid!important;grid-template-columns:1fr auto!important;
+  align-items:center!important;gap:10px!important;
+}
+.reminder-main{font-size:18px;font-weight:900;color:#e0d7cd}
+.reminder-date{font-size:15px;color:#d5a34d;font-weight:800}
+.reminder-arrow{font-size:24px;color:#b88a43}
+.quote-card-list{display:flex;flex-direction:column;gap:9px}
+.quote-card{
+  border:1px solid #4f565c;border-radius:6px;padding:11px;
+  background:linear-gradient(180deg,#12171b,#070a0d);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 3px 8px rgba(0,0,0,.28);
+}
+.quote-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.quote-card-title{font-size:18px;font-weight:900;color:#ddd4ca}
+.quote-grid{
+  margin-top:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 11px
+}
+.quote-field{font-size:15px;color:#a99f95}
+.quote-field b{display:block;margin-top:2px;font-size:17px;color:#ddd4ca;overflow-wrap:anywhere}
+.quote-margin b{color:#d4a24d}
+@media(max-width:640px){
+  .brand-plaque h1{font-size:27px!important}
+  .form-actions{grid-template-columns:1fr!important}
+  .quote-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .record-actions{gap:5px}
+  .edit-btn,.danger{padding:7px 9px!important;font-size:14px!important}
+}
+</style>
+
+
+<style id="r50-crm-enhancements">
+.crm-tools-card{padding:9px!important}.crm-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;align-items:center}
+.crm-tools input,.crm-tools select{min-height:42px!important;margin:0!important;font-size:14px!important}.crm-search{-webkit-appearance:none}
+.customer-link{border:1px solid #8a682c;background:linear-gradient(180deg,#352712,#141008);color:#e5bd70;border-radius:5px;padding:7px 9px;font-weight:900;white-space:nowrap}
+.customer360-head{display:flex;align-items:center;gap:12px}.customer360-label{font-size:12px;color:#988e84;letter-spacing:1px}.customer360-title{margin:2px 0 0!important}
+.compact-btn{width:auto!important;min-height:38px!important;padding:7px 10px!important}
+.mini-stat-grid,.home-crm-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.home-crm-summary{margin-bottom:10px}
+.mini-stat{border:1px solid #4e565c;border-radius:5px;padding:9px 7px;text-align:center;background:linear-gradient(180deg,#171d22,#080b0e);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 7px #0008}
+.mini-stat span{display:block;color:#9e958b;font-size:12px}.mini-stat b{display:block;margin-top:3px;color:#d6a34d;font-size:23px}
+.timeline-item{position:relative;margin:0 0 10px 11px;padding:10px 11px 10px 18px;border-left:2px solid #73511f;border-bottom:1px solid #30363b;background:linear-gradient(90deg,rgba(120,79,25,.08),transparent 55%);cursor:pointer}
+.timeline-item:before{content:"";position:absolute;left:-6px;top:18px;width:10px;height:10px;border-radius:50%;background:#d0a14d;box-shadow:0 0 0 2px #191d20}
+.timeline-type{font-size:12px;color:#d4a95b;font-weight:900}.timeline-title{font-size:18px;color:#ddd5cc;font-weight:900;margin:2px 0}.timeline-meta{font-size:13px;color:#a59b91}
+.timeline-content{font-size:15px;color:#cbc2b9;margin-top:5px;line-height:1.55;overflow-wrap:anywhere}.relation-chip{display:inline-block;margin-left:5px;padding:2px 6px;border:1px solid #5a6166;border-radius:8px;color:#aab2b8;font-size:11px}
+.empty-search{padding:18px;text-align:center;color:#807970}
+@media(max-width:640px){.crm-tools{grid-template-columns:1fr 1fr}.crm-tools .crm-search{grid-column:1/-1}.crm-tools select{width:100%}.mini-stat b{font-size:20px}}
+</style>
+
+</head>
+<body>
+<div class="app">
+<header class="top-shell">
+  <a class="top-icon" href="#settings" aria-label="設定">⚙️</a>
+  <div class="brand-plaque" onclick="location.hash='home'" role="button" aria-label="回首頁"><h1>鴻繽科技 <span>CRM</span></h1></div>
+  <a class="top-icon alert notify-button" href="#notifications" aria-label="提醒通知">🔔<span id="notificationCount" class="notify-badge">0</span></a>
+  <div id="storageStatus" class="system-hidden">本機資料儲存狀態：檢查中…</div>
+</header>
+
+<div class="card" style="padding:12px 14px">
+  <div class="kpis">
+    <div class="kpi"><span>專案</span><b id="countProjects">0</b></div>
+    <div class="kpi"><span>待辦</span><b id="countTodos">0</b></div>
+    <div class="kpi"><span>客戶</span><b id="countCustomers">0</b></div>
+  </div>
+</div>
+<nav class="nav" aria-label="主要功能">
+  <a href="#projects">📋 專案</a>
+  <a href="#contacts">📅 聯絡</a>
+  <a href="#commands">💬 指令</a>
+  <a href="#quotes">💰 報價</a>
+  <a href="#todos">📌 待辦</a>
+  <a href="#customers">👤 客戶</a>
+</nav>
+
+<main>
+
+<section class="panel r29-home" id="home"><div class="home-crm-summary" id="homeCrmSummary"><div class="mini-stat"><span>今日提醒</span><b id="homeTodayCount">0</b></div><div class="mini-stat"><span>未完成待辦</span><b id="homeOpenTodoCount">0</b></div><div class="mini-stat"><span>7日內追蹤</span><b id="homeWeekCount">0</b></div></div>
+  <div class="r29-section-head">
+    <div class="r29-section-title">客戶與拜訪紀錄</div>
+    <a class="r29-view-all" href="#customers">查看全部 ›</a>
+  </div>
+  <div id="r29HomeVisits" class="r29-home-visits"></div>
+</section>
+
+<section class="panel" id="projects">
+  <div class="card">
+    <h2 class="section-title">📋 專案看板</h2>
+    <div class="grid">
+      <div><label>專案名稱</label><input id="pName" placeholder="例如：661B 導入"></div><div><label>關聯客戶</label><input id="pCustomer" list="customerOptions" placeholder="可選擇既有客戶"></div>
+      <div><label>供應商</label><input id="pSupplier" placeholder="自行輸入"></div>
+      <div><label>負責人員</label><input id="pOwner" placeholder="自行輸入姓名"></div>
+      <div><label>階段</label><input id="pStage" list="stageList" placeholder="可選擇或自行輸入">
+        <datalist id="stageList"><option value="待評估"><option value="送樣"><option value="測試中"><option value="報價中"><option value="議價中"><option value="已成交"><option value="暫停"></datalist>
+      </div>
+      <div><label>追蹤日期</label><input id="pFollowDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="pNoFollow" type="checkbox"> 不設定追蹤日期</label></div>
+      <div class="full form-actions"><button id="pSaveBtn" class="primary" type="button" onclick="addProject()">新增專案</button><button id="pCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('projects')">取消編輯</button></div>
+    </div>
+  </div>
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="prSearch" class="crm-search" type="search" placeholder="搜尋專案、客戶、供應商、負責人" oninput="renderAll()">
+<select id="prFilter" onchange="renderAll()"><option value="all">全部階段</option><option value="active">進行中</option><option value="done">已成交</option><option value="paused">暫停</option></select>
+<select id="prSort" onchange="renderAll()"><option value="new">最新建立</option><option value="old">最舊建立</option><option value="date">追蹤日期優先</option></select>
+</div></div>
+<div class="card"><div id="projectList"></div></div>
+</section>
+
+<section class="panel" id="contacts">
+  <div class="card">
+    <h2 class="section-title">📅 聯絡追蹤</h2>
+    <div class="grid">
+      <div><label>聯絡對象</label><input id="cWho" placeholder="自行輸入"></div><div><label>關聯客戶</label><input id="cCustomer" list="customerOptions" placeholder="可選擇既有客戶"></div>
+      <div><label>日期</label><input id="cDate" type="date"></div><div class="date-option"><label class="no-date"><input id="cNoDate" type="checkbox"> 不設定日期</label></div>
+      <div><label>下次聯絡日期</label><input id="cNextDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="cNoNext" type="checkbox"> 不設定下次聯絡日期</label></div>
+      <div class="full"><label>溝通重點</label><textarea id="cNote" placeholder="長文字會自動換行，不會超出格子"></textarea></div>
+      <div class="full form-actions"><button id="cSaveBtn" class="primary" type="button" onclick="addContact()">新增聯絡紀錄</button><button id="cCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('contacts')">取消編輯</button></div>
+    </div>
+  </div>
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="coSearch" class="crm-search" type="search" placeholder="搜尋聯絡對象、客戶、內容" oninput="renderAll()">
+<select id="coFilter" onchange="renderAll()"><option value="all">全部</option><option value="dated">有下次聯絡</option><option value="nodate">未設定下次聯絡</option></select>
+<select id="coSort" onchange="renderAll()"><option value="new">最新建立</option><option value="old">最舊建立</option><option value="date">下次聯絡優先</option></select>
+</div></div>
+<div class="card"><div id="contactList"></div></div>
+</section>
+
+<section class="panel" id="commands">
+  <div class="card">
+    <h2 class="section-title">💬 指令產生</h2>
+    <div class="grid">
+      <div><label>對象</label><input id="mWho" placeholder="例如：王小姐"></div><div><label>關聯客戶</label><input id="mCustomer" list="customerOptions" placeholder="可選擇既有客戶"></div>
+      <div><label>情境</label><input id="mScene" list="sceneList" placeholder="可選擇或自行輸入">
+        <datalist id="sceneList"><option value="交辦"><option value="催樣品"><option value="催報價"></datalist>
+      </div>
+      <div><label>確認執行日期</label><input id="mConfirmDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="mNoConfirm" type="checkbox"> 不設定確認執行日期</label></div>
+      <div class="full"><label>任務</label><textarea id="mTask" placeholder="輸入要交辦或追蹤的內容"></textarea></div>
+      <div class="full form-actions"><button id="mSaveBtn" class="primary" type="button" onclick="saveCommand()">產生並儲存指令</button><button id="mCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('commands')">取消編輯</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <label>產生結果</label>
+    <div id="messageOutput" class="copybox">尚未產生訊息。</div>
+    <div style="height:10px"></div>
+    <button class="secondary" type="button" onclick="copyMessage()">一鍵複製訊息</button>
+  </div>
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="cmSearch" class="crm-search" type="search" placeholder="搜尋指令、對象、客戶、內容" oninput="renderAll()">
+<select id="cmFilter" onchange="renderAll()"><option value="all">全部</option><option value="dated">有確認日期</option><option value="nodate">未設定確認日期</option></select>
+<select id="cmSort" onchange="renderAll()"><option value="new">最新建立</option><option value="old">最舊建立</option><option value="date">確認日期優先</option></select>
+</div></div>
+<div class="card"><div id="commandList"></div></div>
+</section>
+
+<section class="panel" id="quotes">
+  <div class="card">
+    <h2 class="section-title">💰 報價與毛利</h2>
+    <div class="kpis">
+      <div class="kpi"><span>單件毛利</span><b id="profit">0</b></div>
+      <div class="kpi"><span>毛利率</span><b id="margin">0%</b></div>
+      <div class="kpi"><span>總毛利</span><b id="totalProfit">0</b></div>
+    </div>
+    <div class="grid">
+      <div><label>客戶公司</label><input id="qCustomer" list="customerOptions" placeholder="選擇或自行輸入"></div>
+      <div><label>品名</label><input id="qProductName" placeholder="例如：矽膠密封劑"></div><div><label>品號</label><input id="qModel" placeholder="例如：Silicone-7091"></div><div><label>規格</label><input id="qSpec" placeholder="例如：310ML/支"></div>
+      <div><label>進貨成本</label><input id="qCost" type="number" step="any" inputmode="decimal" placeholder="純數字"></div>
+      <div><label>預計售價</label><input id="qPrice" type="number" step="any" inputmode="decimal" placeholder="純數字"></div>
+      <div><label>需求數量</label><input id="qQty" type="number" step="any" inputmode="decimal" placeholder="純數字"></div><div><label>最低訂購量</label><input id="qMoq" placeholder="例如：20 瓶"></div>
+      <div><label>追蹤回覆日期</label><input id="qFollowDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="qNoFollow" type="checkbox"> 不設定追蹤回覆日期</label></div>
+      <div class="full form-actions"><button id="qSaveBtn" class="primary" type="button" onclick="saveQuote()">儲存報價歷史</button><button id="qCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('quotes')">取消編輯</button></div>
+    </div>
+  </div>
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="quSearch" class="crm-search" type="search" placeholder="搜尋客戶、產品型號" oninput="renderAll()">
+<select id="quFilter" onchange="renderAll()"><option value="all">全部</option><option value="dated">有追蹤日期</option><option value="nodate">未設定追蹤日期</option></select>
+<select id="quSort" onchange="renderAll()"><option value="new">最新建立</option><option value="old">最舊建立</option><option value="date">追蹤日期優先</option></select>
+</div></div>
+<div class="card"><button class="primary" type="button" onclick="openQuoteDocument()">📄 產生正式報價單</button><div class="meta" style="margin-top:7px">可加入多個品項，預覽後列印或儲存 PDF。</div></div>
+<div class="card"><div id="quoteBody" class="quote-card-list"></div></div>
+</section>
+
+<section class="panel" id="todos">
+  <div class="card">
+    <h2 class="section-title">📌 待辦事項</h2>
+    <div class="grid">
+      <div><label>執行日期</label><input id="tDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="tNoDate" type="checkbox"> 不設定執行日期</label></div>
+      <div><label>待辦記事</label><input id="tText" placeholder="自行輸入"></div><div><label>關聯客戶</label><input id="tCustomer" list="customerOptions" placeholder="可選擇既有客戶"></div>
+      <div class="full form-actions"><button id="tSaveBtn" class="primary" type="button" onclick="addTodo()">新增待辦</button><button id="tCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('todos')">取消編輯</button></div>
+    </div>
+  </div>
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="toSearch" class="crm-search" type="search" placeholder="搜尋待辦、關聯客戶" oninput="renderAll()">
+<select id="toFilter" onchange="renderAll()"><option value="all">全部</option><option value="open">未完成</option><option value="done">已完成</option></select>
+<select id="toSort" onchange="renderAll()"><option value="new">最新建立</option><option value="old">最舊建立</option><option value="date">執行日期優先</option></select>
+</div></div>
+<div class="card"><div id="todoList"></div></div>
+</section>
+
+<section class="panel" id="customers">
+  <div class="card">
+    <h2 class="section-title">👤 客戶</h2>
+    <div class="grid">
+      <div class="full">
+        <label>客戶簡稱</label>
+        <input id="cuName" placeholder="例如：帝寶、敏翔、龍鋒">
+      </div>
+      <div class="full form-actions"><button id="cuSaveBtn" class="primary" type="button" onclick="addCustomer()">新增客戶</button><button id="cuCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('customers')">取消編輯</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">新增拜訪紀錄</h2>
+    <div class="grid">
+      <div>
+        <label>客戶簡稱</label>
+        <input id="vCustomer" list="customerOptions" placeholder="選擇或輸入已建立的客戶">
+        <datalist id="customerOptions"></datalist>
+      </div>
+      <div><label>拜訪日期</label><input id="vDate" type="date"></div><div class="date-option"><label class="no-date"><input id="vNoDate" type="checkbox"> 不設定日期</label></div>
+      <div class="full"><label>拜訪內容</label><textarea id="vNote" placeholder="拜訪重點、客戶反應、需求等"></textarea></div>
+      <div class="full"><label>後續追蹤</label><textarea id="vNext" placeholder="下一步、待處理事項"></textarea></div>
+      <div><label>下次拜訪日期</label><input id="vNextDate" type="date"></div>
+      <div class="date-option"><label class="no-date"><input id="vNoNextDate" type="checkbox"> 不設定下次拜訪日期</label></div>
+      <div class="full form-actions"><button id="vSaveBtn" class="primary" type="button" onclick="addVisit()">新增拜訪紀錄</button><button id="vCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('visits')">取消編輯</button></div>
+    </div>
+  </div>
+
+  <div class="card crm-tools-card"><div class="crm-tools">
+<input id="cuSearch" class="crm-search" type="search" placeholder="搜尋客戶、拜訪內容" oninput="renderAll()">
+<select id="cuFilter" onchange="renderAll()"><option value="all">全部客戶</option><option value="visited">有拜訪紀錄</option><option value="unvisited">尚無拜訪</option></select>
+<select id="cuSort" onchange="renderAll()"><option value="name">名稱排序</option><option value="new">最新建立</option><option value="visit">最近拜訪</option></select>
+</div></div>
+<div class="card">
+    <h2 class="section-title">客戶與拜訪紀錄</h2>
+    <div id="customerGroupList"></div>
+  </div>
+
+</section>
+
+
+
+
+<style id="r51-quotation-document">
+.quote-doc-wrap{background:#d9d9d9;padding:12px;border-radius:5px;margin-top:10px}
+.quote-paper{width:100%;max-width:794px;margin:auto;background:#fff;color:#111;padding:28px 38px 34px;box-sizing:border-box;font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;box-shadow:0 2px 10px #0005}
+.q-letterhead{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:14px}
+.q-logo-mark{height:108px;border:5px solid #c8231d;color:#c8231d;font-weight:1000;font-size:70px;line-height:94px;text-align:center;position:relative}.q-logo-mark:after{content:"HON BOND";position:absolute;font-size:13px;line-height:1;left:21px;bottom:-21px;font-style:italic}
+.q-company h1{font-family:serif;font-size:32px;letter-spacing:5px;margin:0;color:#2b2130}.q-company .en{font-size:18px;font-weight:900;color:#8b2720;letter-spacing:1px}.q-company .addr{font-size:13px;font-weight:800;color:#8b2720;line-height:1.45}
+.q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:34px 0 22px;text-decoration:underline;text-underline-offset:7px}
+.q-party{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;font-family:serif;font-size:17px;line-height:1.55}.q-party-row{display:grid;grid-template-columns:150px 1fr}.q-party-label{font-family:serif}
+.q-table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;font-size:16px}.q-table th,.q-table td{border:1px solid #555;padding:8px 7px;vertical-align:top}.q-table th{text-align:center;font-weight:900}.q-table td{height:44px}.q-table th:nth-child(1){width:26%}.q-table th:nth-child(2){width:20%}.q-table th:nth-child(3){width:15%}.q-table th:nth-child(4){width:20%}.q-table th:nth-child(5){width:19%}
+.q-terms{font-size:16px;line-height:1.45;margin:10px 18px}.q-notes{font-size:16px;line-height:1.6;margin:8px 18px}.q-sales{text-align:right;font-size:17px;margin:34px 80px 0 0}
+.q-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.q-editor-grid .wide{grid-column:1/-1}.q-items-editor{overflow-x:auto}.q-items-editor table{min-width:760px;width:100%;border-collapse:collapse}.q-items-editor td{padding:4px}.q-items-editor input{min-height:38px!important;margin:0!important}.q-item-del{width:auto!important;min-height:38px!important;padding:5px 9px!important}
+@media(max-width:640px){.quote-paper{padding:20px 18px}.q-letterhead{grid-template-columns:92px 1fr}.q-logo-mark{height:72px;font-size:45px;line-height:62px}.q-company h1{font-size:21px;letter-spacing:2px}.q-company .en{font-size:12px}.q-company .addr{font-size:9px}.q-title{font-size:27px;margin:26px 0 18px}.q-party{grid-template-columns:1fr;font-size:14px;gap:4px}.q-party-row{grid-template-columns:110px 1fr}.q-table{font-size:12px}.q-table th,.q-table td{padding:5px 3px}.q-terms,.q-notes{font-size:13px;margin-left:5px;margin-right:5px}.q-sales{font-size:14px;margin-right:10px}.q-editor-grid{grid-template-columns:1fr}}
+@media print{body *{visibility:hidden!important}.quote-paper,.quote-paper *{visibility:visible!important}.quote-paper{position:absolute;left:0;top:0;width:210mm;max-width:none;box-shadow:none;padding:12mm 15mm}.quote-doc-wrap{padding:0;background:#fff}}
+</style>
+
+<section class="panel" id="quoteDocument">
+  <div class="card">
+    <div class="customer360-head">
+      <button class="secondary compact-btn" type="button" onclick="location.hash='quotes'">‹ 返回報價</button>
+      <div><div class="customer360-label">正式文件</div><h2 class="section-title customer360-title">產生報價單</h2><div class="meta">可由已儲存報價直接帶入，或自行新增多個品項。</div></div>
+    </div>
+    <div class="q-editor-grid">
+      <div><label>客戶名稱</label><input id="qdCustomer" list="customerOptions" placeholder="選擇或輸入客戶"></div>
+      <div><label>聯絡人</label><input id="qdContact" placeholder="例如：王小明"></div>
+      <div><label>TEL</label><input id="qdTel" inputmode="tel" placeholder="例如：06-3555566 分機123"></div>
+      <div><label>FAX</label><input id="qdFax" inputmode="tel" placeholder="例如：06-3555577"></div>
+      <div><label>報價單號</label><input id="qdNo" placeholder="可自行輸入"></div>
+      <div><label>日期</label><input id="qdDate" type="date"></div>
+      <div><label>交貨日期</label><input id="qdDelivery" value="有庫存 3 天內交貨，如無庫存需 30 天"></div>
+      <div><label>付款條件</label><input id="qdPayment" value="次月60天"></div>
+      <div class="wide"><label>交貨地點</label><input id="qdPlace" value="貴公司交貨處或指定交貨處"></div>
+      <div><label>有效期限</label><input id="qdValid" value="三十日"></div>
+      <div><label>業務代表</label><input id="qdSales"></div>
+      <div class="wide"><label>業務電話</label><input id="qdSalesTel"></div>
+    </div>
+    <h3>報價品項</h3>
+    <div class="q-items-editor"><table><tbody id="qdItemsEditor"></tbody></table></div>
+    <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="window.print()">列印／儲存 PDF</button></div>
+  </div>
+  <div class="quote-doc-wrap">
+    <div class="quote-paper" id="quotePaper">
+      <div class="q-letterhead">
+        <div class="q-logo-mark">H</div>
+        <div class="q-company"><h1>鴻繽科技有限公司</h1><div class="en">HONBIN TECHNOLOGY CO., LTD.</div><div class="addr">台南市安南區安西二街108號<br>No.108, Anxi 2nd. St., Annan Dist., Tainan City 70958, Taiwan (R.O.C.)<br>TEL:+886-6-2453737　FAX:+886-6-2463328</div></div>
+      </div>
+      <div class="q-title">報價單</div>
+      <div class="q-party">
+        <div><div class="q-party-row"><span class="q-party-label">Messers.</span><b id="qpCustomer"></b></div><div class="q-party-row"><span></span><span>TEL： <span id="qpTel"></span></span></div><div class="q-party-row"><span></span><span>FAX： <span id="qpFax"></span></span></div></div>
+        <div><div>NO： <span id="qpNo"></span></div><div>DATE： <span id="qpDate"></span></div><div>聯絡人： <span id="qpContact"></span></div></div>
+      </div>
+      <table class="q-table"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id="qpItems"></tbody></table>
+      <div class="q-terms">交貨日期：<span id="qpDelivery"></span><br>付款條件：<span id="qpPayment"></span><br>交貨地點：<span id="qpPlace"></span><br>有效期限：<span id="qpValid"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>
+      <div class="q-notes">備　註：<br>1：　以上價格為未稅價。<br>2：　本報價僅供參考，實際價格以訂單確認為準。<br>3：　特殊規格或需求，請先行告知。<br>4：　如有任何問題，歡迎隨時與我們聯繫。</div>
+      <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="customer360">
+  <div class="card">
+    <div class="customer360-head">
+      <button class="secondary compact-btn" type="button" onclick="location.hash='customers'">‹ 返回客戶</button>
+      <div><div class="customer360-label">客戶 360°</div><h2 id="customer360Title" class="section-title customer360-title">尚未選擇客戶</h2></div>
+    </div>
+    <div id="customer360Stats" class="mini-stat-grid"></div>
+  </div>
+  <div class="card"><h2 class="section-title">時間軸</h2><div id="customer360Timeline"></div></div>
+</section>
+
+<section class="panel" id="notifications">
+  <div class="card">
+    <h2 class="section-title">🔔 提醒通知</h2>
+    <div class="content notification-help">顯示今天需要處理的提醒。點提醒可直接跳到對應功能頁與該筆資料。</div>
+  </div>
+  <div class="card"><div id="notificationList"></div></div>
+</section>
+
+<section class="panel" id="settings">
+  <div class="card">
+    <h2 class="section-title">⚙️ 設定</h2>
+    <div class="grid">
+      <div class="full"><label>預設進入頁面</label><select id="defaultPage"><option value="home">🏠 首頁</option>
+        <option value="projects">📋 專案</option><option value="contacts">📅 聯絡</option><option value="commands">💬 指令</option>
+        <option value="quotes">💰 報價</option><option value="todos">📌 待辦</option><option value="customers">👤 客戶</option><option value="notifications">🔔 提醒通知</option><option value="settings">⚙️ 設定</option>
+      </select></div>
+      <div class="full"><button class="primary" type="button" onclick="saveSettings()">儲存設定</button></div>
+    </div>
+  </div>
+  <div class="card"><h2 class="section-title">離線狀態</h2><div id="offlineReady" class="content">正在確認離線快取…</div><div class="status">顯示「離線已就緒」後，再加入 iPhone 主畫面；之後可斷網開啟。</div></div>
+
+  <div class="card">
+    <h2 class="section-title">分享</h2>
+    <div class="content">第一次有網路時用 Safari 開啟連結，加入 iPhone 主畫面；顯示「離線已就緒」後即可離線使用。</div>
+    <div style="height:10px"></div>
+    <button class="primary" type="button" onclick="shareInstallLink()">分享安裝連結</button>
+    <div style="height:10px"></div>
+    <button class="secondary" type="button" style="width:100%" onclick="copyInstallLink()">複製安裝連結</button>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">資料備份</h2><div class="content" style="margin-bottom:10px">建議使用「儲存到檔案」存到固定的 iCloud Drive／我的 iPhone 資料夾。</div>
+    <div class="tools">
+      <button class="secondary" type="button" onclick="exportData()">匯出備份</button>
+      <label class="secondary" style="text-align:center;cursor:pointer">匯入備份<input id="importFile" type="file" accept="application/json" style="display:none"></label>
+    </div>
+    <div style="height:10px"></div>
+    <button class="danger" type="button" style="width:100%" onclick="clearAllData()">清空全部資料</button>
+    <div class="status">按「匯出備份」後可從 iPhone 分享選單選擇「儲存到檔案」，自行指定儲存位置。若裝置不支援，才會改用一般下載。</div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+(()=>{
+const KEY='hongbin_personal_crm_v3';const SETTINGS_KEY='hongbin_personal_crm_settings_v1';
+const blank={projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]};
+let db;
+try{db=Object.assign({},blank,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){db={...blank}}
+const $=id=>document.getElementById(id);
+
+// R4 migration: convert older customer records to nickname-only structure when possible.
+db.customers=(db.customers||[]).map(c=>({id:c.id||Date.now()+Math.random(),name:c.name||c.company||c.contact||'未命名客戶'}));
+db.visits=(db.visits||[]).map(v=>{
+  if(v.customerId) return v;
+  const oldName=(v.who||'').trim();
+  const c=db.customers.find(x=>x.name.toLowerCase()===oldName.toLowerCase());
+  return Object.assign({},v,{customerId:c?c.id:null});
+}).filter(v=>v.customerId);
+
+
+// R41 visual validation dataset.
+
+
+let __R41_MEM_DB = null;
+function canPersistentStore(){
+  try{
+    const k='__crm_probe__'+Date.now();
+    localStorage.setItem(k,'1');
+    localStorage.removeItem(k);
+    return true;
+  }catch(e){ return false; }
+}
+const R41_PERSISTENT = canPersistentStore();
+
+const save=()=>{
+  try{
+    if(R41_PERSISTENT){
+      localStorage.setItem(KEY,JSON.stringify(db));
+      const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：正常';
+      return true;
+    }
+    __R41_MEM_DB = JSON.stringify(db);
+    const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：測試記憶體模式';
+    return true;
+  }catch(e){
+    const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：錯誤';
+    console.error('save failed',e);
+    return false;
+  }
+};
+const deepCopy=x=>JSON.parse(JSON.stringify(x));
+function loadSettings(){
+  try{
+    if(R41_PERSISTENT) return Object.assign({defaultPage:'home'},JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'));
+  }catch(e){}
+  return {defaultPage:'home'};
+}
+window.saveSettings=function(){
+  const page=$('defaultPage').value||'home';
+  if(R41_PERSISTENT){
+    try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({defaultPage:page}));toast('設定已儲存');return}
+    catch(e){}
+  }
+  toast('測試模式：設定暫存於本次頁面');
+}
+function applyDefaultPage(){
+  const page=loadSettings().defaultPage||'home';
+  if($('defaultPage')) $('defaultPage').value=page;
+  if(!location.hash||location.hash==='#'){
+    try{
+      if(location.protocol==='http:'||location.protocol==='https:'){
+        history.replaceState(null,'','#'+page);
+      }
+      // data: / local visual test does not need a hash because CSS fallback shows #home.
+    }catch(e){
+      console.warn('default page history update skipped',e);
+    }
+  }
+}
+
+function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove('show'),1500)}
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const num=n=>Number.isFinite(Number(n))?Number(Number(n).toFixed(2)).toLocaleString('zh-TW'):'0';
+
+function commitChange(mutator,onSuccess){
+  const before=deepCopy(db);
+  try{
+    mutator();
+    if(!save()){db=before;renderAll();return false;}
+    renderAll();
+    if(onSuccess) onSuccess();
+    return true;
+  }catch(e){
+    db=before;
+    renderAll();
+    alert('資料處理失敗，原資料已保留。');
+    return false;
+  }
+}
+
+
+window.deleteItem=function(type,id){
+  commitChange(
+    ()=>{db[type]=db[type].filter(x=>x.id!==id)},
+    ()=>toast('資料已刪除')
+  );
+}
+window.deleteCustomer=function(id){
+  const hasVisits=db.visits.some(v=>v.customerId===id);
+  if(hasVisits&&!confirm('此客戶已有拜訪紀錄，刪除客戶會一併刪除這些紀錄。確定刪除？'))return;
+  commitChange(
+    ()=>{
+      db.customers=db.customers.filter(x=>x.id!==id);
+      db.visits=db.visits.filter(v=>v.customerId!==id);
+    },
+    ()=>toast('客戶與其拜訪紀錄已刪除')
+  );
+}
+function renderProjects(){
+ $('projectList').innerHTML=db.projects.length?db.projects.map(x=>`<div class="item"><div class="item-head"><div><div class="item-title">${esc(x.name)}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}</div></div><button type="button" class="danger" onclick="deleteItem(\'projects\',${x.id})">刪除</button></div></div>`).join(''):'<div class="empty">尚無專案</div>'
+}
+function renderContacts(){
+ $('contactList').innerHTML=db.contacts.length?db.contacts.map(x=>`<div class="item"><div class="item-head"><div><div class="item-title">${esc(x.who)}</div><div class="meta">${esc(x.date||'未指定日期')}</div></div><button type="button" class="danger" onclick="deleteItem(\'contacts\',${x.id})">刪除</button></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty">尚無聯絡紀錄</div>'
+}
+function renderQuotes(){
+ $('quoteBody').innerHTML=db.quotes.length?db.quotes.map(x=>`<tr><td>${esc(x.customer)}</td><td>${esc(x.model)}</td><td>${num(x.cost)}</td><td>${num(x.price)}</td><td>${num(x.qty)}</td><td>${num(x.unit)}</td><td>${num(x.total)}</td><td>${num(x.margin)}%</td><td><button type="button" class="danger" onclick="deleteItem(\'quotes\',${x.id})">刪除</button></td></tr>`).join(''):'<tr><td colspan="9" class="empty">尚無報價歷史</td></tr>'
+}
+function renderTodos(){
+ $('todoList').innerHTML=db.todos.length?db.todos.map(x=>`<div class="item ${x.done?'done':''}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}</div><div class="meta">${esc(x.date||'未指定日期')}｜${x.done?'已完成':'未完成'}</div></div></div><button type="button" class="danger" onclick="deleteItem(\'todos\',${x.id})">刪除</button></div></div>`).join(''):'<div class="empty">尚無待辦事項</div>'
+}
+function renderCustomers(){
+  const opts=$('customerOptions');
+  if(opts) opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
+  const box=$('customerGroupList');
+  if(!box) return;
+  if(!db.customers.length){box.innerHTML='<div class="empty">尚無客戶</div>';return;}
+  box.innerHTML=db.customers.map(c=>{
+    const visits=db.visits.filter(v=>v.customerId===c.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const visitHtml=visits.length?visits.map(v=>`
+      <div class="item" style="margin-left:8px">
+        <div class="item-head">
+          <div>
+            <div class="meta">${esc(v.date||'未指定日期')}</div>
+            <div class="content">${esc(v.note)}</div>
+            ${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}
+          </div>
+          <button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button>
+        </div>
+      </div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';
+    return `<div class="item">
+      <div class="item-head">
+        <div class="item-title">${esc(c.name)}</div>
+        <button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button>
+      </div>
+      <div class="meta">拜訪紀錄 ${visits.length} 筆</div>
+      ${visitHtml}
+    </div>`;
+  }).join('');
+}
+function renderVisits(){renderCustomers()}
+
+
+function renderR41Home(){
+  const box=$('r29HomeVisits');
+  if(!box) return;
+
+  const customers=Array.isArray(db.customers)?db.customers:[];
+  const visits=Array.isArray(db.visits)?db.visits:[];
+
+  const grouped=customers.map(c=>{
+    const list=visits
+      .filter(v => String(v.customerId)===String(c.id))
+      .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    return {c,list,last:list[0]||null};
+  }).sort((a,b)=>{
+    const ad=(a.last&&a.last.date)||'';
+    const bd=(b.last&&b.last.date)||'';
+    return String(bd).localeCompare(String(ad));
+  });
+
+  if(!grouped.length){
+    box.innerHTML='<div class="r29-empty">尚無客戶與拜訪紀錄</div>';
+    return;
+  }
+
+  box.innerHTML=grouped.slice(0,5).map(({c,list,last})=>{
+    const name=esc(c.name||'未命名客戶');
+    const count=list.length;
+    const date=esc(last&&last.date ? last.date : '未指定日期');
+
+    // try common field names safely
+    const noteRaw = last ? (last.note ?? last.content ?? last.summary ?? '') : '';
+    const nextRaw = last ? (last.next ?? last.followUp ?? last.nextAction ?? '') : '';
+    const note=esc(noteRaw || '尚無拜訪內容');
+    const next=esc(nextRaw || '尚未設定');
+
+    return `<div class="r29-record">
+      <div class="r29-company-icon">▥</div>
+      <div class="r29-record-main">
+        <div class="r29-record-name">${name}</div>
+        <div class="r29-record-count">拜訪紀錄 ${count} 筆</div>
+        <div class="r29-record-line"><span class="ico">▣</span><span>${date}　${note}</span></div>
+        <div class="r29-record-line r29-record-next"><span class="ico">◎</span><span>後續追蹤：${next}</span></div>
+      </div>
+      <button type="button" class="r29-record-delete" onclick="deleteCustomer(${JSON.stringify(c.id)})">刪除</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){
+  renderProjects();renderContacts();renderQuotes();renderTodos();renderCustomers();renderVisits();
+  const cp=$('countProjects'),ct=$('countTodos'),cc=$('countCustomers');
+  if(cp) cp.textContent=db.projects.length;
+  if(ct) ct.textContent=db.todos.filter(x=>!x.done).length;
+  if(cc) cc.textContent=db.customers.length;
+  renderR41Home();
+}
+function quoteCalc(){
+ const cost=Number($('qCost').value)||0,price=Number($('qPrice').value)||0,qty=Number($('qQty').value)||0,unit=price-cost,margin=price?unit/price*100:0;
+ $('profit').textContent=num(unit);$('margin').textContent=num(margin)+'%';$('totalProfit').textContent=num(unit*qty)
+}
+window.addProject=function(){
+   const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');
+   db.projects.unshift({id:Date.now(),name,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定'});
+   if(save()){renderProjects();$('pName').value=$('pSupplier').value=$('pOwner').value=$('pStage').value='';toast('專案已新增')}
+ }
+window.addContact=function(){
+   const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');
+   db.contacts.unshift({id:Date.now(),who,date:$('cDate').value,note});if(save()){renderContacts();$('cWho').value=$('cNote').value='';toast('聯絡紀錄已新增')}
+ }
+window.genMessage=function(){
+   const who=$('mWho').value.trim()||'您',scene=$('mScene').value.trim()||'工作事項',task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');
+   const map={
+    '交辦':`${who}您好，這件事麻煩協助處理：${task}。請依進度完成，若有任何阻礙或需要確認的地方，請直接回覆，謝謝。`,
+    '催樣品':`${who}您好，想跟您確認一下樣品進度：${task}。麻煩協助確認目前狀態與預計可提供時間，若時程有異動也請一併告知，謝謝。`,
+    '催報價':`${who}您好，想追蹤一下報價進度：${task}。麻煩協助確認目前處理狀態，若可以的話請儘快提供報價資料，謝謝。`
+   };
+   $('messageOutput').textContent=map[scene]||`${who}您好，關於「${scene}」：${task}。麻煩協助確認並依實際進度處理，如有任何問題或時程異動請直接回覆，謝謝。`
+}
+window.copyMessage=async function(){
+   const text=$('messageOutput').textContent;
+   if(text==='尚未產生訊息。')return alert('請先產生訊息');
+   try{
+     await navigator.clipboard.writeText(text);
+     toast('已複製訊息');
+   }catch(e){
+     const ta=document.createElement('textarea');
+     ta.value=text;document.body.appendChild(ta);ta.select();
+     document.execCommand('copy');ta.remove();toast('已複製訊息');
+   }
+}
+window.saveQuote=function(){
+   const customer=$('qCustomer').value.trim(),model=$('qModel').value.trim(),cost=Number($('qCost').value),price=Number($('qPrice').value),qty=Number($('qQty').value);
+   if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、型號與數字欄位');
+   const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0;
+   db.quotes.unshift({id:Date.now(),customer,model,cost,price,qty,unit,total,margin});if(save()){renderQuotes();
+   ['qCustomer','qModel','qCost','qPrice','qQty'].forEach(id=>$(id).value='');quoteCalc();toast('報價歷史已儲存')}
+ }
+window.addTodo=function(){
+   const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');
+   db.todos.unshift({id:Date.now(),date:$('tDate').value,text,done:false});if(save()){renderTodos();$('tText').value='';toast('待辦已新增')}
+ }
+window.addCustomer=function(){
+   const name=$('cuName').value.trim();
+   if(!name)return alert('請輸入客戶簡稱');
+   if(db.customers.some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert('這個客戶已經建立');
+   db.customers.unshift({id:Date.now(),name});
+   if(save()){renderCustomers();$('cuName').value='';toast('客戶已新增');}
+ }
+window.addVisit=function(){
+   const customerName=$('vCustomer').value.trim(),note=$('vNote').value.trim();
+   if(!customerName||!note)return alert('請選擇客戶並輸入拜訪內容');
+   const customer=db.customers.find(x=>x.name.toLowerCase()===customerName.toLowerCase());
+   if(!customer)return alert('這個客戶尚未建立，請先新增客戶簡稱');
+   db.visits.unshift({id:Date.now(),customerId:customer.id,date:$('vDate').value,note,next:$('vNext').value.trim()});
+   if(save()){renderCustomers();$('vCustomer').value=$('vNote').value=$('vNext').value='';toast('拜訪紀錄已新增並歸入客戶');}
+ }
+window.clearAllData=function(){
+  if(!confirm('確定要清空全部 CRM 資料？此動作無法復原，建議先匯出備份。'))return;
+  commitChange(
+    ()=>{db={projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]}},
+    ()=>toast('全部資料已清空')
+  );
+}
+
+const CRM_INSTALL_URL='https://honbin002-design.github.io/hongbin-personal-crm/';
+
+function getInstallUrl(){
+  // GitHub Pages 正式環境永遠回傳可分享的乾淨網址；
+  // 避免 data:、blob:、hash 路由或主畫面模式造成錯誤連結。
+  if(location.protocol==='https:' && location.hostname==='honbin002-design.github.io'){
+    return CRM_INSTALL_URL;
+  }
+  return CRM_INSTALL_URL;
+}
+
+window.shareInstallLink=async function(){
+  const url=getInstallUrl();
+  try{
+    if(navigator.share){
+      await navigator.share({
+        title:'鴻繽科技 CRM',
+        text:'鴻繽科技 CRM 安裝連結。請使用 Safari 開啟後加入 iPhone 主畫面。',
+        url:url
+      });
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+    console.warn('share install link failed',e);
+  }
+  try{
+    await navigator.clipboard.writeText(url);
+    toast('此瀏覽器無法開啟分享表單，安裝連結已複製');
+  }catch(e){
+    prompt('請複製 CRM 安裝連結：',url);
+  }
+};
+
+window.copyInstallLink=async function(){
+  const url=getInstallUrl();
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(url);
+      toast('安裝連結已複製');
+      return;
+    }
+  }catch(e){ console.warn('clipboard failed',e); }
+
+  const ta=document.createElement('textarea');
+  ta.value=url;
+  ta.setAttribute('readonly','');
+  ta.style.position='fixed';
+  ta.style.opacity='0';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0,ta.value.length);
+  try{
+    const ok=document.execCommand('copy');
+    if(ok) toast('安裝連結已複製');
+    else prompt('請複製 CRM 安裝連結：',url);
+  }catch(e){
+    prompt('請複製 CRM 安裝連結：',url);
+  }finally{
+    ta.remove();
+  }
+};
+
+window.exportData=async function(){
+  const payload=JSON.stringify({version:3,app:'鴻繽科技 CRM',schema:'R50',exportedAt:new Date().toISOString(),data:db},null,2);
+  const date=new Date();
+  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
+  const filename=`鴻繽科技_個人CRM_備份_${y}-${m}-${d}.json`;
+  const blob=new Blob([payload],{type:'application/json;charset=utf-8'});
+  const file=new File([blob],filename,{type:'application/json'});
+
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      await navigator.share({
+        title:'鴻繽科技 CRM 備份',
+        text:'請選擇「儲存到檔案」並指定備份位置。',
+        files:[file]
+      });
+      toast('已開啟儲存選單');
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+    console.warn('share backup failed, fallback to download',e);
+  }
+
+  // 備援：若瀏覽器不支援檔案分享，退回一般下載。
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast('此裝置不支援直接儲存選單，已改用下載備份');
+};
+['qCost','qPrice','qQty'].forEach(id=>$(id).addEventListener('input',quoteCalc));
+$('importFile').addEventListener('change',e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{
+   const x=JSON.parse(r.result);
+   const source=(x&&x.data&&typeof x.data==='object')?x.data:x;
+   db=migrateR50DB(Object.assign({},blank,source||{}));
+   save();renderAll();alert('備份已匯入');
+ }catch(err){console.error(err);alert('備份檔格式不正確')}};
+ r.readAsText(f)
+});
+
+
+// ===== R50 資料相容與客戶關聯層 =====
+function migrateR50DB(source){
+  const out=Object.assign({projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]},source||{});
+  ['projects','contacts','commands','quotes','todos','customers','visits'].forEach(k=>{if(!Array.isArray(out[k]))out[k]=[]});
+  const findId=name=>{if(!name)return null;const n=String(name).trim().toLowerCase();const c=out.customers.find(x=>String(x.name||'').trim().toLowerCase()===n);return c?c.id:null};
+  out.projects=out.projects.map(x=>Object.assign({customerId:null,customerName:''},x));
+  out.contacts=out.contacts.map(x=>Object.assign({customerId:null,customerName:''},x));
+  out.commands=out.commands.map(x=>Object.assign({customerId:null,customerName:''},x));
+  out.quotes=out.quotes.map(x=>Object.assign({productName:'',spec:'',moq:'',customerId:x.customerId||findId(x.customer),customerName:x.customerName||x.customer||''},x));
+  out.todos=out.todos.map(x=>Object.assign({customerId:null,customerName:''},x));
+  out.visits=out.visits.map(x=>Object.assign({nextVisitDate:''},x));
+  return out;
+}
+db=migrateR50DB(db);
+function customerById(id){return db.customers.find(c=>String(c.id)===String(id))||null}
+function customerByName(name){const n=String(name||'').trim().toLowerCase();return db.customers.find(c=>String(c.name||'').trim().toLowerCase()===n)||null}
+function resolveCustomer(name){const c=customerByName(name);return {customerId:c?c.id:null,customerName:c?c.name:String(name||'').trim()}}
+function customerNameOf(rec){const c=customerById(rec&&rec.customerId);return c?c.name:(rec&&rec.customerName)||''}
+function lc(x){return String(x??'').toLowerCase()} function ts(id){const n=Number(id);return Number.isFinite(n)?n:0}
+function dateSort(a,b,key){const av=a[key]||'9999-12-31',bv=b[key]||'9999-12-31';return av.localeCompare(bv)||ts(b.id)-ts(a.id)}
+function searchHit(parts,q){if(!q)return true;return lc(parts.filter(Boolean).join(' ')).includes(lc(q).trim())}
+
+// ===== R41 提醒通知 + 全域編輯 + 響應式報價 =====
+db.commands=Array.isArray(db.commands)?db.commands:[];
+db.projects=(db.projects||[]).map(x=>Object.assign({followDate:''},x));
+db.contacts=(db.contacts||[]).map(x=>Object.assign({nextContactDate:''},x));
+db.commands=(db.commands||[]).map(x=>Object.assign({confirmDate:'',message:''},x));
+db.quotes=(db.quotes||[]).map(x=>Object.assign({followDate:''},x));
+db.todos=(db.todos||[]).map(x=>Object.assign({date:''},x));
+db.customers=(db.customers||[]).map(x=>Object.assign({nextVisitDate:''},x));
+db.visits=(db.visits||[]).map(x=>Object.assign({nextVisitDate:''},x));
+
+const editState={projects:null,contacts:null,commands:null,quotes:null,todos:null,customers:null,visits:null};
+function localToday(){
+  const d=new Date(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+function bindNoDate(checkId,dateId){
+  const c=$(checkId),d=$(dateId); if(!c||!d)return;
+  const sync=()=>{d.disabled=c.checked;if(c.checked)d.value='';};
+  c.addEventListener('change',sync);sync();
+}
+[
+ ['pNoFollow','pFollowDate'],['cNoDate','cDate'],['cNoNext','cNextDate'],['mNoConfirm','mConfirmDate'],
+ ['qNoFollow','qFollowDate'],['tNoDate','tDate'],['vNoDate','vDate'],['vNoNextDate','vNextDate']
+].forEach(x=>bindNoDate(...x));
+
+function setOptionalDate(checkId,dateId,value){
+  const c=$(checkId),d=$(dateId);if(!c||!d)return;
+  d.value=value||'';c.checked=!value;d.disabled=c.checked;
+}
+function setDefaultDate(checkId,dateId,value=''){
+  const c=$(checkId),d=$(dateId);if(!c||!d)return;
+  c.checked=false;d.disabled=false;d.value=value||'';
+}
+function resetEditForm(type){
+  editState[type]=null;
+  const map={
+    projects:['pSaveBtn','新增專案','pCancelEdit'],
+    contacts:['cSaveBtn','新增聯絡紀錄','cCancelEdit'],
+    commands:['mSaveBtn','產生並儲存指令','mCancelEdit'],
+    quotes:['qSaveBtn','儲存報價歷史','qCancelEdit'],
+    todos:['tSaveBtn','新增待辦','tCancelEdit'],
+    customers:['cuSaveBtn','新增客戶','cuCancelEdit'],
+    visits:['vSaveBtn','新增拜訪紀錄','vCancelEdit']
+  };
+  const cfg=map[type];if(cfg){const b=$(cfg[0]);if(b)b.textContent=cfg[1];const c=$(cfg[2]);if(c)c.closest('.form-actions')?.classList.remove('editing');}
+}
+window.cancelEdit=function(type){
+  if(type==='projects'){['pName','pCustomer','pSupplier','pOwner','pStage','pFollowDate'].forEach(id=>$(id).value='');setDefaultDate('pNoFollow','pFollowDate','');}
+  if(type==='contacts'){['cWho','cCustomer','cNote','cNextDate'].forEach(id=>$(id).value='');setDefaultDate('cNoDate','cDate',localToday());setDefaultDate('cNoNext','cNextDate','');}
+  if(type==='commands'){['mWho','mCustomer','mScene','mTask','mConfirmDate'].forEach(id=>$(id).value='');$('messageOutput').textContent='尚未產生訊息。';setDefaultDate('mNoConfirm','mConfirmDate','');}
+  if(type==='quotes'){['qCustomer','qProductName','qModel','qSpec','qCost','qPrice','qQty','qMoq','qFollowDate'].forEach(id=>$(id).value='');setDefaultDate('qNoFollow','qFollowDate','');quoteCalc();}
+  if(type==='todos'){['tText','tCustomer','tDate'].forEach(id=>$(id).value='');setDefaultDate('tNoDate','tDate','');}
+  if(type==='customers'){$('cuName').value='';}
+  if(type==='visits'){['vCustomer','vNote','vNext','vNextDate'].forEach(id=>$(id).value='');setDefaultDate('vNoDate','vDate',localToday());setDefaultDate('vNoNextDate','vNextDate','');}
+  resetEditForm(type);
+};
+
+function editMode(type,id,buttonId,label){
+  editState[type]=id;
+  const b=$(buttonId);if(b)b.textContent=label;
+  b?.closest('.form-actions')?.classList.add('editing');
+}
+function scrollToForm(id){setTimeout(()=>$(id)?.scrollIntoView({behavior:'smooth',block:'start'}),40)}
+
+function buildMessage(who,scene,task){
+  who=who||'您';scene=scene||'工作事項';
+  const map={
+    '交辦':`${who}您好，這件事麻煩協助處理：${task}。請依進度完成，若有任何阻礙或需要確認的地方，請直接回覆，謝謝。`,
+    '催樣品':`${who}您好，想跟您確認一下樣品進度：${task}。麻煩協助確認目前狀態與預計可提供時間，若時程有異動也請一併告知，謝謝。`,
+    '催報價':`${who}您好，想追蹤一下報價進度：${task}。麻煩協助確認目前處理狀態，若可以的話請儘快提供報價資料，謝謝。`
+  };
+  return map[scene]||`${who}您好，關於「${scene}」：${task}。麻煩協助確認並依實際進度處理，如有任何問題或時程異動請直接回覆，謝謝。`;
+}
+
+renderProjects=function(){
+ $('projectList').innerHTML=db.projects.length?db.projects.map(x=>`<div class="item" id="record-projects-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.name)}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}｜追蹤日期：${esc(x.followDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editProject(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('projects',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty">尚無專案</div>'
+}
+renderContacts=function(){
+ $('contactList').innerHTML=db.contacts.length?db.contacts.map(x=>`<div class="item" id="record-contacts-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.who)}</div><div class="meta">${esc(x.date||'未指定日期')}｜下次聯絡：${esc(x.nextContactDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editContact(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('contacts',${x.id})">刪除</button></div></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty">尚無聯絡紀錄</div>'
+}
+function renderCommands(){
+ const box=$('commandList');if(!box)return;
+ box.innerHTML=db.commands.length?db.commands.map(x=>`<div class="item" id="record-commands-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.task||x.scene||'指令')}</div><div class="meta">對象：${esc(x.who||'—')}｜情境：${esc(x.scene||'—')}｜確認執行：${esc(x.confirmDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCommand(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('commands',${x.id})">刪除</button></div></div><div class="content">${esc(x.message||'')}</div></div>`).join(''):'<div class="empty">尚無已儲存指令</div>';
+}
+renderQuotes=function(){
+ const box=$('quoteBody');if(!box)return;
+ box.innerHTML=db.quotes.length?db.quotes.map(x=>`<div class="quote-card" id="record-quotes-${x.id}">
+   <div class="quote-card-head"><div class="quote-card-title">${esc(x.customer)}｜${esc(x.model)}</div><div class="record-actions"><button type="button" class="customer-link" onclick="openQuoteDocument(${x.id})">報價單</button><button type="button" class="edit-btn" onclick="editQuote(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('quotes',${x.id})">刪除</button></div></div>
+   <div class="quote-grid">
+    <div class="quote-field">成本<b>${num(x.cost)}</b></div><div class="quote-field">售價<b>${num(x.price)}</b></div>
+    <div class="quote-field">數量<b>${num(x.qty)}</b></div><div class="quote-field">單件毛利<b>${num(x.unit)}</b></div>
+    <div class="quote-field">總毛利<b>${num(x.total)}</b></div><div class="quote-field quote-margin">毛利率<b>${num(x.margin)}%</b></div>
+    <div class="quote-field">追蹤回覆日期<b>${esc(x.followDate||'不設定')}</b></div>
+   </div></div>`).join(''):'<div class="empty">尚無報價歷史</div>';
+}
+renderTodos=function(){
+ $('todoList').innerHTML=db.todos.length?db.todos.map(x=>`<div class="item ${x.done?'done':''}" id="record-todos-${x.id}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}</div><div class="meta">${esc(x.date||'不設定')}｜${x.done?'已完成':'未完成'}</div></div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editTodo(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('todos',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty">尚無待辦事項</div>'
+}
+renderCustomers=function(){
+  const opts=$('customerOptions');if(opts) opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
+  const box=$('customerGroupList');if(!box)return;
+  if(!db.customers.length){box.innerHTML='<div class="empty">尚無客戶</div>';return;}
+  box.innerHTML=db.customers.map(c=>{
+    const visits=db.visits.filter(v=>String(v.customerId)===String(c.id)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const visitHtml=visits.length?visits.map(v=>`<div class="item" id="record-visits-${v.id}">
+      <div class="item-head"><div><div class="meta">${esc(v.date||'未指定日期')}｜下次拜訪：${esc(v.nextVisitDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editVisit(${v.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button></div></div>
+      <div class="content">${esc(v.note)}</div>${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}</div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';
+    return `<div class="item" id="record-customers-${c.id}"><div class="item-head"><div><div class="item-title">${esc(c.name)}</div><div class="meta">拜訪紀錄 ${visits.length} 筆</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCustomer(${c.id})">編輯</button><button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button></div></div>${visitHtml}</div>`;
+  }).join('');
+}
+renderVisits=function(){renderCustomers()}
+
+window.editProject=id=>{const x=db.projects.find(v=>v.id===id);if(!x)return;$('pName').value=x.name||'';$('pSupplier').value=x.supplier||'';$('pOwner').value=x.owner||'';$('pStage').value=x.stage||'';setOptionalDate('pNoFollow','pFollowDate',x.followDate||'');editMode('projects',id,'pSaveBtn','儲存修改');scrollToForm('projects')}
+window.editContact=id=>{const x=db.contacts.find(v=>v.id===id);if(!x)return;$('cWho').value=x.who||'';$('cNote').value=x.note||'';setOptionalDate('cNoDate','cDate',x.date||'');setOptionalDate('cNoNext','cNextDate',x.nextContactDate||'');editMode('contacts',id,'cSaveBtn','儲存修改');scrollToForm('contacts')}
+window.editCommand=id=>{const x=db.commands.find(v=>v.id===id);if(!x)return;$('mWho').value=x.who||'';$('mScene').value=x.scene||'';$('mTask').value=x.task||'';$('messageOutput').textContent=x.message||'';setOptionalDate('mNoConfirm','mConfirmDate',x.confirmDate||'');editMode('commands',id,'mSaveBtn','儲存修改');scrollToForm('commands')}
+window.editQuote=id=>{const x=db.quotes.find(v=>v.id===id);if(!x)return;$('qCustomer').value=x.customer||'';$('qModel').value=x.model||'';$('qCost').value=x.cost??'';$('qPrice').value=x.price??'';$('qQty').value=x.qty??'';$('qMoq').value=x.moq||'';setOptionalDate('qNoFollow','qFollowDate',x.followDate||'');quoteCalc();editMode('quotes',id,'qSaveBtn','儲存修改');scrollToForm('quotes')}
+window.editTodo=id=>{const x=db.todos.find(v=>v.id===id);if(!x)return;$('tText').value=x.text||'';setOptionalDate('tNoDate','tDate',x.date||'');editMode('todos',id,'tSaveBtn','儲存修改');scrollToForm('todos')}
+window.editCustomer=id=>{const x=db.customers.find(v=>v.id===id);if(!x)return;$('cuName').value=x.name||'';editMode('customers',id,'cuSaveBtn','儲存修改');scrollToForm('customers')}
+window.editVisit=id=>{const x=db.visits.find(v=>v.id===id);if(!x)return;const c=db.customers.find(v=>String(v.id)===String(x.customerId));$('vCustomer').value=c?.name||'';$('vNote').value=x.note||'';$('vNext').value=x.next||'';setOptionalDate('vNoDate','vDate',x.date||'');setOptionalDate('vNoNextDate','vNextDate',x.nextVisitDate||'');editMode('visits',id,'vSaveBtn','儲存修改');scrollToForm('customers')}
+
+window.addProject=function(){
+ const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');
+ const data={name,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定',followDate:$('pFollowDate').value||''};
+ if(editState.projects){const x=db.projects.find(v=>v.id===editState.projects);if(x)Object.assign(x,data)}else db.projects.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('projects');renderAll();toast('專案已儲存')}
+}
+window.addContact=function(){
+ const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');
+ const data={who,date:$('cDate').value,note,nextContactDate:$('cNextDate').value||''};
+ if(editState.contacts){const x=db.contacts.find(v=>v.id===editState.contacts);if(x)Object.assign(x,data)}else db.contacts.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('contacts');renderAll();toast('聯絡紀錄已儲存')}
+}
+window.saveCommand=function(){
+ const who=$('mWho').value.trim(),scene=$('mScene').value.trim(),task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');
+ const message=buildMessage(who,scene,task);$('messageOutput').textContent=message;
+ const data={who,scene,task,message,confirmDate:$('mConfirmDate').value||''};
+ if(editState.commands){const x=db.commands.find(v=>v.id===editState.commands);if(x)Object.assign(x,data)}else db.commands.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('commands');$('messageOutput').textContent=message;renderAll();toast('指令已儲存')}
+}
+window.saveQuote=function(){
+ const customer=$('qCustomer').value.trim(),model=$('qModel').value.trim(),cost=Number($('qCost').value),price=Number($('qPrice').value),qty=Number($('qQty').value);
+ if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、型號與數字欄位');
+ const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0,data={customer,model,cost,price,qty,unit,total,margin,followDate:$('qFollowDate').value||''};
+ if(editState.quotes){const x=db.quotes.find(v=>v.id===editState.quotes);if(x)Object.assign(x,data)}else db.quotes.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('quotes');renderAll();quoteCalc();toast('報價紀錄已儲存')}
+}
+window.addTodo=function(){
+ const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');
+ const data={date:$('tDate').value||'',text};
+ if(editState.todos){const x=db.todos.find(v=>v.id===editState.todos);if(x)Object.assign(x,data)}else db.todos.unshift(Object.assign({id:Date.now(),done:false},data));
+ if(save()){cancelEdit('todos');renderAll();toast('待辦已儲存')}
+}
+window.addCustomer=function(){
+ const name=$('cuName').value.trim();if(!name)return alert('請輸入客戶簡稱');
+ const duplicate=db.customers.some(x=>x.id!==editState.customers&&x.name.toLowerCase()===name.toLowerCase());if(duplicate)return alert('這個客戶已經建立');
+ const data={name};
+ if(editState.customers){const x=db.customers.find(v=>v.id===editState.customers);if(x)Object.assign(x,data)}else db.customers.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('customers');renderAll();toast('客戶已儲存')}
+}
+window.addVisit=function(){
+ const customerName=$('vCustomer').value.trim(),note=$('vNote').value.trim();if(!customerName||!note)return alert('請選擇客戶並輸入拜訪內容');
+ const customer=db.customers.find(x=>x.name.toLowerCase()===customerName.toLowerCase());if(!customer)return alert('這個客戶尚未建立，請先新增客戶簡稱');
+ const nextVisitDate=$('vNextDate').value||'',data={customerId:customer.id,date:$('vDate').value,note,next:$('vNext').value.trim(),nextVisitDate};
+ if(editState.visits){const x=db.visits.find(v=>v.id===editState.visits);if(x)Object.assign(x,data)}else db.visits.unshift(Object.assign({id:Date.now()},data));
+  if(save()){cancelEdit('visits');renderAll();toast('拜訪紀錄已儲存')}
+}
+
+
+// ===== R50 搜尋 / 排序 / 客戶360 / 關聯資料 =====
+function toolVal(id,def){const e=$(id);return e?e.value:def}
+renderProjects=function(){
+ const q=toolVal('prSearch',''),f=toolVal('prFilter','all'),s=toolVal('prSort','new');let arr=[...db.projects].filter(x=>searchHit([x.name,x.supplier,x.owner,x.stage,customerNameOf(x)],q));
+ if(f==='active')arr=arr.filter(x=>!['已成交','暫停'].includes(x.stage));if(f==='done')arr=arr.filter(x=>x.stage==='已成交');if(f==='paused')arr=arr.filter(x=>x.stage==='暫停');
+ arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'followDate'):(a,b)=>ts(b.id)-ts(a.id));
+ $('projectList').innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-projects-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.name)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}｜追蹤日期：${esc(x.followDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editProject(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('projects',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的專案</div>';
+}
+renderContacts=function(){
+ const q=toolVal('coSearch',''),f=toolVal('coFilter','all'),s=toolVal('coSort','new');let arr=[...db.contacts].filter(x=>searchHit([x.who,x.note,customerNameOf(x)],q));
+ if(f==='dated')arr=arr.filter(x=>x.nextContactDate);if(f==='nodate')arr=arr.filter(x=>!x.nextContactDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'nextContactDate'):(a,b)=>ts(b.id)-ts(a.id));
+ $('contactList').innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-contacts-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.who)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">${esc(x.date||'未指定日期')}｜下次聯絡：${esc(x.nextContactDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editContact(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('contacts',${x.id})">刪除</button></div></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty-search">沒有符合條件的聯絡紀錄</div>';
+}
+function renderCommands(){
+ const box=$('commandList');if(!box)return;const q=toolVal('cmSearch',''),f=toolVal('cmFilter','all'),s=toolVal('cmSort','new');let arr=[...db.commands].filter(x=>searchHit([x.who,x.scene,x.task,x.message,customerNameOf(x)],q));
+ if(f==='dated')arr=arr.filter(x=>x.confirmDate);if(f==='nodate')arr=arr.filter(x=>!x.confirmDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'confirmDate'):(a,b)=>ts(b.id)-ts(a.id));
+ box.innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-commands-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.task||x.scene||'指令')}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">對象：${esc(x.who||'—')}｜情境：${esc(x.scene||'—')}｜確認執行：${esc(x.confirmDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCommand(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('commands',${x.id})">刪除</button></div></div><div class="content">${esc(x.message||'')}</div></div>`).join(''):'<div class="empty-search">沒有符合條件的指令</div>';
+}
+renderQuotes=function(){
+ const box=$('quoteBody');if(!box)return;const q=toolVal('quSearch',''),f=toolVal('quFilter','all'),s=toolVal('quSort','new');let arr=[...db.quotes].filter(x=>searchHit([x.customer,x.model,customerNameOf(x)],q));
+ if(f==='dated')arr=arr.filter(x=>x.followDate);if(f==='nodate')arr=arr.filter(x=>!x.followDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'followDate'):(a,b)=>ts(b.id)-ts(a.id));
+ box.innerHTML=arr.length?arr.map(x=>`<div class="quote-card" id="record-quotes-${x.id}"><div class="quote-card-head"><div class="quote-card-title">${esc(x.customer)}｜${esc(x.model)}</div><div class="record-actions"><button type="button" class="edit-btn" onclick="editQuote(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('quotes',${x.id})">刪除</button></div></div><div class="quote-grid"><div class="quote-field">成本<b>${num(x.cost)}</b></div><div class="quote-field">售價<b>${num(x.price)}</b></div><div class="quote-field">數量<b>${num(x.qty)}</b></div><div class="quote-field">單件毛利<b>${num(x.unit)}</b></div><div class="quote-field">總毛利<b>${num(x.total)}</b></div><div class="quote-field quote-margin">毛利率<b>${num(x.margin)}%</b></div><div class="quote-field">追蹤回覆日期<b>${esc(x.followDate||'不設定')}</b></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的報價紀錄</div>';
+}
+renderTodos=function(){
+ const q=toolVal('toSearch',''),f=toolVal('toFilter','all'),s=toolVal('toSort','new');let arr=[...db.todos].filter(x=>searchHit([x.text,customerNameOf(x)],q));if(f==='open')arr=arr.filter(x=>!x.done);if(f==='done')arr=arr.filter(x=>x.done);
+ arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'date'):(a,b)=>ts(b.id)-ts(a.id));
+ $('todoList').innerHTML=arr.length?arr.map(x=>`<div class="item ${x.done?'done':''}" id="record-todos-${x.id}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">${esc(x.date||'不設定')}｜${x.done?'已完成':'未完成'}</div></div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editTodo(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('todos',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的待辦</div>';
+}
+renderCustomers=function(){
+ const opts=$('customerOptions');if(opts)opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');const box=$('customerGroupList');if(!box)return;
+ const q=toolVal('cuSearch',''),f=toolVal('cuFilter','all'),s=toolVal('cuSort','name');let arr=[...db.customers].filter(c=>{const visits=db.visits.filter(v=>String(v.customerId)===String(c.id));return searchHit([c.name,...visits.map(v=>`${v.note} ${v.next}`)],q)});
+ if(f==='visited')arr=arr.filter(c=>db.visits.some(v=>String(v.customerId)===String(c.id)));if(f==='unvisited')arr=arr.filter(c=>!db.visits.some(v=>String(v.customerId)===String(c.id)));
+ arr.sort((a,b)=>{if(s==='new')return ts(b.id)-ts(a.id);if(s==='visit'){const av=db.visits.filter(v=>String(v.customerId)===String(a.id)).map(v=>v.date||'').sort().pop()||'',bv=db.visits.filter(v=>String(v.customerId)===String(b.id)).map(v=>v.date||'').sort().pop()||'';return bv.localeCompare(av)||String(a.name).localeCompare(String(b.name),'zh-Hant')}return String(a.name).localeCompare(String(b.name),'zh-Hant')});
+ box.innerHTML=arr.length?arr.map(c=>{const visits=db.visits.filter(v=>String(v.customerId)===String(c.id)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));const visitHtml=visits.length?visits.map(v=>`<div class="item" id="record-visits-${v.id}"><div class="item-head"><div><div class="meta">${esc(v.date||'未指定日期')}｜下次拜訪：${esc(v.nextVisitDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editVisit(${v.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button></div></div><div class="content">${esc(v.note)}</div>${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}</div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';return `<div class="item" id="record-customers-${c.id}"><div class="item-head"><div><div class="item-title">${esc(c.name)}</div><div class="meta">拜訪紀錄 ${visits.length} 筆</div></div><div class="record-actions"><button type="button" class="customer-link" onclick="openCustomer360(${c.id})">360°</button><button type="button" class="edit-btn" onclick="editCustomer(${c.id})">編輯</button><button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button></div></div>${visitHtml}</div>`}).join(''):'<div class="empty-search">沒有符合條件的客戶</div>';
+}
+renderVisits=function(){renderCustomers()}
+
+window.editProject=id=>{const x=db.projects.find(v=>v.id===id);if(!x)return;$('pName').value=x.name||'';$('pCustomer').value=customerNameOf(x);$('pSupplier').value=x.supplier||'';$('pOwner').value=x.owner||'';$('pStage').value=x.stage||'';setOptionalDate('pNoFollow','pFollowDate',x.followDate||'');editMode('projects',id,'pSaveBtn','儲存修改');scrollToForm('projects')}
+window.editContact=id=>{const x=db.contacts.find(v=>v.id===id);if(!x)return;$('cWho').value=x.who||'';$('cCustomer').value=customerNameOf(x);$('cNote').value=x.note||'';setOptionalDate('cNoDate','cDate',x.date||'');setOptionalDate('cNoNext','cNextDate',x.nextContactDate||'');editMode('contacts',id,'cSaveBtn','儲存修改');scrollToForm('contacts')}
+window.editCommand=id=>{const x=db.commands.find(v=>v.id===id);if(!x)return;$('mWho').value=x.who||'';$('mCustomer').value=customerNameOf(x);$('mScene').value=x.scene||'';$('mTask').value=x.task||'';$('messageOutput').textContent=x.message||'';setOptionalDate('mNoConfirm','mConfirmDate',x.confirmDate||'');editMode('commands',id,'mSaveBtn','儲存修改');scrollToForm('commands')}
+window.editQuote=id=>{const x=db.quotes.find(v=>v.id===id);if(!x)return;$('qCustomer').value=x.customer||customerNameOf(x);$('qProductName').value=x.productName||'';$('qModel').value=x.model||'';$('qSpec').value=x.spec||'';$('qCost').value=x.cost??'';$('qPrice').value=x.price??'';$('qQty').value=x.qty??'';$('qMoq').value=x.moq||'';setOptionalDate('qNoFollow','qFollowDate',x.followDate||'');quoteCalc();editMode('quotes',id,'qSaveBtn','儲存修改');scrollToForm('quotes')}
+window.editTodo=id=>{const x=db.todos.find(v=>v.id===id);if(!x)return;$('tText').value=x.text||'';$('tCustomer').value=customerNameOf(x);setOptionalDate('tNoDate','tDate',x.date||'');editMode('todos',id,'tSaveBtn','儲存修改');scrollToForm('todos')}
+
+window.addProject=function(){const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');const rel=resolveCustomer($('pCustomer').value),data={name,customerId:rel.customerId,customerName:rel.customerName,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定',followDate:$('pFollowDate').value||''};if(editState.projects){const x=db.projects.find(v=>v.id===editState.projects);if(x)Object.assign(x,data)}else db.projects.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('projects');renderAll();toast('專案已儲存')}}
+window.addContact=function(){const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');const rel=resolveCustomer($('cCustomer').value),data={who,customerId:rel.customerId,customerName:rel.customerName,date:$('cDate').value,note,nextContactDate:$('cNextDate').value||''};if(editState.contacts){const x=db.contacts.find(v=>v.id===editState.contacts);if(x)Object.assign(x,data)}else db.contacts.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('contacts');renderAll();toast('聯絡紀錄已儲存')}}
+window.saveCommand=function(){const who=$('mWho').value.trim(),scene=$('mScene').value.trim(),task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');const message=buildMessage(who,scene,task),rel=resolveCustomer($('mCustomer').value);$('messageOutput').textContent=message;const data={who,customerId:rel.customerId,customerName:rel.customerName,scene,task,message,confirmDate:$('mConfirmDate').value||''};if(editState.commands){const x=db.commands.find(v=>v.id===editState.commands);if(x)Object.assign(x,data)}else db.commands.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('commands');$('messageOutput').textContent=message;renderAll();toast('指令已儲存')}}
+window.saveQuote=function(){
+ const customer=$('qCustomer').value.trim(),
+       productName=$('qProductName').value.trim(),
+       model=$('qModel').value.trim(),
+       spec=$('qSpec').value.trim(),
+       moq=$('qMoq').value.trim(),
+       cost=Number($('qCost').value),
+       price=Number($('qPrice').value),
+       qty=Number($('qQty').value);
+ if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、品號與數字欄位');
+ const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0,rel=resolveCustomer(customer),
+       data={customer,customerId:rel.customerId,customerName:rel.customerName,productName,model,spec,moq,cost,price,qty,unit,total,margin,followDate:$('qFollowDate').value||''};
+ if(editState.quotes){const x=db.quotes.find(v=>v.id===editState.quotes);if(x)Object.assign(x,data)}
+ else db.quotes.unshift(Object.assign({id:Date.now()},data));
+ if(save()){cancelEdit('quotes');renderAll();quoteCalc();toast('報價紀錄已儲存')}
+}
+window.addTodo=function(){const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');const rel=resolveCustomer($('tCustomer').value),data={date:$('tDate').value||'',text,customerId:rel.customerId,customerName:rel.customerName};if(editState.todos){const x=db.todos.find(v=>v.id===editState.todos);if(x)Object.assign(x,data)}else db.todos.unshift(Object.assign({id:Date.now(),done:false},data));if(save()){cancelEdit('todos');renderAll();toast('待辦已儲存')}}
+
+function timelineForCustomer(id){const c=customerById(id);if(!c)return[];const arr=[];db.visits.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'拜訪',date:x.date||x.nextVisitDate||'',title:'拜訪紀錄',content:[x.note,x.next?`後續：${x.next}`:''].filter(Boolean).join('｜'),id:x.id,page:'customers'}));db.projects.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'專案',date:x.followDate||'',title:x.name,content:`階段：${x.stage||'—'}｜負責：${x.owner||'—'}`,id:x.id,page:'projects'}));db.contacts.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'聯絡',date:x.date||x.nextContactDate||'',title:x.who,content:x.note,id:x.id,page:'contacts'}));db.commands.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'指令',date:x.confirmDate||'',title:x.task||x.scene||'指令',content:x.message||'',id:x.id,page:'commands'}));db.quotes.filter(x=>String(x.customerId)===String(id)||lc(x.customer)===lc(c.name)).forEach(x=>arr.push({type:'報價',date:x.followDate||'',title:x.model,content:`售價 ${num(x.price)}｜毛利率 ${num(x.margin)}%`,id:x.id,page:'quotes'}));db.todos.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'待辦',date:x.date||'',title:x.text,content:x.done?'已完成':'未完成',id:x.id,page:'todos'}));return arr.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||ts(b.id)-ts(a.id))}
+window.openCustomer360=function(id){const c=customerById(id);if(!c)return;const timeline=timelineForCustomer(id),stats=$('customer360Stats'),box=$('customer360Timeline');$('customer360Title').textContent=c.name;const pc=db.projects.filter(x=>String(x.customerId)===String(id)).length,qc=db.quotes.filter(x=>String(x.customerId)===String(id)||lc(x.customer)===lc(c.name)).length,vc=db.visits.filter(x=>String(x.customerId)===String(id)).length;if(stats)stats.innerHTML=`<div class="mini-stat"><span>專案</span><b>${pc}</b></div><div class="mini-stat"><span>報價</span><b>${qc}</b></div><div class="mini-stat"><span>拜訪</span><b>${vc}</b></div>`;if(box)box.innerHTML=timeline.length?timeline.map(x=>`<div class="timeline-item" onclick="openTimelineRecord('${x.page}',${x.id},'${x.type}')"><div class="timeline-type">${esc(x.type)}｜${esc(x.date||'未設定日期')}</div><div class="timeline-title">${esc(x.title)}</div><div class="timeline-content">${esc(x.content||'')}</div></div>`).join(''):'<div class="empty">這個客戶目前沒有關聯紀錄</div>';location.hash='customer360'}
+window.openTimelineRecord=function(page,id,type){location.hash=page;const map={'專案':'projects','聯絡':'contacts','指令':'commands','報價':'quotes','待辦':'todos','拜訪':'visits'};setTimeout(()=>{const el=$(`record-${map[type]||page}-${id}`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('record-highlight');setTimeout(()=>el.classList.remove('record-highlight'),1900)}},80)}
+function renderHomeCRM(){const today=localToday(),end=new Date();end.setDate(end.getDate()+7);const endStr=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;const dates=[...db.projects.map(x=>x.followDate),...db.contacts.map(x=>x.nextContactDate),...db.commands.map(x=>x.confirmDate),...db.quotes.map(x=>x.followDate),...db.todos.filter(x=>!x.done).map(x=>x.date),...db.visits.map(x=>x.nextVisitDate)].filter(Boolean);if($('homeTodayCount'))$('homeTodayCount').textContent=reminderDefs().length;if($('homeOpenTodoCount'))$('homeOpenTodoCount').textContent=db.todos.filter(x=>!x.done).length;if($('homeWeekCount'))$('homeWeekCount').textContent=dates.filter(d=>d>=today&&d<=endStr).length}
+
+
+// ===== R51 正式報價單產生器 =====
+window.quoteDocItems=[];
+function qdVal(id){const e=$(id);return e?e.value.trim():''}
+function defaultQuoteNo(){const d=new Date(),ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;return `Q${ymd}-${String((db.quotes||[]).length+1).padStart(3,'0')}`}
+window.openQuoteDocument=function(quoteId){
+ const q=quoteId?db.quotes.find(x=>String(x.id)===String(quoteId)):null;
+ const customer=q?(q.customer||customerNameOf(q)):'';
+ const c=customerByName(customer||'');
+ $('qdCustomer').value=customer||'';
+ $('qdContact').value='';
+ $('qdTel').value=(c&&c.tel)||'';
+ $('qdFax').value=(c&&c.fax)||'';
+ $('qdNo').value=defaultQuoteNo();
+ $('qdDate').value=localToday();
+
+ // 從某筆已儲存報價進入時，只先帶入該筆，避免不同客戶資料被混在同一張報價單。
+ window.quoteDocItems=q?[{
+   name:q.productName||'',
+   model:q.model||'',
+   spec:q.spec||'',
+   price:q.price?`${num(q.price)}`:'',
+   moq:q.moq||''
+ }]:[{name:'',model:'',spec:'',price:'',moq:''}];
+
+ renderQuoteDocEditor();
+ renderQuoteDocument();
+ location.hash='quoteDocument';
+}
+window.addQuoteDocItem=function(){window.quoteDocItems.push({name:'',model:'',spec:'',price:'',moq:''});renderQuoteDocEditor()}
+window.removeQuoteDocItem=function(i){window.quoteDocItems.splice(i,1);if(!window.quoteDocItems.length)addQuoteDocItem();else renderQuoteDocEditor()}
+window.renderQuoteDocEditor=function(){
+ const b=$('qdItemsEditor');if(!b)return;b.innerHTML=window.quoteDocItems.map((x,i)=>`<tr><td><input placeholder="品名" value="${esc(x.name)}" oninput="window.quoteDocItems[${i}].name=this.value"></td><td><input placeholder="品號" value="${esc(x.model)}" oninput="window.quoteDocItems[${i}].model=this.value"></td><td><input placeholder="規格" value="${esc(x.spec)}" oninput="window.quoteDocItems[${i}].spec=this.value"></td><td><input placeholder="單價" value="${esc(x.price)}" oninput="window.quoteDocItems[${i}].price=this.value"></td><td><input placeholder="最低訂購量" value="${esc(x.moq)}" oninput="window.quoteDocItems[${i}].moq=this.value"></td><td><button class="danger q-item-del" type="button" onclick="removeQuoteDocItem(${i})">刪</button></td></tr>`).join('');
+}
+window.renderQuoteDocument=function(){
+ const set=(id,v)=>{const e=$(id);if(e)e.textContent=v||''};set('qpCustomer',qdVal('qdCustomer'));set('qpContact',qdVal('qdContact'));set('qpTel',qdVal('qdTel'));set('qpFax',qdVal('qdFax'));set('qpNo',qdVal('qdNo'));set('qpDate',(qdVal('qdDate')||'').replaceAll('-','/'));set('qpDelivery',qdVal('qdDelivery'));set('qpPayment',qdVal('qdPayment'));set('qpPlace',qdVal('qdPlace'));set('qpValid',qdVal('qdValid'));set('qpSales',qdVal('qdSales'));set('qpSalesTel',qdVal('qdSalesTel'));
+ const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');
+}
+
+function reminderDefs(){
+ const today=localToday(),r=[];
+ db.projects.forEach(x=>{if(x.followDate===today)r.push({page:'projects',label:'專案',title:x.name,id:x.id,type:'projects'})});
+ db.contacts.forEach(x=>{if(x.nextContactDate===today)r.push({page:'contacts',label:'聯絡',title:x.who,id:x.id,type:'contacts'})});
+ db.commands.forEach(x=>{if(x.confirmDate===today)r.push({page:'commands',label:'指令',title:x.task||x.scene||'指令',id:x.id,type:'commands'})});
+ db.quotes.forEach(x=>{if(x.followDate===today)r.push({page:'quotes',label:'報價',title:`${x.customer} ${x.model}`,id:x.id,type:'quotes'})});
+ db.todos.forEach(x=>{if(!x.done&&x.date===today)r.push({page:'todos',label:'待辦',title:x.text,id:x.id,type:'todos'})});
+ db.visits.forEach(v=>{if(v.nextVisitDate===today){const c=db.customers.find(x=>String(x.id)===String(v.customerId));r.push({page:'customers',label:'客戶',title:c?.name||'客戶',id:v.id,type:'visits'})}});
+ return r;
+}
+function renderNotifications(){
+ const list=reminderDefs(),box=$('notificationList'),badge=$('notificationCount');
+ if(badge){badge.textContent=list.length;badge.classList.toggle('show',list.length>0)}
+ if(!box)return;
+ box.innerHTML=list.length?list.map(r=>`<div class="item reminder-item" onclick="openReminder('${r.page}','${r.type}',${JSON.stringify(r.id)})"><div><div class="reminder-main">${esc(r.label)} / ${esc(r.title)} / 今天</div></div><div class="reminder-arrow">›</div></div>`).join(''):'<div class="empty">今天沒有提醒</div>';
+}
+window.openReminder=function(page,type,id){
+ location.hash=page;
+ setTimeout(()=>{
+   const el=$(`record-${type}-${id}`);
+   if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('record-highlight');setTimeout(()=>el.classList.remove('record-highlight'),1900)}
+ },80);
+}
+
+const oldRenderAll=renderAll;
+renderAll=function(){
+ oldRenderAll();
+ renderCommands();
+ renderNotifications();
+ renderHomeCRM();
+}
+const oldDeleteItem=window.deleteItem;
+window.deleteItem=function(type,id){oldDeleteItem(type,id);setTimeout(()=>renderAll(),0)}
+const oldDeleteCustomer=window.deleteCustomer;
+window.deleteCustomer=function(id){oldDeleteCustomer(id);setTimeout(()=>renderAll(),0)}
+const oldToggleTodo=window.toggleTodo;
+window.toggleTodo=function(id,checked){oldToggleTodo(id,checked);setTimeout(()=>renderAll(),0)}
+
+applyDefaultPage();
+const today=localToday();setDefaultDate('cNoDate','cDate',today);setDefaultDate('vNoDate','vDate',today);setDefaultDate('pNoFollow','pFollowDate','');setOptionalDate('cNoNext','cNextDate','');setDefaultDate('mNoConfirm','mConfirmDate','');setDefaultDate('qNoFollow','qFollowDate','');setDefaultDate('tNoDate','tDate',today);if($('vNoNextDate')) $('vNoNextDate').checked=false; if($('vNextDate')){$('vNextDate').disabled=false;$('vNextDate').value='';}
+
+
+
+renderAll();quoteCalc();
+
+try{
+  const probe='__hbcrm_probe__';
+  localStorage.setItem(probe,'1');localStorage.removeItem(probe);
+  const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：正常';
+}catch(e){
+  const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：此預覽模式不可寫入';
+}
+const off=$('offlineReady'); if(off) off.textContent='離線快取準備中…';
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(()=>{const el=$('offlineReady');if(el)el.textContent='✅ 離線已就緒'}).catch(()=>{const el=$('offlineReady');if(el)el.textContent='⚠️ 離線快取尚未完成'}));
+}
+window.addEventListener('online',()=>{const el=$('offlineReady');const sw=('serviceWorker' in navigator)?navigator.serviceWorker:null;if(el&&sw&&sw.controller)el.textContent='✅ 離線已就緒'});
+window.addEventListener('offline',()=>{const el=$('offlineReady');const sw=('serviceWorker' in navigator)?navigator.serviceWorker:null;if(el)el.textContent=(sw&&sw.controller)?'✅ 目前離線，功能仍可使用':'⚠️ 目前離線，但快取尚未完成'});
+})();
+</script>
+<div id="toast" class="toast"></div>
+<script id="r26-structural-shell-js">
+(function(){
+  function decorate(el){
+    if(!el || el.dataset.r26Decorated) return;
+    el.dataset.r26Decorated='1';
+    el.classList.add('metalized');
+    const bevel=document.createElement('i');
+    bevel.className='r26-bevel';
+    el.appendChild(bevel);
+    ['tl','tr','br','bl'].forEach(pos=>{
+      const c=document.createElement('i');
+      c.className='r26-corner r26-'+pos;
+      el.appendChild(c);
+    });
+  }
+
+  // Heavy panels only. No data/function rewrites.
+  decorate(document.querySelector('.brand-plaque'));
+  const kpiCard=document.querySelector('.app > .card:first-of-type');
+  decorate(kpiCard);
+  document.querySelectorAll('.card').forEach(decorate);
+  document.querySelectorAll('.item').forEach(decorate);
+
+  document.querySelectorAll('.nav a').forEach(a=>{
+    // split visible emoji from label into stable structural pieces
+    if(!a.querySelector('.r26-nav-icon')){
+      const raw=a.textContent.trim();
+      const m=raw.match(/^(\S+)\s+(.+)$/);
+      if(m){
+        a.textContent='';
+        const icon=document.createElement('span');
+        icon.className='r26-nav-icon';
+        icon.textContent=m[1];
+        const label=document.createElement('span');
+        label.className='r26-nav-label';
+        label.textContent=m[2];
+        a.append(icon,label);
+      }
+    }
+    decorate(a);
+  });
+
+  // Future dynamically rendered list cards also receive frame structure.
+  const obs=new MutationObserver(muts=>{
+    for(const m of muts){
+      for(const n of m.addedNodes){
+        if(n.nodeType!==1) continue;
+        if(n.matches?.('.item')) decorate(n);
+        n.querySelectorAll?.('.item').forEach(decorate);
+      }
+    }
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="r28-svg-components-js">
+(function(){
+  // Map visible nav labels to real SVG component icons.
+  document.querySelectorAll('.nav a').forEach(a=>{
+    const label = a.querySelector('.r26-nav-label')?.textContent.trim() || a.textContent.trim();
+    a.dataset.r28Icon = label;
+  });
+})();
+</script>
+
+
+<script id="r30-fix-dashboard-js">
+(function(){
+  function refresh(){
+    try{
+      if(typeof renderR41Home==='function') renderR41Home();
+    }catch(e){ console.error('R41 home render failed',e); }
+  }
+  window.addEventListener('hashchange',refresh);
+  window.addEventListener('pageshow',refresh);
+  setTimeout(refresh,50);
+})();
+</script>
+
+
+
+
+
+
+</body>
+</html>
