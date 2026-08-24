@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R61 Beta</title>
+<title>鴻繽科技 CRM｜R62 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2873,6 +2873,33 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r62-typography-correction">
+/* 只依實機畫面微調字級，不改抬頭、不改表格結構、不製圖 */
+.q-terms{
+  font-size:10.8px!important;
+  line-height:1.28!important;
+  margin:8px 12px 0!important;
+}
+.q-notes{
+  font-size:10.6px!important;
+  line-height:1.38!important;
+  margin:11px 12px 0!important;
+  min-height:90px!important;
+}
+.q-sales{
+  font-size:16px!important;
+  line-height:1.35!important;
+  margin:24px 52px 0 0!important;
+  font-weight:500!important;
+}
+@media print{
+  .q-terms{font-size:8.2pt!important;line-height:1.26!important}
+  .q-notes{font-size:8pt!important;line-height:1.34!important}
+  .q-sales{font-size:11.5pt!important;line-height:1.3!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3164,7 +3191,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R61</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R62</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -4232,7 +4259,7 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R61";</script>
+<script>window.CRM_VERSION="R62";</script>
 <script>
 window.openCleanPrint=function(){
   const w=window.open('about:blank','_blank');
