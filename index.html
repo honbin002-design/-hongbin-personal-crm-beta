@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R57 Beta</title>
+<title>鴻繽科技 CRM｜R58 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2748,6 +2748,24 @@ input,select,textarea{font-size:16px!important}
 </style>
 
 <style>@media print{#quotePaper{break-inside:avoid!important;page-break-inside:avoid!important} #quotePaper .q-notes:before{content:none!important}}</style>
+
+<style id="r58-pagination-pdf">
+#quotePages{width:100%}
+#quotePages .quote-paper-shell{margin-bottom:10px}
+#quotePages .quote-paper-shell:last-child{margin-bottom:0}
+@media print{
+  body>.app>header,body>.app>.top-shell,body>.app>.card,body>.app>.nav{display:none!important}
+  body>.app>main{display:block!important}
+  body>.app>main>.panel{display:none!important}
+  body>.app>main>#quoteDocument{display:block!important}
+  #quoteDocument>.card,#quoteDocument>.quote-preview-note{display:none!important}
+  #quoteDocument>.quote-doc-wrap{display:block!important}
+  #quotePages .quote-paper-shell{display:block!important;break-after:page!important;page-break-after:always!important}
+  #quotePages .quote-paper-shell:last-child{break-after:auto!important;page-break-after:auto!important}
+  #quotePages .quote-paper{transform:none!important;margin:0 auto!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -2871,7 +2889,7 @@ input,select,textarea{font-size:16px!important}
       <div><label>需求數量</label><input id="qQty" type="number" step="any" inputmode="decimal" placeholder="純數字"></div><div><label>最低訂購量</label><input id="qMoq" placeholder="例如：20 瓶"></div>
       <div><label>追蹤回覆日期</label><input id="qFollowDate" type="date"></div>
       <div class="date-option"><label class="no-date"><input id="qNoFollow" type="checkbox"> 不設定追蹤回覆日期</label></div>
-      <div class="full form-actions"><button id="qSaveBtn" class="primary" type="button" onclick="saveQuote()">儲存報價歷史</button><button id="qCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('quotes')">取消編輯</button></div>
+      <div class="full form-actions"><button id="qSaveBtn" class="primary" type="button" onclick="saveQuote()">儲存報價歷史</button><button class="secondary" type="button" onclick="openQuoteDocumentFromEstimate()">直接帶入報價單</button><button id="qCancelEdit" class="secondary edit-cancel" type="button" onclick="cancelEdit('quotes')">取消編輯</button></div>
     </div>
   </div>
   <div class="card crm-tools-card"><div class="crm-tools">
@@ -2999,9 +3017,9 @@ input,select,textarea{font-size:16px!important}
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
-    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="window.print()">列印／儲存 PDF</button></div>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="exportQuotePdf()">產生 PDF</button></div>
   </div>
-  <div class="quote-doc-wrap"><div class="quote-paper-shell">
+  <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
       <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭" onload="scheduleQuoteFit()"></div>
       <div class="q-title">報價單</div>
@@ -3013,7 +3031,7 @@ input,select,textarea{font-size:16px!important}
       <div class="q-terms">交貨日期：<span id="qpDelivery"></span><br>付款條件：<span id="qpPayment"></span><br>交貨地點：<span id="qpPlace"></span><br>有效期限：<span id="qpValid"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>
       <div class="q-notes">備　註：<br><span id="qpNotes"></span></div>
       <div class="q-sales">業務代表：　<span id="qpSales"></span> <span id="qpSalesTel"></span></div>
-    </div></div><div class="quote-preview-note">手機預覽會自動縮放；列印／儲存 PDF 時會使用完整 A4 尺寸。</div>
+    </div></div></div><div class="quote-preview-note">手機預覽會自動縮放；每 4 個品項一頁，正式 PDF 為 A4 直式。</div>
   </div>
 </section>
 
@@ -3037,6 +3055,11 @@ input,select,textarea{font-size:16px!important}
 </section>
 
 <section class="panel" id="settings">
+  <div class="card">
+    <h2 class="section-title">系統資訊</h2>
+    <div class="content"><b>目前版本：R58</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+  </div>
+
   <div class="card">
     <h2 class="section-title">⚙️ 設定</h2>
     <div class="grid">
@@ -3762,6 +3785,130 @@ function scheduleQuoteFit(){requestAnimationFrame(()=>requestAnimationFrame(fitQ
 window.addEventListener('resize',scheduleQuoteFit);
 window.addEventListener('load',scheduleQuoteFit);
 
+
+// ===== R58 報價單：估價直接帶入 / 每4品項分頁 / 無頁尾PDF =====
+window.openQuoteDocumentFromEstimate=function(){
+  const customer=$('qCustomer').value.trim();
+  const model=$('qModel').value.trim();
+  const productName=$('qProductName').value.trim();
+  const spec=$('qSpec').value.trim();
+  const price=$('qPrice').value.trim();
+  const moq=$('qMoq').value.trim();
+  if(!customer && !model && !productName)return alert('請先輸入預估報價資料');
+  openQuoteDocument();
+  $('qdCustomer').value=customer||'';
+  window.quoteDocItems=[{name:productName||'',model:model||'',spec:spec||'',price:price||'',moq:moq||''}];
+  const c=customerByName(customer||'');
+  if(c){$('qdTel').value=c.tel||'';$('qdFax').value=c.fax||''}
+  renderQuoteDocEditor();renderQuoteDocument();scheduleQuoteFit();
+}
+
+function fillQuotePaperClone(paper,items){
+  const tb=paper.querySelector('tbody');
+  if(tb)tb.innerHTML=items.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');
+}
+function paginateQuotePages(){
+  const pages=$('quotePages'),first=$('quotePaper');if(!pages||!first)return;
+  pages.querySelectorAll('.quote-paper-shell[data-r58-extra]').forEach(x=>x.remove());
+  const chunks=[];for(let i=0;i<window.quoteDocItems.length;i+=4)chunks.push(window.quoteDocItems.slice(i,i+4));
+  if(!chunks.length)chunks.push([]);
+  fillQuotePaperClone(first,chunks[0]);
+  for(let i=1;i<chunks.length;i++){
+    const shell=first.parentElement.cloneNode(true);
+    shell.dataset.r58Extra='1';
+    const paper=shell.querySelector('.quote-paper');
+    paper.removeAttribute('id');
+    paper.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+    fillQuotePaperClone(paper,chunks[i]);
+    pages.appendChild(shell);
+  }
+  scheduleQuoteFitAll();
+}
+function scheduleQuoteFitAll(){
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+   document.querySelectorAll('#quotePages .quote-paper-shell').forEach(shell=>{
+     const paper=shell.querySelector('.quote-paper');if(!paper)return;
+     paper.style.transform='none';
+     const available=Math.max(240,shell.clientWidth);
+     const scale=Math.min(1,available/794);
+     paper.style.transform=`scale(${scale})`;
+     shell.style.height=`${Math.ceil(paper.scrollHeight*scale)}px`;
+   });
+ }))
+}
+window.addEventListener('resize',scheduleQuoteFitAll);
+
+// 將頁面轉成影像後直接組成 PDF；不經 Safari 列印，所以不會有網址/日期頁尾。
+async function nodeToJpeg(node){
+  const clone=node.cloneNode(true);
+  clone.style.transform='none';clone.style.margin='0';clone.style.boxShadow='none';
+  const serializer=new XMLSerializer();
+  const html=serializer.serializeToString(clone);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:794px;height:1123px;background:white">${html}</div></foreignObject></svg>`;
+  const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  try{
+    const img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+    const canvas=document.createElement('canvas');canvas.width=1588;canvas.height=2246;
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.92);
+  }finally{URL.revokeObjectURL(url)}
+}
+function dataUrlBytes(dataUrl){
+ const b64=dataUrl.split(',')[1],bin=atob(b64),u=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;
+}
+function buildJpegPdf(jpegs){
+ const enc=new TextEncoder(),parts=[],offsets=[0],push=s=>parts.push(enc.encode(s)),pushBytes=b=>parts.push(b);
+ const objects=[];
+ const addObj=fn=>objects.push(fn);
+ // catalog/pages placeholders
+ addObj(()=>`<< /Type /Catalog /Pages 2 0 R >>`);
+ const pageObjNums=[],imgObjNums=[];
+ for(let i=0;i<jpegs.length;i++){pageObjNums.push(3+i*3);imgObjNums.push(5+i*3)}
+ addObj(()=>`<< /Type /Pages /Count ${jpegs.length} /Kids [${pageObjNums.map(n=>n+' 0 R').join(' ')}] >>`);
+ for(let i=0;i<jpegs.length;i++){
+   const page=3+i*3,content=4+i*3,img=5+i*3,bytes=dataUrlBytes(jpegs[i]);
+   addObj(()=>`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${img} 0 R >> >> /Contents ${content} 0 R >>`);
+   const stream='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
+   addObj(()=>`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+   addObj(()=>({header:`<< /Type /XObject /Subtype /Image /Width 1588 /Height 2246 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`,bytes,footer:'\nendstream'}));
+ }
+ push('%PDF-1.4\n');
+ let cursor=9;
+ for(let i=0;i<objects.length;i++){
+   offsets[i+1]=cursor;
+   const val=objects[i]();
+   const head=`${i+1} 0 obj\n`;push(head);cursor+=enc.encode(head).length;
+   if(typeof val==='string'){push(val);cursor+=enc.encode(val).length}
+   else{
+     push(val.header);cursor+=enc.encode(val.header).length;pushBytes(val.bytes);cursor+=val.bytes.length;push(val.footer);cursor+=enc.encode(val.footer).length;
+   }
+   push('\nendobj\n');cursor+=enc.encode('\nendobj\n').length;
+ }
+ const xref=cursor;
+ push(`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`);
+ for(let i=1;i<=objects.length;i++)push(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+ push(`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+ return new Blob(parts,{type:'application/pdf'});
+}
+window.exportQuotePdf=async function(){
+ renderQuoteDocument();paginateQuotePages();
+ const btn=event?.currentTarget;if(btn)btn.disabled=true;
+ try{
+   toast('正在產生 PDF…');
+   const pages=[...document.querySelectorAll('#quotePages .quote-paper')];
+   const imgs=[];for(const p of pages)imgs.push(await nodeToJpeg(p));
+   const pdf=buildJpegPdf(imgs),url=URL.createObjectURL(pdf);
+   const a=document.createElement('a');a.href=url;a.download=`報價單_${qdVal('qdCustomer')||'客戶'}_${qdVal('qdDate')||localToday()}.pdf`;
+   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   toast('PDF 已產生');
+ }catch(e){console.error(e);alert('PDF 產生失敗，請截圖給我，不會改用有網址頁尾的列印方式。')}
+ finally{if(btn)btn.disabled=false}
+}
+
 // ===== R51 正式報價單產生器 =====
 window.quoteDocItems=[];
 function qdVal(id){const e=$(id);return e?e.value.trim():''}
@@ -3800,6 +3947,8 @@ window.renderQuoteDocEditor=function(){
 window.renderQuoteDocument=function(){
  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v||''};set('qpCustomer',qdVal('qdCustomer'));set('qpContact',qdVal('qdContact'));set('qpTel',qdVal('qdTel'));set('qpFax',qdVal('qdFax'));set('qpNo',qdVal('qdNo'));set('qpDate',(qdVal('qdDate')||'').replaceAll('-','/'));set('qpDelivery',qdVal('qdDelivery'));set('qpPayment',qdVal('qdPayment'));set('qpPlace',qdVal('qdPlace'));set('qpValid',qdVal('qdValid'));set('qpSales',qdVal('qdSales'));set('qpSalesTel',qdVal('qdSalesTel'));
  const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');scheduleQuoteFit();
+
+ paginateQuotePages();
 }
 
 function reminderDefs(){
@@ -3974,5 +4123,6 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
+<script>window.CRM_VERSION="R58";</script>
 </body>
 </html>
