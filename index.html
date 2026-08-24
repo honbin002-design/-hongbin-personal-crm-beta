@@ -2866,80 +2866,29 @@ main:not(:has(.panel:target)) #home{display:block}
 
 
 
-<style id="r53-quotation-document">
+<style id="r55-quotation-document">
 #quoteDocument{overflow-x:hidden}
-.quote-doc-wrap{
-  background:#11161a;padding:10px;border-radius:6px;margin-top:10px;
-  overflow:hidden
-}
-.quote-paper-shell{
-  width:100%;
-  overflow:hidden;
-  display:flex;
-  justify-content:center
-}
-.quote-paper{
-  width:794px;
-  min-width:794px;
-  background:#fff;color:#111;
-  padding:24px 44px 34px;
-  box-sizing:border-box;
-  font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;
-  box-shadow:0 2px 10px #0005;
-  transform-origin:top center;
-}
-.q-letterhead{width:100%;height:179px;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+.quote-doc-wrap{background:#11161a;padding:8px;border-radius:6px;margin-top:10px;overflow:hidden}
+.quote-paper-shell{width:100%;overflow:hidden;display:flex;justify-content:center;align-items:flex-start}
+.quote-paper{width:794px;min-width:794px;min-height:1123px;background:#fff;color:#111;padding:20px 36px 28px;box-sizing:border-box;font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;box-shadow:0 2px 10px #0005;transform-origin:top center}
+.q-letterhead{width:100%;height:auto;display:block;overflow:visible;margin:0 auto 2px}
 .q-letterhead-img{display:block;width:100%;height:auto;object-fit:contain}
-.q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:8px 0 22px;text-decoration:underline;text-underline-offset:7px}
-.q-party{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;font-family:serif;font-size:17px;line-height:1.55}
-.q-party-row{display:grid;grid-template-columns:150px 1fr}
-.q-party-label{font-family:serif}
-.q-table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;font-size:16px}
-.q-table th,.q-table td{border:1px solid #555;padding:8px 7px;vertical-align:top;overflow-wrap:anywhere}
-.q-table th{text-align:center;font-weight:900}
-.q-table td{height:44px}
+.q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:4px 0 18px;text-decoration:underline;text-underline-offset:7px}
+.q-party{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;font-family:serif;font-size:17px;line-height:1.5}
+.q-party-row{display:grid;grid-template-columns:145px 1fr}.q-party-label{font-family:serif}
+.q-table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed;font-size:16px}
+.q-table th,.q-table td{border:1px solid #555;padding:7px 6px;vertical-align:top;overflow-wrap:anywhere}.q-table th{text-align:center;font-weight:900}.q-table td{height:42px}
 .q-table th:nth-child(1){width:26%}.q-table th:nth-child(2){width:20%}.q-table th:nth-child(3){width:15%}.q-table th:nth-child(4){width:20%}.q-table th:nth-child(5){width:19%}
-.q-terms{font-size:16px;line-height:1.45;margin:10px 18px}
-.q-notes{font-size:16px;line-height:1.6;margin:8px 18px}
-.q-sales{text-align:right;font-size:17px;margin:34px 80px 0 0}
-.q-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.q-editor-grid .wide{grid-column:1/-1}
-.q-items-editor{
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-  border:1px solid #3d444a;
-  border-radius:5px;
-  padding:4px;
-  background:#0b0f12
-}
-.q-items-editor table{min-width:760px;width:100%;border-collapse:collapse}
-.q-items-editor td{padding:4px}
-.q-items-editor input{min-height:38px!important;margin:0!important}
-.q-item-del{width:auto!important;min-height:38px!important;padding:5px 9px!important}
-.quote-preview-note{
-  margin:8px 0 0;
-  color:#9c948a;
-  font-size:12px;
-  text-align:center
-}
-@media(max-width:640px){
-  #quoteDocument .card{overflow:hidden}
-  .q-editor-grid{grid-template-columns:1fr}
-  .q-editor-grid .wide{grid-column:auto}
-  .q-items-editor{max-width:100%}
-  .quote-doc-wrap{padding:6px}
-}
-@media print{
-  body *{visibility:hidden!important}
-  .quote-paper,.quote-paper *{visibility:visible!important}
-  .quote-paper{
-    position:absolute;left:0;top:0;
-    width:210mm;min-width:210mm;
-    transform:none!important;
-    box-shadow:none;padding:12mm 15mm
-  }
-  .quote-doc-wrap,.quote-paper-shell{padding:0;background:#fff;overflow:visible}
-}
+.q-terms{font-size:16px;line-height:1.42;margin:9px 16px}.q-notes{font-size:16px;line-height:1.55;margin:7px 16px}.q-sales{text-align:right;font-size:17px;margin:28px 65px 0 0}
+.q-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.q-editor-grid .wide{grid-column:1/-1}
+.q-items-editor{display:grid;gap:10px;border:1px solid #3d444a;border-radius:5px;padding:8px;background:#0b0f12;overflow:hidden}
+.q-item-card{border:1px solid #4d565d;border-radius:6px;padding:8px;background:#11171b}.q-item-card-title{font-weight:800;margin-bottom:7px;color:#d7cfc6}
+.q-item-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.q-item-field label{display:block;font-size:13px;margin:0 0 3px;color:#bcb4aa}.q-item-field input{width:100%;min-width:0;min-height:42px!important;margin:0!important;box-sizing:border-box}.q-item-field.wide{grid-column:1/-1}.q-item-actions{display:flex;justify-content:flex-end;margin-top:7px}.q-item-del{width:auto!important;min-height:36px!important;padding:4px 12px!important}
+.quote-preview-note{margin:8px 0 0;color:#9c948a;font-size:12px;text-align:center}
+@media(max-width:640px){#quoteDocument .card{overflow:hidden}.q-editor-grid{grid-template-columns:1fr}.q-editor-grid .wide{grid-column:auto}.q-item-grid{grid-template-columns:1fr 1fr}.quote-doc-wrap{padding:4px}}
+@media(max-width:390px){.q-item-grid{grid-template-columns:1fr}}
+@page{size:A4 portrait;margin:7mm}
+@media print{html,body{margin:0!important;padding:0!important;background:#fff!important}body *{visibility:hidden!important}.quote-paper,.quote-paper *{visibility:visible!important}.quote-paper{position:absolute;left:0;top:0;width:196mm!important;min-width:196mm!important;min-height:283mm!important;transform:none!important;box-shadow:none!important;padding:2mm 3mm 3mm!important;margin:0!important}.quote-doc-wrap,.quote-paper-shell{padding:0!important;margin:0!important;background:#fff!important;overflow:visible!important;width:auto!important;height:auto!important}.quote-preview-note{display:none!important}}
 </style>
 
 
@@ -2964,13 +2913,13 @@ main:not(:has(.panel:target)) #home{display:block}
       <div class="wide"><label>業務電話</label><input id="qdSalesTel"></div>
     </div>
     <h3>報價品項</h3>
-    <div class="q-items-editor"><table><tbody id="qdItemsEditor"></tbody></table></div>
+    <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
     <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="window.print()">列印／儲存 PDF</button></div>
   </div>
   <div class="quote-doc-wrap"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
-      <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭"></div>
+      <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭" onload="scheduleQuoteFit()"></div>
       <div class="q-title">報價單</div>
       <div class="q-party">
         <div><div class="q-party-row"><span class="q-party-label">Messers.</span><b id="qpCustomer"></b></div><div class="q-party-row"><span></span><span>TEL： <span id="qpTel"></span></span></div><div class="q-party-row"><span></span><span>FAX： <span id="qpFax"></span></span></div></div>
@@ -3694,16 +3643,17 @@ function renderHomeCRM(){const today=localToday(),end=new Date();end.setDate(end
 
 
 function fitQuotePreview(){
-  const paper=$('quotePaper');
-  if(!paper)return;
-  const shell=paper.closest('.quote-paper-shell');
-  if(!shell)return;
-  const available=Math.max(280,shell.clientWidth);
-  const scale=Math.min(1,available/794);
-  paper.style.transform=`scale(${scale})`;
-  shell.style.height=`${Math.ceil(paper.offsetHeight*scale)}px`;
+ const paper=$('quotePaper');if(!paper)return;
+ const shell=paper.closest('.quote-paper-shell');if(!shell)return;
+ paper.style.transform='none';
+ const available=Math.max(240,shell.clientWidth);
+ const scale=Math.min(1,available/794);
+ paper.style.transform=`scale(${scale})`;
+ shell.style.height=`${Math.ceil(paper.scrollHeight*scale)}px`;
 }
-window.addEventListener('resize',()=>setTimeout(fitQuotePreview,50));
+function scheduleQuoteFit(){requestAnimationFrame(()=>requestAnimationFrame(fitQuotePreview))}
+window.addEventListener('resize',scheduleQuoteFit);
+window.addEventListener('load',scheduleQuoteFit);
 
 // ===== R51 正式報價單產生器 =====
 window.quoteDocItems=[];
@@ -3732,16 +3682,17 @@ window.openQuoteDocument=function(quoteId){
  renderQuoteDocEditor();
  renderQuoteDocument();
  location.hash='quoteDocument';
- setTimeout(fitQuotePreview,80);
+ scheduleQuoteFit();
 }
 window.addQuoteDocItem=function(){window.quoteDocItems.push({name:'',model:'',spec:'',price:'',moq:''});renderQuoteDocEditor()}
 window.removeQuoteDocItem=function(i){window.quoteDocItems.splice(i,1);if(!window.quoteDocItems.length)addQuoteDocItem();else renderQuoteDocEditor()}
 window.renderQuoteDocEditor=function(){
- const b=$('qdItemsEditor');if(!b)return;b.innerHTML=window.quoteDocItems.map((x,i)=>`<tr><td><input placeholder="品名" value="${esc(x.name)}" oninput="window.quoteDocItems[${i}].name=this.value"></td><td><input placeholder="品號" value="${esc(x.model)}" oninput="window.quoteDocItems[${i}].model=this.value"></td><td><input placeholder="規格" value="${esc(x.spec)}" oninput="window.quoteDocItems[${i}].spec=this.value"></td><td><input placeholder="單價" value="${esc(x.price)}" oninput="window.quoteDocItems[${i}].price=this.value"></td><td><input placeholder="最低訂購量" value="${esc(x.moq)}" oninput="window.quoteDocItems[${i}].moq=this.value"></td><td><button class="danger q-item-del" type="button" onclick="removeQuoteDocItem(${i})">刪</button></td></tr>`).join('');
+ const b=$('qdItemsEditor');if(!b)return;
+ b.innerHTML=window.quoteDocItems.map((x,i)=>`<div class="q-item-card"><div class="q-item-card-title">品項 ${i+1}</div><div class="q-item-grid"><div class="q-item-field"><label>品名</label><input placeholder="品名" value="${esc(x.name)}" oninput="window.quoteDocItems[${i}].name=this.value"></div><div class="q-item-field"><label>品號</label><input placeholder="品號" value="${esc(x.model)}" oninput="window.quoteDocItems[${i}].model=this.value"></div><div class="q-item-field"><label>規格</label><input placeholder="規格" value="${esc(x.spec)}" oninput="window.quoteDocItems[${i}].spec=this.value"></div><div class="q-item-field"><label>單價 (NT)</label><input placeholder="例如：999元/KG" value="${esc(x.price)}" oninput="window.quoteDocItems[${i}].price=this.value"></div><div class="q-item-field wide"><label>最低訂購量 (MOQ)</label><input placeholder="例如：5000 KG" value="${esc(x.moq)}" oninput="window.quoteDocItems[${i}].moq=this.value"></div></div><div class="q-item-actions"><button class="danger q-item-del" type="button" onclick="removeQuoteDocItem(${i})">刪除品項</button></div></div>`).join('');
 }
 window.renderQuoteDocument=function(){
  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v||''};set('qpCustomer',qdVal('qdCustomer'));set('qpContact',qdVal('qdContact'));set('qpTel',qdVal('qdTel'));set('qpFax',qdVal('qdFax'));set('qpNo',qdVal('qdNo'));set('qpDate',(qdVal('qdDate')||'').replaceAll('-','/'));set('qpDelivery',qdVal('qdDelivery'));set('qpPayment',qdVal('qdPayment'));set('qpPlace',qdVal('qdPlace'));set('qpValid',qdVal('qdValid'));set('qpSales',qdVal('qdSales'));set('qpSalesTel',qdVal('qdSalesTel'));
- const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');setTimeout(fitQuotePreview,20);
+ const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');scheduleQuoteFit();
 }
 
 function reminderDefs(){
