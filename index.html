@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R66 Beta</title>
+<title>鴻繽科技 CRM｜R67 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -3058,6 +3058,26 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r67-print-scale">
+@page{size:A4 portrait;margin:0}
+@media print{
+ html,body{width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important}
+ body.r67-print > *:not(#r67PrintRoot){display:none!important}
+ #r67PrintRoot{display:block!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+ #r67PrintRoot .quote-paper-shell{display:block!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important;box-sizing:border-box!important;break-after:page!important;page-break-after:always!important}
+ #r67PrintRoot .quote-paper-shell:last-child{break-after:auto!important;page-break-after:auto!important}
+ #r67PrintRoot .quote-paper{display:block!important;position:static!important;width:204mm!important;min-width:204mm!important;max-width:204mm!important;height:292mm!important;min-height:292mm!important;max-height:292mm!important;margin:2.5mm auto!important;padding:3mm 5mm 4mm!important;box-sizing:border-box!important;transform:none!important;box-shadow:none!important;border:0!important;overflow:hidden!important;background:#fff!important;color:#111!important}
+ #r67PrintRoot .q-letterhead-img{width:100%!important;height:auto!important}
+ #r67PrintRoot .q-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important}
+ #r67PrintRoot .q-party{font-size:10.3pt!important}
+ #r67PrintRoot .q-table th,#r67PrintRoot .q-table td{font-size:9.3pt!important;padding:1.25mm .9mm!important}
+ #r67PrintRoot .q-terms{font-size:8.1pt!important;line-height:1.25!important}
+ #r67PrintRoot .q-notes{font-size:7.9pt!important;line-height:1.32!important}
+ #r67PrintRoot .q-sales{font-size:12pt!important;line-height:1.28!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3309,7 +3329,7 @@ input,select,textarea{font-size:16px!important}
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
-    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR66()">列印／儲存 PDF</button></div>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR67()">列印／儲存 PDF</button></div>
   </div>
   <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
@@ -3349,7 +3369,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R66</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R67</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -4417,7 +4437,7 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R66";</script>
+<script>window.CRM_VERSION="R67";</script>
 <script>
 window.openCleanPrint=function(){
   const w=window.open('about:blank','_blank');
@@ -4638,6 +4658,53 @@ window.printQuoteR64=function(){
       },40);
     });
   });
+})();
+</script>
+
+
+<script id="r67-runtime">
+(function(){
+  function refreshQuoteR67(){
+    if(typeof renderQuoteDocument==='function') renderQuoteDocument();
+    if(typeof paginateQuotePages==='function') paginateQuotePages();
+    if(typeof r60SyncNotes==='function') r60SyncNotes();
+  }
+  function removeR67PrintRoot(){
+    const old=document.getElementById('r67PrintRoot');
+    if(old) old.remove();
+    document.body.classList.remove('r67-print');
+  }
+  window.printQuoteR67=function(){
+    try{
+      refreshQuoteR67();
+      const source=document.getElementById('quotePages');
+      if(!source) throw new Error('找不到報價單頁面');
+      const shells=[...source.querySelectorAll('.quote-paper-shell')];
+      if(!shells.length) throw new Error('報價單尚未產生');
+      removeR67PrintRoot();
+      const root=document.createElement('div');
+      root.id='r67PrintRoot';
+      shells.forEach(shell=>{
+        const clone=shell.cloneNode(true);
+        clone.removeAttribute('style');
+        const paper=clone.querySelector('.quote-paper');
+        if(paper){paper.removeAttribute('id');paper.removeAttribute('style');}
+        clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+        root.appendChild(clone);
+      });
+      document.body.appendChild(root);
+      document.body.classList.add('r67-print');
+      void root.offsetHeight;
+      const cleanup=()=>removeR67PrintRoot();
+      window.addEventListener('afterprint',cleanup,{once:true});
+      window.print();
+      setTimeout(cleanup,5000);
+    }catch(e){
+      removeR67PrintRoot();
+      console.error(e);
+      alert('列印準備失敗：'+(e.message||e));
+    }
+  };
 })();
 </script>
 
