@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R62 Beta</title>
+<title>鴻繽科技 CRM｜R63 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2900,6 +2900,86 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r63-final-lock">
+/* R63 實機收尾：不重畫公司抬頭，只修實際 HTML/CSS */
+.quote-paper{
+  width:760px!important;min-width:760px!important;max-width:760px!important;
+  min-height:1075px!important;padding:17px 30px 24px!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+}
+.q-letterhead{width:100%!important;margin:0 auto 3px!important}
+.q-letterhead-img{
+  display:block!important;width:100%!important;height:auto!important;
+  max-width:none!important;object-fit:contain!important;
+}
+.q-title{font-size:30px!important;margin:4px 0 15px!important}
+.q-party{grid-template-columns:1.5fr .95fr!important;gap:14px!important;font-size:13px!important;line-height:1.30!important}
+.q-party-row{grid-template-columns:108px minmax(0,1fr)!important}
+
+.q-table{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  table-layout:fixed!important;border-collapse:collapse!important;font-size:11.8px!important;
+}
+.q-table th,.q-table td{
+  box-sizing:border-box!important;min-width:0!important;max-width:none!important;
+  padding:4px 3px!important;overflow:hidden!important;
+  overflow-wrap:anywhere!important;word-break:break-word!important;white-space:normal!important;
+}
+.q-table th:nth-child(1),.q-table td:nth-child(1){width:25%!important}
+.q-table th:nth-child(2),.q-table td:nth-child(2){width:20%!important}
+.q-table th:nth-child(3),.q-table td:nth-child(3){width:16%!important}
+.q-table th:nth-child(4),.q-table td:nth-child(4){width:19%!important}
+.q-table th:nth-child(5),.q-table td:nth-child(5){width:20%!important}
+
+/* 最新實機意見：交貨條件、備註再縮；業務代表放大 */
+.q-terms{font-size:9.8px!important;line-height:1.27!important;margin:7px 10px 0!important}
+.q-notes{font-size:9.6px!important;line-height:1.34!important;margin:10px 10px 0!important;min-height:82px!important}
+.q-notes #qpNotes{display:inline!important;color:#111!important}
+.q-sales{font-size:15.5px!important;line-height:1.3!important;margin:20px 44px 0 0!important;font-weight:500!important}
+.q-page-no{font-size:9px!important}
+
+.quote-paper-shell,#quotePages{width:100%!important;max-width:100%!important;overflow:hidden!important}
+
+/* 列印直接使用同一頁 Safari 原生列印，不用 popup/iframe/about:blank */
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body{width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+  body.quote-printing .app > :not(main){display:none!important}
+  body.quote-printing main > .panel{display:none!important}
+  body.quote-printing main > #quoteDocument{display:block!important}
+  body.quote-printing #quoteDocument > .card{display:none!important}
+  body.quote-printing #quoteDocument > .quote-doc-wrap{display:block!important}
+  body.quote-printing .quote-preview-note{display:none!important}
+
+  body.quote-printing #quotePages{
+    display:block!important;width:210mm!important;max-width:210mm!important;
+    overflow:visible!important;margin:0!important;padding:0!important;
+  }
+  body.quote-printing .quote-paper-shell{
+    display:block!important;width:210mm!important;height:auto!important;
+    margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important;
+    break-after:page!important;page-break-after:always!important;
+  }
+  body.quote-printing .quote-paper-shell:last-child{
+    break-after:auto!important;page-break-after:auto!important;
+  }
+  body.quote-printing .quote-paper{
+    display:block!important;position:static!important;
+    width:190mm!important;min-width:190mm!important;max-width:190mm!important;
+    min-height:287mm!important;margin:5mm auto!important;padding:4mm 6mm 5mm!important;
+    box-sizing:border-box!important;transform:none!important;box-shadow:none!important;
+    overflow:hidden!important;background:#fff!important;color:#111!important;
+  }
+  body.quote-printing .q-letterhead-img{width:100%!important;height:auto!important}
+  body.quote-printing .q-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important}
+  body.quote-printing .q-table th,body.quote-printing .q-table td{font-size:8.4pt!important;padding:1.15mm .85mm!important}
+  body.quote-printing .q-terms{font-size:7.4pt!important;line-height:1.24!important}
+  body.quote-printing .q-notes{font-size:7.2pt!important;line-height:1.31!important}
+  body.quote-printing .q-sales{font-size:11.5pt!important;line-height:1.28!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3151,7 +3231,7 @@ input,select,textarea{font-size:16px!important}
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
-    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR61()">列印／儲存 PDF</button></div>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR63()">列印／儲存 PDF</button></div>
   </div>
   <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
@@ -3191,7 +3271,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R62</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R63</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -3253,1058 +3333,8 @@ input,select,textarea{font-size:16px!important}
 </main>
 </div>
 
-<script>
-(()=>{
-const KEY='hongbin_personal_crm_v3';const SETTINGS_KEY='hongbin_personal_crm_settings_v1';
-const blank={projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]};
-let db;
-try{db=Object.assign({},blank,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){db={...blank}}
-const $=id=>document.getElementById(id);
-
-// R4 migration: convert older customer records to nickname-only structure when possible.
-db.customers=(db.customers||[]).map(c=>({id:c.id||Date.now()+Math.random(),name:c.name||c.company||c.contact||'未命名客戶'}));
-db.visits=(db.visits||[]).map(v=>{
-  if(v.customerId) return v;
-  const oldName=(v.who||'').trim();
-  const c=db.customers.find(x=>x.name.toLowerCase()===oldName.toLowerCase());
-  return Object.assign({},v,{customerId:c?c.id:null});
-}).filter(v=>v.customerId);
-
-
-// R41 visual validation dataset.
-
-
-let __R41_MEM_DB = null;
-function canPersistentStore(){
-  try{
-    const k='__crm_probe__'+Date.now();
-    localStorage.setItem(k,'1');
-    localStorage.removeItem(k);
-    return true;
-  }catch(e){ return false; }
-}
-const R41_PERSISTENT = canPersistentStore();
-
-const save=()=>{
-  try{
-    if(R41_PERSISTENT){
-      localStorage.setItem(KEY,JSON.stringify(db));
-      const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：正常';
-      return true;
-    }
-    __R41_MEM_DB = JSON.stringify(db);
-    const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：測試記憶體模式';
-    return true;
-  }catch(e){
-    const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：錯誤';
-    console.error('save failed',e);
-    return false;
-  }
-};
-const deepCopy=x=>JSON.parse(JSON.stringify(x));
-function loadSettings(){
-  try{
-    if(R41_PERSISTENT) return Object.assign({defaultPage:'home'},JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'));
-  }catch(e){}
-  return {defaultPage:'home'};
-}
-window.saveSettings=function(){
-  const page=$('defaultPage').value||'home';
-  if(R41_PERSISTENT){
-    try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({defaultPage:page}));toast('設定已儲存');return}
-    catch(e){}
-  }
-  toast('測試模式：設定暫存於本次頁面');
-}
-function applyDefaultPage(){
-  const page=loadSettings().defaultPage||'home';
-  if($('defaultPage')) $('defaultPage').value=page;
-  if(!location.hash||location.hash==='#'){
-    try{
-      if(location.protocol==='http:'||location.protocol==='https:'){
-        history.replaceState(null,'','#'+page);
-      }
-      // data: / local visual test does not need a hash because CSS fallback shows #home.
-    }catch(e){
-      console.warn('default page history update skipped',e);
-    }
-  }
-}
-
-function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove('show'),1500)}
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const num=n=>Number.isFinite(Number(n))?Number(Number(n).toFixed(2)).toLocaleString('zh-TW'):'0';
-
-function commitChange(mutator,onSuccess){
-  const before=deepCopy(db);
-  try{
-    mutator();
-    if(!save()){db=before;renderAll();return false;}
-    renderAll();
-    if(onSuccess) onSuccess();
-    return true;
-  }catch(e){
-    db=before;
-    renderAll();
-    alert('資料處理失敗，原資料已保留。');
-    return false;
-  }
-}
-
-
-window.deleteItem=function(type,id){
-  commitChange(
-    ()=>{db[type]=db[type].filter(x=>x.id!==id)},
-    ()=>toast('資料已刪除')
-  );
-}
-window.deleteCustomer=function(id){
-  const hasVisits=db.visits.some(v=>v.customerId===id);
-  if(hasVisits&&!confirm('此客戶已有拜訪紀錄，刪除客戶會一併刪除這些紀錄。確定刪除？'))return;
-  commitChange(
-    ()=>{
-      db.customers=db.customers.filter(x=>x.id!==id);
-      db.visits=db.visits.filter(v=>v.customerId!==id);
-    },
-    ()=>toast('客戶與其拜訪紀錄已刪除')
-  );
-}
-function renderProjects(){
- $('projectList').innerHTML=db.projects.length?db.projects.map(x=>`<div class="item"><div class="item-head"><div><div class="item-title">${esc(x.name)}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}</div></div><button type="button" class="danger" onclick="deleteItem(\'projects\',${x.id})">刪除</button></div></div>`).join(''):'<div class="empty">尚無專案</div>'
-}
-function renderContacts(){
- $('contactList').innerHTML=db.contacts.length?db.contacts.map(x=>`<div class="item"><div class="item-head"><div><div class="item-title">${esc(x.who)}</div><div class="meta">${esc(x.date||'未指定日期')}</div></div><button type="button" class="danger" onclick="deleteItem(\'contacts\',${x.id})">刪除</button></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty">尚無聯絡紀錄</div>'
-}
-function renderQuotes(){
- $('quoteBody').innerHTML=db.quotes.length?db.quotes.map(x=>`<tr><td>${esc(x.customer)}</td><td>${esc(x.model)}</td><td>${num(x.cost)}</td><td>${num(x.price)}</td><td>${num(x.qty)}</td><td>${num(x.unit)}</td><td>${num(x.total)}</td><td>${num(x.margin)}%</td><td><button type="button" class="danger" onclick="deleteItem(\'quotes\',${x.id})">刪除</button></td></tr>`).join(''):'<tr><td colspan="9" class="empty">尚無報價歷史</td></tr>'
-}
-function renderTodos(){
- $('todoList').innerHTML=db.todos.length?db.todos.map(x=>`<div class="item ${x.done?'done':''}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}</div><div class="meta">${esc(x.date||'未指定日期')}｜${x.done?'已完成':'未完成'}</div></div></div><button type="button" class="danger" onclick="deleteItem(\'todos\',${x.id})">刪除</button></div></div>`).join(''):'<div class="empty">尚無待辦事項</div>'
-}
-function renderCustomers(){
-  const opts=$('customerOptions');
-  if(opts) opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
-  const box=$('customerGroupList');
-  if(!box) return;
-  if(!db.customers.length){box.innerHTML='<div class="empty">尚無客戶</div>';return;}
-  box.innerHTML=db.customers.map(c=>{
-    const visits=db.visits.filter(v=>v.customerId===c.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const visitHtml=visits.length?visits.map(v=>`
-      <div class="item" style="margin-left:8px">
-        <div class="item-head">
-          <div>
-            <div class="meta">${esc(v.date||'未指定日期')}</div>
-            <div class="content">${esc(v.note)}</div>
-            ${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}
-          </div>
-          <button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button>
-        </div>
-      </div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';
-    return `<div class="item">
-      <div class="item-head">
-        <div class="item-title">${esc(c.name)}</div>
-        <button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button>
-      </div>
-      <div class="meta">拜訪紀錄 ${visits.length} 筆</div>
-      ${visitHtml}
-    </div>`;
-  }).join('');
-}
-function renderVisits(){renderCustomers()}
-
-
-function renderR41Home(){
-  const box=$('r29HomeVisits');
-  if(!box) return;
-
-  const customers=Array.isArray(db.customers)?db.customers:[];
-  const visits=Array.isArray(db.visits)?db.visits:[];
-
-  const grouped=customers.map(c=>{
-    const list=visits
-      .filter(v => String(v.customerId)===String(c.id))
-      .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-    return {c,list,last:list[0]||null};
-  }).sort((a,b)=>{
-    const ad=(a.last&&a.last.date)||'';
-    const bd=(b.last&&b.last.date)||'';
-    return String(bd).localeCompare(String(ad));
-  });
-
-  if(!grouped.length){
-    box.innerHTML='<div class="r29-empty">尚無客戶與拜訪紀錄</div>';
-    return;
-  }
-
-  box.innerHTML=grouped.slice(0,5).map(({c,list,last})=>{
-    const name=esc(c.name||'未命名客戶');
-    const count=list.length;
-    const date=esc(last&&last.date ? last.date : '未指定日期');
-
-    // try common field names safely
-    const noteRaw = last ? (last.note ?? last.content ?? last.summary ?? '') : '';
-    const nextRaw = last ? (last.next ?? last.followUp ?? last.nextAction ?? '') : '';
-    const note=esc(noteRaw || '尚無拜訪內容');
-    const next=esc(nextRaw || '尚未設定');
-
-    return `<div class="r29-record">
-      <div class="r29-company-icon">▥</div>
-      <div class="r29-record-main">
-        <div class="r29-record-name">${name}</div>
-        <div class="r29-record-count">拜訪紀錄 ${count} 筆</div>
-        <div class="r29-record-line"><span class="ico">▣</span><span>${date}　${note}</span></div>
-        <div class="r29-record-line r29-record-next"><span class="ico">◎</span><span>後續追蹤：${next}</span></div>
-      </div>
-      <button type="button" class="r29-record-delete" onclick="deleteCustomer(${JSON.stringify(c.id)})">刪除</button>
-    </div>`;
-  }).join('');
-}
-
-function renderAll(){
-  renderProjects();renderContacts();renderQuotes();renderTodos();renderCustomers();renderVisits();
-  const cp=$('countProjects'),ct=$('countTodos'),cc=$('countCustomers');
-  if(cp) cp.textContent=db.projects.length;
-  if(ct) ct.textContent=db.todos.filter(x=>!x.done).length;
-  if(cc) cc.textContent=db.customers.length;
-  renderR41Home();
-}
-function quoteCalc(){
- const cost=Number($('qCost').value)||0,price=Number($('qPrice').value)||0,qty=Number($('qQty').value)||0,unit=price-cost,margin=price?unit/price*100:0;
- $('profit').textContent=num(unit);$('margin').textContent=num(margin)+'%';$('totalProfit').textContent=num(unit*qty)
-}
-window.addProject=function(){
-   const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');
-   db.projects.unshift({id:Date.now(),name,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定'});
-   if(save()){renderProjects();$('pName').value=$('pSupplier').value=$('pOwner').value=$('pStage').value='';toast('專案已新增')}
- }
-window.addContact=function(){
-   const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');
-   db.contacts.unshift({id:Date.now(),who,date:$('cDate').value,note});if(save()){renderContacts();$('cWho').value=$('cNote').value='';toast('聯絡紀錄已新增')}
- }
-window.genMessage=function(){
-   const who=$('mWho').value.trim()||'您',scene=$('mScene').value.trim()||'工作事項',task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');
-   const map={
-    '交辦':`${who}您好，這件事麻煩協助處理：${task}。請依進度完成，若有任何阻礙或需要確認的地方，請直接回覆，謝謝。`,
-    '催樣品':`${who}您好，想跟您確認一下樣品進度：${task}。麻煩協助確認目前狀態與預計可提供時間，若時程有異動也請一併告知，謝謝。`,
-    '催報價':`${who}您好，想追蹤一下報價進度：${task}。麻煩協助確認目前處理狀態，若可以的話請儘快提供報價資料，謝謝。`
-   };
-   $('messageOutput').textContent=map[scene]||`${who}您好，關於「${scene}」：${task}。麻煩協助確認並依實際進度處理，如有任何問題或時程異動請直接回覆，謝謝。`
-}
-window.copyMessage=async function(){
-   const text=$('messageOutput').textContent;
-   if(text==='尚未產生訊息。')return alert('請先產生訊息');
-   try{
-     await navigator.clipboard.writeText(text);
-     toast('已複製訊息');
-   }catch(e){
-     const ta=document.createElement('textarea');
-     ta.value=text;document.body.appendChild(ta);ta.select();
-     document.execCommand('copy');ta.remove();toast('已複製訊息');
-   }
-}
-window.saveQuote=function(){
-   const customer=$('qCustomer').value.trim(),model=$('qModel').value.trim(),cost=Number($('qCost').value),price=Number($('qPrice').value),qty=Number($('qQty').value);
-   if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、型號與數字欄位');
-   const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0;
-   db.quotes.unshift({id:Date.now(),customer,model,cost,price,qty,unit,total,margin});if(save()){renderQuotes();
-   ['qCustomer','qModel','qCost','qPrice','qQty'].forEach(id=>$(id).value='');quoteCalc();toast('報價歷史已儲存')}
- }
-window.addTodo=function(){
-   const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');
-   db.todos.unshift({id:Date.now(),date:$('tDate').value,text,done:false});if(save()){renderTodos();$('tText').value='';toast('待辦已新增')}
- }
-window.addCustomer=function(){
-   const name=$('cuName').value.trim();
-   if(!name)return alert('請輸入客戶簡稱');
-   if(db.customers.some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert('這個客戶已經建立');
-   db.customers.unshift({id:Date.now(),name});
-   if(save()){renderCustomers();$('cuName').value='';toast('客戶已新增');}
- }
-window.addVisit=function(){
-   const customerName=$('vCustomer').value.trim(),note=$('vNote').value.trim();
-   if(!customerName||!note)return alert('請選擇客戶並輸入拜訪內容');
-   const customer=db.customers.find(x=>x.name.toLowerCase()===customerName.toLowerCase());
-   if(!customer)return alert('這個客戶尚未建立，請先新增客戶簡稱');
-   db.visits.unshift({id:Date.now(),customerId:customer.id,date:$('vDate').value,note,next:$('vNext').value.trim()});
-   if(save()){renderCustomers();$('vCustomer').value=$('vNote').value=$('vNext').value='';toast('拜訪紀錄已新增並歸入客戶');}
- }
-window.clearAllData=function(){
-  if(!confirm('確定要清空全部 CRM 資料？此動作無法復原，建議先匯出備份。'))return;
-  commitChange(
-    ()=>{db={projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]}},
-    ()=>toast('全部資料已清空')
-  );
-}
-
-const CRM_INSTALL_URL='https://honbin002-design.github.io/hongbin-personal-crm/';
-
-function getInstallUrl(){
-  // GitHub Pages 正式環境永遠回傳可分享的乾淨網址；
-  // 避免 data:、blob:、hash 路由或主畫面模式造成錯誤連結。
-  if(location.protocol==='https:' && location.hostname==='honbin002-design.github.io'){
-    return CRM_INSTALL_URL;
-  }
-  return CRM_INSTALL_URL;
-}
-
-window.shareInstallLink=async function(){
-  const url=getInstallUrl();
-  try{
-    if(navigator.share){
-      await navigator.share({
-        title:'鴻繽科技 CRM',
-        text:'鴻繽科技 CRM 安裝連結。請使用 Safari 開啟後加入 iPhone 主畫面。',
-        url:url
-      });
-      return;
-    }
-  }catch(e){
-    if(e && e.name==='AbortError') return;
-    console.warn('share install link failed',e);
-  }
-  try{
-    await navigator.clipboard.writeText(url);
-    toast('此瀏覽器無法開啟分享表單，安裝連結已複製');
-  }catch(e){
-    prompt('請複製 CRM 安裝連結：',url);
-  }
-};
-
-window.copyInstallLink=async function(){
-  const url=getInstallUrl();
-  try{
-    if(navigator.clipboard && window.isSecureContext){
-      await navigator.clipboard.writeText(url);
-      toast('安裝連結已複製');
-      return;
-    }
-  }catch(e){ console.warn('clipboard failed',e); }
-
-  const ta=document.createElement('textarea');
-  ta.value=url;
-  ta.setAttribute('readonly','');
-  ta.style.position='fixed';
-  ta.style.opacity='0';
-  document.body.appendChild(ta);
-  ta.select();
-  ta.setSelectionRange(0,ta.value.length);
-  try{
-    const ok=document.execCommand('copy');
-    if(ok) toast('安裝連結已複製');
-    else prompt('請複製 CRM 安裝連結：',url);
-  }catch(e){
-    prompt('請複製 CRM 安裝連結：',url);
-  }finally{
-    ta.remove();
-  }
-};
-
-window.exportData=async function(){
-  const payload=JSON.stringify({version:3,app:'鴻繽科技 CRM',schema:'R50',exportedAt:new Date().toISOString(),data:db},null,2);
-  const date=new Date();
-  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
-  const filename=`鴻繽科技_個人CRM_備份_${y}-${m}-${d}.json`;
-  const blob=new Blob([payload],{type:'application/json;charset=utf-8'});
-  const file=new File([blob],filename,{type:'application/json'});
-
-  try{
-    if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
-      await navigator.share({
-        title:'鴻繽科技 CRM 備份',
-        text:'請選擇「儲存到檔案」並指定備份位置。',
-        files:[file]
-      });
-      toast('已開啟儲存選單');
-      return;
-    }
-  }catch(e){
-    if(e && e.name==='AbortError') return;
-    console.warn('share backup failed, fallback to download',e);
-  }
-
-  // 備援：若瀏覽器不支援檔案分享，退回一般下載。
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-  toast('此裝置不支援直接儲存選單，已改用下載備份');
-};
-['qCost','qPrice','qQty'].forEach(id=>$(id).addEventListener('input',quoteCalc));
-$('importFile').addEventListener('change',e=>{
- const f=e.target.files[0];if(!f)return;const r=new FileReader();
- r.onload=()=>{try{
-   const x=JSON.parse(r.result);
-   const source=(x&&x.data&&typeof x.data==='object')?x.data:x;
-   db=migrateR50DB(Object.assign({},blank,source||{}));
-   save();renderAll();alert('備份已匯入');
- }catch(err){console.error(err);alert('備份檔格式不正確')}};
- r.readAsText(f)
-});
-
-
-// ===== R50 資料相容與客戶關聯層 =====
-function migrateR50DB(source){
-  const out=Object.assign({projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]},source||{});
-  ['projects','contacts','commands','quotes','todos','customers','visits'].forEach(k=>{if(!Array.isArray(out[k]))out[k]=[]});
-  const findId=name=>{if(!name)return null;const n=String(name).trim().toLowerCase();const c=out.customers.find(x=>String(x.name||'').trim().toLowerCase()===n);return c?c.id:null};
-  out.projects=out.projects.map(x=>Object.assign({customerId:null,customerName:''},x));
-  out.contacts=out.contacts.map(x=>Object.assign({customerId:null,customerName:''},x));
-  out.commands=out.commands.map(x=>Object.assign({customerId:null,customerName:''},x));
-  out.quotes=out.quotes.map(x=>Object.assign({productName:'',spec:'',moq:'',customerId:x.customerId||findId(x.customer),customerName:x.customerName||x.customer||''},x));
-  out.todos=out.todos.map(x=>Object.assign({customerId:null,customerName:''},x));
-  out.visits=out.visits.map(x=>Object.assign({nextVisitDate:''},x));
-  return out;
-}
-db=migrateR50DB(db);
-function customerById(id){return db.customers.find(c=>String(c.id)===String(id))||null}
-function customerByName(name){const n=String(name||'').trim().toLowerCase();return db.customers.find(c=>String(c.name||'').trim().toLowerCase()===n)||null}
-function resolveCustomer(name){const c=customerByName(name);return {customerId:c?c.id:null,customerName:c?c.name:String(name||'').trim()}}
-function customerNameOf(rec){const c=customerById(rec&&rec.customerId);return c?c.name:(rec&&rec.customerName)||''}
-function lc(x){return String(x??'').toLowerCase()} function ts(id){const n=Number(id);return Number.isFinite(n)?n:0}
-function dateSort(a,b,key){const av=a[key]||'9999-12-31',bv=b[key]||'9999-12-31';return av.localeCompare(bv)||ts(b.id)-ts(a.id)}
-function searchHit(parts,q){if(!q)return true;return lc(parts.filter(Boolean).join(' ')).includes(lc(q).trim())}
-
-// ===== R41 提醒通知 + 全域編輯 + 響應式報價 =====
-db.commands=Array.isArray(db.commands)?db.commands:[];
-db.projects=(db.projects||[]).map(x=>Object.assign({followDate:''},x));
-db.contacts=(db.contacts||[]).map(x=>Object.assign({nextContactDate:''},x));
-db.commands=(db.commands||[]).map(x=>Object.assign({confirmDate:'',message:''},x));
-db.quotes=(db.quotes||[]).map(x=>Object.assign({followDate:''},x));
-db.todos=(db.todos||[]).map(x=>Object.assign({date:''},x));
-db.customers=(db.customers||[]).map(x=>Object.assign({nextVisitDate:''},x));
-db.visits=(db.visits||[]).map(x=>Object.assign({nextVisitDate:''},x));
-
-const editState={projects:null,contacts:null,commands:null,quotes:null,todos:null,customers:null,visits:null};
-function localToday(){
-  const d=new Date(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-function bindNoDate(checkId,dateId){
-  const c=$(checkId),d=$(dateId); if(!c||!d)return;
-  const sync=()=>{d.disabled=c.checked;if(c.checked)d.value='';};
-  c.addEventListener('change',sync);sync();
-}
-[
- ['pNoFollow','pFollowDate'],['cNoDate','cDate'],['cNoNext','cNextDate'],['mNoConfirm','mConfirmDate'],
- ['qNoFollow','qFollowDate'],['tNoDate','tDate'],['vNoDate','vDate'],['vNoNextDate','vNextDate']
-].forEach(x=>bindNoDate(...x));
-
-function setOptionalDate(checkId,dateId,value){
-  const c=$(checkId),d=$(dateId);if(!c||!d)return;
-  d.value=value||'';c.checked=!value;d.disabled=c.checked;
-}
-function setDefaultDate(checkId,dateId,value=''){
-  const c=$(checkId),d=$(dateId);if(!c||!d)return;
-  c.checked=false;d.disabled=false;d.value=value||'';
-}
-function resetEditForm(type){
-  editState[type]=null;
-  const map={
-    projects:['pSaveBtn','新增專案','pCancelEdit'],
-    contacts:['cSaveBtn','新增聯絡紀錄','cCancelEdit'],
-    commands:['mSaveBtn','產生並儲存指令','mCancelEdit'],
-    quotes:['qSaveBtn','儲存報價歷史','qCancelEdit'],
-    todos:['tSaveBtn','新增待辦','tCancelEdit'],
-    customers:['cuSaveBtn','新增客戶','cuCancelEdit'],
-    visits:['vSaveBtn','新增拜訪紀錄','vCancelEdit']
-  };
-  const cfg=map[type];if(cfg){const b=$(cfg[0]);if(b)b.textContent=cfg[1];const c=$(cfg[2]);if(c)c.closest('.form-actions')?.classList.remove('editing');}
-}
-window.cancelEdit=function(type){
-  if(type==='projects'){['pName','pCustomer','pSupplier','pOwner','pStage','pFollowDate'].forEach(id=>$(id).value='');setDefaultDate('pNoFollow','pFollowDate','');}
-  if(type==='contacts'){['cWho','cCustomer','cNote','cNextDate'].forEach(id=>$(id).value='');setDefaultDate('cNoDate','cDate',localToday());setDefaultDate('cNoNext','cNextDate','');}
-  if(type==='commands'){['mWho','mCustomer','mScene','mTask','mConfirmDate'].forEach(id=>$(id).value='');$('messageOutput').textContent='尚未產生訊息。';setDefaultDate('mNoConfirm','mConfirmDate','');}
-  if(type==='quotes'){['qCustomer','qProductName','qModel','qSpec','qCost','qPrice','qQty','qMoq','qFollowDate'].forEach(id=>$(id).value='');setDefaultDate('qNoFollow','qFollowDate','');quoteCalc();}
-  if(type==='todos'){['tText','tCustomer','tDate'].forEach(id=>$(id).value='');setDefaultDate('tNoDate','tDate','');}
-  if(type==='customers'){$('cuName').value='';}
-  if(type==='visits'){['vCustomer','vNote','vNext','vNextDate'].forEach(id=>$(id).value='');setDefaultDate('vNoDate','vDate',localToday());setDefaultDate('vNoNextDate','vNextDate','');}
-  resetEditForm(type);
-};
-
-function editMode(type,id,buttonId,label){
-  editState[type]=id;
-  const b=$(buttonId);if(b)b.textContent=label;
-  b?.closest('.form-actions')?.classList.add('editing');
-}
-function scrollToForm(id){setTimeout(()=>$(id)?.scrollIntoView({behavior:'smooth',block:'start'}),40)}
-
-function buildMessage(who,scene,task){
-  who=who||'您';scene=scene||'工作事項';
-  const map={
-    '交辦':`${who}您好，這件事麻煩協助處理：${task}。請依進度完成，若有任何阻礙或需要確認的地方，請直接回覆，謝謝。`,
-    '催樣品':`${who}您好，想跟您確認一下樣品進度：${task}。麻煩協助確認目前狀態與預計可提供時間，若時程有異動也請一併告知，謝謝。`,
-    '催報價':`${who}您好，想追蹤一下報價進度：${task}。麻煩協助確認目前處理狀態，若可以的話請儘快提供報價資料，謝謝。`
-  };
-  return map[scene]||`${who}您好，關於「${scene}」：${task}。麻煩協助確認並依實際進度處理，如有任何問題或時程異動請直接回覆，謝謝。`;
-}
-
-renderProjects=function(){
- $('projectList').innerHTML=db.projects.length?db.projects.map(x=>`<div class="item" id="record-projects-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.name)}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}｜追蹤日期：${esc(x.followDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editProject(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('projects',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty">尚無專案</div>'
-}
-renderContacts=function(){
- $('contactList').innerHTML=db.contacts.length?db.contacts.map(x=>`<div class="item" id="record-contacts-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.who)}</div><div class="meta">${esc(x.date||'未指定日期')}｜下次聯絡：${esc(x.nextContactDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editContact(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('contacts',${x.id})">刪除</button></div></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty">尚無聯絡紀錄</div>'
-}
-function renderCommands(){
- const box=$('commandList');if(!box)return;
- box.innerHTML=db.commands.length?db.commands.map(x=>`<div class="item" id="record-commands-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.task||x.scene||'指令')}</div><div class="meta">對象：${esc(x.who||'—')}｜情境：${esc(x.scene||'—')}｜確認執行：${esc(x.confirmDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCommand(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('commands',${x.id})">刪除</button></div></div><div class="content">${esc(x.message||'')}</div></div>`).join(''):'<div class="empty">尚無已儲存指令</div>';
-}
-renderQuotes=function(){
- const box=$('quoteBody');if(!box)return;
- box.innerHTML=db.quotes.length?db.quotes.map(x=>`<div class="quote-card" id="record-quotes-${x.id}">
-   <div class="quote-card-head"><div class="quote-card-title">${esc(x.customer)}｜${esc(x.model)}</div><div class="record-actions"><button type="button" class="customer-link" onclick="openQuoteDocument(${x.id})">報價單</button><button type="button" class="edit-btn" onclick="editQuote(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('quotes',${x.id})">刪除</button></div></div>
-   <div class="quote-grid">
-    <div class="quote-field">成本<b>${num(x.cost)}</b></div><div class="quote-field">售價<b>${num(x.price)}</b></div>
-    <div class="quote-field">數量<b>${num(x.qty)}</b></div><div class="quote-field">單件毛利<b>${num(x.unit)}</b></div>
-    <div class="quote-field">總毛利<b>${num(x.total)}</b></div><div class="quote-field quote-margin">毛利率<b>${num(x.margin)}%</b></div>
-    <div class="quote-field">追蹤回覆日期<b>${esc(x.followDate||'不設定')}</b></div>
-   </div></div>`).join(''):'<div class="empty">尚無報價歷史</div>';
-}
-renderTodos=function(){
- $('todoList').innerHTML=db.todos.length?db.todos.map(x=>`<div class="item ${x.done?'done':''}" id="record-todos-${x.id}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}</div><div class="meta">${esc(x.date||'不設定')}｜${x.done?'已完成':'未完成'}</div></div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editTodo(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('todos',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty">尚無待辦事項</div>'
-}
-renderCustomers=function(){
-  const opts=$('customerOptions');if(opts) opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
-  const box=$('customerGroupList');if(!box)return;
-  if(!db.customers.length){box.innerHTML='<div class="empty">尚無客戶</div>';return;}
-  box.innerHTML=db.customers.map(c=>{
-    const visits=db.visits.filter(v=>String(v.customerId)===String(c.id)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const visitHtml=visits.length?visits.map(v=>`<div class="item" id="record-visits-${v.id}">
-      <div class="item-head"><div><div class="meta">${esc(v.date||'未指定日期')}｜下次拜訪：${esc(v.nextVisitDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editVisit(${v.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button></div></div>
-      <div class="content">${esc(v.note)}</div>${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}</div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';
-    return `<div class="item" id="record-customers-${c.id}"><div class="item-head"><div><div class="item-title">${esc(c.name)}</div><div class="meta">拜訪紀錄 ${visits.length} 筆</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCustomer(${c.id})">編輯</button><button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button></div></div>${visitHtml}</div>`;
-  }).join('');
-}
-renderVisits=function(){renderCustomers()}
-
-window.editProject=id=>{const x=db.projects.find(v=>v.id===id);if(!x)return;$('pName').value=x.name||'';$('pSupplier').value=x.supplier||'';$('pOwner').value=x.owner||'';$('pStage').value=x.stage||'';setOptionalDate('pNoFollow','pFollowDate',x.followDate||'');editMode('projects',id,'pSaveBtn','儲存修改');scrollToForm('projects')}
-window.editContact=id=>{const x=db.contacts.find(v=>v.id===id);if(!x)return;$('cWho').value=x.who||'';$('cNote').value=x.note||'';setOptionalDate('cNoDate','cDate',x.date||'');setOptionalDate('cNoNext','cNextDate',x.nextContactDate||'');editMode('contacts',id,'cSaveBtn','儲存修改');scrollToForm('contacts')}
-window.editCommand=id=>{const x=db.commands.find(v=>v.id===id);if(!x)return;$('mWho').value=x.who||'';$('mScene').value=x.scene||'';$('mTask').value=x.task||'';$('messageOutput').textContent=x.message||'';setOptionalDate('mNoConfirm','mConfirmDate',x.confirmDate||'');editMode('commands',id,'mSaveBtn','儲存修改');scrollToForm('commands')}
-window.editQuote=id=>{const x=db.quotes.find(v=>v.id===id);if(!x)return;$('qCustomer').value=x.customer||'';$('qModel').value=x.model||'';$('qCost').value=x.cost??'';$('qPrice').value=x.price??'';$('qQty').value=x.qty??'';$('qMoq').value=x.moq||'';setOptionalDate('qNoFollow','qFollowDate',x.followDate||'');quoteCalc();editMode('quotes',id,'qSaveBtn','儲存修改');scrollToForm('quotes')}
-window.editTodo=id=>{const x=db.todos.find(v=>v.id===id);if(!x)return;$('tText').value=x.text||'';setOptionalDate('tNoDate','tDate',x.date||'');editMode('todos',id,'tSaveBtn','儲存修改');scrollToForm('todos')}
-window.editCustomer=id=>{const x=db.customers.find(v=>v.id===id);if(!x)return;$('cuName').value=x.name||'';editMode('customers',id,'cuSaveBtn','儲存修改');scrollToForm('customers')}
-window.editVisit=id=>{const x=db.visits.find(v=>v.id===id);if(!x)return;const c=db.customers.find(v=>String(v.id)===String(x.customerId));$('vCustomer').value=c?.name||'';$('vNote').value=x.note||'';$('vNext').value=x.next||'';setOptionalDate('vNoDate','vDate',x.date||'');setOptionalDate('vNoNextDate','vNextDate',x.nextVisitDate||'');editMode('visits',id,'vSaveBtn','儲存修改');scrollToForm('customers')}
-
-window.addProject=function(){
- const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');
- const data={name,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定',followDate:$('pFollowDate').value||''};
- if(editState.projects){const x=db.projects.find(v=>v.id===editState.projects);if(x)Object.assign(x,data)}else db.projects.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('projects');renderAll();toast('專案已儲存')}
-}
-window.addContact=function(){
- const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');
- const data={who,date:$('cDate').value,note,nextContactDate:$('cNextDate').value||''};
- if(editState.contacts){const x=db.contacts.find(v=>v.id===editState.contacts);if(x)Object.assign(x,data)}else db.contacts.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('contacts');renderAll();toast('聯絡紀錄已儲存')}
-}
-window.saveCommand=function(){
- const who=$('mWho').value.trim(),scene=$('mScene').value.trim(),task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');
- const message=buildMessage(who,scene,task);$('messageOutput').textContent=message;
- const data={who,scene,task,message,confirmDate:$('mConfirmDate').value||''};
- if(editState.commands){const x=db.commands.find(v=>v.id===editState.commands);if(x)Object.assign(x,data)}else db.commands.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('commands');$('messageOutput').textContent=message;renderAll();toast('指令已儲存')}
-}
-window.saveQuote=function(){
- const customer=$('qCustomer').value.trim(),model=$('qModel').value.trim(),cost=Number($('qCost').value),price=Number($('qPrice').value),qty=Number($('qQty').value);
- if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、型號與數字欄位');
- const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0,data={customer,model,cost,price,qty,unit,total,margin,followDate:$('qFollowDate').value||''};
- if(editState.quotes){const x=db.quotes.find(v=>v.id===editState.quotes);if(x)Object.assign(x,data)}else db.quotes.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('quotes');renderAll();quoteCalc();toast('報價紀錄已儲存')}
-}
-window.addTodo=function(){
- const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');
- const data={date:$('tDate').value||'',text};
- if(editState.todos){const x=db.todos.find(v=>v.id===editState.todos);if(x)Object.assign(x,data)}else db.todos.unshift(Object.assign({id:Date.now(),done:false},data));
- if(save()){cancelEdit('todos');renderAll();toast('待辦已儲存')}
-}
-window.addCustomer=function(){
- const name=$('cuName').value.trim();if(!name)return alert('請輸入客戶簡稱');
- const duplicate=db.customers.some(x=>x.id!==editState.customers&&x.name.toLowerCase()===name.toLowerCase());if(duplicate)return alert('這個客戶已經建立');
- const data={name};
- if(editState.customers){const x=db.customers.find(v=>v.id===editState.customers);if(x)Object.assign(x,data)}else db.customers.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('customers');renderAll();toast('客戶已儲存')}
-}
-window.addVisit=function(){
- const customerName=$('vCustomer').value.trim(),note=$('vNote').value.trim();if(!customerName||!note)return alert('請選擇客戶並輸入拜訪內容');
- const customer=db.customers.find(x=>x.name.toLowerCase()===customerName.toLowerCase());if(!customer)return alert('這個客戶尚未建立，請先新增客戶簡稱');
- const nextVisitDate=$('vNextDate').value||'',data={customerId:customer.id,date:$('vDate').value,note,next:$('vNext').value.trim(),nextVisitDate};
- if(editState.visits){const x=db.visits.find(v=>v.id===editState.visits);if(x)Object.assign(x,data)}else db.visits.unshift(Object.assign({id:Date.now()},data));
-  if(save()){cancelEdit('visits');renderAll();toast('拜訪紀錄已儲存')}
-}
-
-
-// ===== R50 搜尋 / 排序 / 客戶360 / 關聯資料 =====
-function toolVal(id,def){const e=$(id);return e?e.value:def}
-renderProjects=function(){
- const q=toolVal('prSearch',''),f=toolVal('prFilter','all'),s=toolVal('prSort','new');let arr=[...db.projects].filter(x=>searchHit([x.name,x.supplier,x.owner,x.stage,customerNameOf(x)],q));
- if(f==='active')arr=arr.filter(x=>!['已成交','暫停'].includes(x.stage));if(f==='done')arr=arr.filter(x=>x.stage==='已成交');if(f==='paused')arr=arr.filter(x=>x.stage==='暫停');
- arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'followDate'):(a,b)=>ts(b.id)-ts(a.id));
- $('projectList').innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-projects-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.name)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">供應商：${esc(x.supplier||'—')}｜負責人員：${esc(x.owner||'—')}｜階段：${esc(x.stage||'—')}｜追蹤日期：${esc(x.followDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editProject(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('projects',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的專案</div>';
-}
-renderContacts=function(){
- const q=toolVal('coSearch',''),f=toolVal('coFilter','all'),s=toolVal('coSort','new');let arr=[...db.contacts].filter(x=>searchHit([x.who,x.note,customerNameOf(x)],q));
- if(f==='dated')arr=arr.filter(x=>x.nextContactDate);if(f==='nodate')arr=arr.filter(x=>!x.nextContactDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'nextContactDate'):(a,b)=>ts(b.id)-ts(a.id));
- $('contactList').innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-contacts-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.who)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">${esc(x.date||'未指定日期')}｜下次聯絡：${esc(x.nextContactDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editContact(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('contacts',${x.id})">刪除</button></div></div><div class="content">${esc(x.note)}</div></div>`).join(''):'<div class="empty-search">沒有符合條件的聯絡紀錄</div>';
-}
-function renderCommands(){
- const box=$('commandList');if(!box)return;const q=toolVal('cmSearch',''),f=toolVal('cmFilter','all'),s=toolVal('cmSort','new');let arr=[...db.commands].filter(x=>searchHit([x.who,x.scene,x.task,x.message,customerNameOf(x)],q));
- if(f==='dated')arr=arr.filter(x=>x.confirmDate);if(f==='nodate')arr=arr.filter(x=>!x.confirmDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'confirmDate'):(a,b)=>ts(b.id)-ts(a.id));
- box.innerHTML=arr.length?arr.map(x=>`<div class="item" id="record-commands-${x.id}"><div class="item-head"><div><div class="item-title">${esc(x.task||x.scene||'指令')}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">對象：${esc(x.who||'—')}｜情境：${esc(x.scene||'—')}｜確認執行：${esc(x.confirmDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editCommand(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('commands',${x.id})">刪除</button></div></div><div class="content">${esc(x.message||'')}</div></div>`).join(''):'<div class="empty-search">沒有符合條件的指令</div>';
-}
-renderQuotes=function(){
- const box=$('quoteBody');if(!box)return;const q=toolVal('quSearch',''),f=toolVal('quFilter','all'),s=toolVal('quSort','new');let arr=[...db.quotes].filter(x=>searchHit([x.customer,x.model,customerNameOf(x)],q));
- if(f==='dated')arr=arr.filter(x=>x.followDate);if(f==='nodate')arr=arr.filter(x=>!x.followDate);arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'followDate'):(a,b)=>ts(b.id)-ts(a.id));
- box.innerHTML=arr.length?arr.map(x=>`<div class="quote-card" id="record-quotes-${x.id}"><div class="quote-card-head"><div class="quote-card-title">${esc(x.customer)}｜${esc(x.model)}</div><div class="record-actions"><button type="button" class="edit-btn" onclick="editQuote(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('quotes',${x.id})">刪除</button></div></div><div class="quote-grid"><div class="quote-field">成本<b>${num(x.cost)}</b></div><div class="quote-field">售價<b>${num(x.price)}</b></div><div class="quote-field">數量<b>${num(x.qty)}</b></div><div class="quote-field">單件毛利<b>${num(x.unit)}</b></div><div class="quote-field">總毛利<b>${num(x.total)}</b></div><div class="quote-field quote-margin">毛利率<b>${num(x.margin)}%</b></div><div class="quote-field">追蹤回覆日期<b>${esc(x.followDate||'不設定')}</b></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的報價紀錄</div>';
-}
-renderTodos=function(){
- const q=toolVal('toSearch',''),f=toolVal('toFilter','all'),s=toolVal('toSort','new');let arr=[...db.todos].filter(x=>searchHit([x.text,customerNameOf(x)],q));if(f==='open')arr=arr.filter(x=>!x.done);if(f==='done')arr=arr.filter(x=>x.done);
- arr.sort(s==='old'?(a,b)=>ts(a.id)-ts(b.id):s==='date'?(a,b)=>dateSort(a,b,'date'):(a,b)=>ts(b.id)-ts(a.id));
- $('todoList').innerHTML=arr.length?arr.map(x=>`<div class="item ${x.done?'done':''}" id="record-todos-${x.id}"><div class="item-head"><div class="todo-line"><input type="checkbox" onchange="toggleTodo(${x.id},this.checked)" ${x.done?'checked':''}><div><div class="item-title">${esc(x.text)}${customerNameOf(x)?`<span class="relation-chip">${esc(customerNameOf(x))}</span>`:''}</div><div class="meta">${esc(x.date||'不設定')}｜${x.done?'已完成':'未完成'}</div></div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editTodo(${x.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('todos',${x.id})">刪除</button></div></div></div>`).join(''):'<div class="empty-search">沒有符合條件的待辦</div>';
-}
-renderCustomers=function(){
- const opts=$('customerOptions');if(opts)opts.innerHTML=db.customers.map(x=>`<option value="${esc(x.name)}"></option>`).join('');const box=$('customerGroupList');if(!box)return;
- const q=toolVal('cuSearch',''),f=toolVal('cuFilter','all'),s=toolVal('cuSort','name');let arr=[...db.customers].filter(c=>{const visits=db.visits.filter(v=>String(v.customerId)===String(c.id));return searchHit([c.name,...visits.map(v=>`${v.note} ${v.next}`)],q)});
- if(f==='visited')arr=arr.filter(c=>db.visits.some(v=>String(v.customerId)===String(c.id)));if(f==='unvisited')arr=arr.filter(c=>!db.visits.some(v=>String(v.customerId)===String(c.id)));
- arr.sort((a,b)=>{if(s==='new')return ts(b.id)-ts(a.id);if(s==='visit'){const av=db.visits.filter(v=>String(v.customerId)===String(a.id)).map(v=>v.date||'').sort().pop()||'',bv=db.visits.filter(v=>String(v.customerId)===String(b.id)).map(v=>v.date||'').sort().pop()||'';return bv.localeCompare(av)||String(a.name).localeCompare(String(b.name),'zh-Hant')}return String(a.name).localeCompare(String(b.name),'zh-Hant')});
- box.innerHTML=arr.length?arr.map(c=>{const visits=db.visits.filter(v=>String(v.customerId)===String(c.id)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));const visitHtml=visits.length?visits.map(v=>`<div class="item" id="record-visits-${v.id}"><div class="item-head"><div><div class="meta">${esc(v.date||'未指定日期')}｜下次拜訪：${esc(v.nextVisitDate||'不設定')}</div></div><div class="record-actions"><button type="button" class="edit-btn" onclick="editVisit(${v.id})">編輯</button><button type="button" class="danger" onclick="deleteItem('visits',${v.id})">刪除</button></div></div><div class="content">${esc(v.note)}</div>${v.next?`<div class="content"><b>後續追蹤：</b>${esc(v.next)}</div>`:''}</div>`).join(''):'<div class="empty">尚無拜訪紀錄</div>';return `<div class="item" id="record-customers-${c.id}"><div class="item-head"><div><div class="item-title">${esc(c.name)}</div><div class="meta">拜訪紀錄 ${visits.length} 筆</div></div><div class="record-actions"><button type="button" class="customer-link" onclick="openCustomer360(${c.id})">360°</button><button type="button" class="edit-btn" onclick="editCustomer(${c.id})">編輯</button><button type="button" class="danger" onclick="deleteCustomer(${c.id})">刪除</button></div></div>${visitHtml}</div>`}).join(''):'<div class="empty-search">沒有符合條件的客戶</div>';
-}
-renderVisits=function(){renderCustomers()}
-
-window.editProject=id=>{const x=db.projects.find(v=>v.id===id);if(!x)return;$('pName').value=x.name||'';$('pCustomer').value=customerNameOf(x);$('pSupplier').value=x.supplier||'';$('pOwner').value=x.owner||'';$('pStage').value=x.stage||'';setOptionalDate('pNoFollow','pFollowDate',x.followDate||'');editMode('projects',id,'pSaveBtn','儲存修改');scrollToForm('projects')}
-window.editContact=id=>{const x=db.contacts.find(v=>v.id===id);if(!x)return;$('cWho').value=x.who||'';$('cCustomer').value=customerNameOf(x);$('cNote').value=x.note||'';setOptionalDate('cNoDate','cDate',x.date||'');setOptionalDate('cNoNext','cNextDate',x.nextContactDate||'');editMode('contacts',id,'cSaveBtn','儲存修改');scrollToForm('contacts')}
-window.editCommand=id=>{const x=db.commands.find(v=>v.id===id);if(!x)return;$('mWho').value=x.who||'';$('mCustomer').value=customerNameOf(x);$('mScene').value=x.scene||'';$('mTask').value=x.task||'';$('messageOutput').textContent=x.message||'';setOptionalDate('mNoConfirm','mConfirmDate',x.confirmDate||'');editMode('commands',id,'mSaveBtn','儲存修改');scrollToForm('commands')}
-window.editQuote=id=>{const x=db.quotes.find(v=>v.id===id);if(!x)return;$('qCustomer').value=x.customer||customerNameOf(x);$('qProductName').value=x.productName||'';$('qModel').value=x.model||'';$('qSpec').value=x.spec||'';$('qCost').value=x.cost??'';$('qPrice').value=x.price??'';$('qQty').value=x.qty??'';$('qMoq').value=x.moq||'';setOptionalDate('qNoFollow','qFollowDate',x.followDate||'');quoteCalc();editMode('quotes',id,'qSaveBtn','儲存修改');scrollToForm('quotes')}
-window.editTodo=id=>{const x=db.todos.find(v=>v.id===id);if(!x)return;$('tText').value=x.text||'';$('tCustomer').value=customerNameOf(x);setOptionalDate('tNoDate','tDate',x.date||'');editMode('todos',id,'tSaveBtn','儲存修改');scrollToForm('todos')}
-
-window.addProject=function(){const name=$('pName').value.trim();if(!name)return alert('請輸入專案名稱');const rel=resolveCustomer($('pCustomer').value),data={name,customerId:rel.customerId,customerName:rel.customerName,supplier:$('pSupplier').value.trim(),owner:$('pOwner').value.trim(),stage:$('pStage').value.trim()||'未指定',followDate:$('pFollowDate').value||''};if(editState.projects){const x=db.projects.find(v=>v.id===editState.projects);if(x)Object.assign(x,data)}else db.projects.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('projects');renderAll();toast('專案已儲存')}}
-window.addContact=function(){const who=$('cWho').value.trim(),note=$('cNote').value.trim();if(!who||!note)return alert('請輸入聯絡對象與溝通重點');const rel=resolveCustomer($('cCustomer').value),data={who,customerId:rel.customerId,customerName:rel.customerName,date:$('cDate').value,note,nextContactDate:$('cNextDate').value||''};if(editState.contacts){const x=db.contacts.find(v=>v.id===editState.contacts);if(x)Object.assign(x,data)}else db.contacts.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('contacts');renderAll();toast('聯絡紀錄已儲存')}}
-window.saveCommand=function(){const who=$('mWho').value.trim(),scene=$('mScene').value.trim(),task=$('mTask').value.trim();if(!task)return alert('請輸入任務內容');const message=buildMessage(who,scene,task),rel=resolveCustomer($('mCustomer').value);$('messageOutput').textContent=message;const data={who,customerId:rel.customerId,customerName:rel.customerName,scene,task,message,confirmDate:$('mConfirmDate').value||''};if(editState.commands){const x=db.commands.find(v=>v.id===editState.commands);if(x)Object.assign(x,data)}else db.commands.unshift(Object.assign({id:Date.now()},data));if(save()){cancelEdit('commands');$('messageOutput').textContent=message;renderAll();toast('指令已儲存')}}
-window.saveQuote=function(){
- const customer=$('qCustomer').value.trim(),
-       productName=$('qProductName').value.trim(),
-       model=$('qModel').value.trim(),
-       spec=$('qSpec').value.trim(),
-       moq=$('qMoq').value.trim(),
-       cost=Number($('qCost').value),
-       price=Number($('qPrice').value),
-       qty=Number($('qQty').value);
- if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、品號與數字欄位');
- const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0,rel=resolveCustomer(customer),
-       data={customer,customerId:rel.customerId,customerName:rel.customerName,productName,model,spec,moq,cost,price,qty,unit,total,margin,followDate:$('qFollowDate').value||''};
- if(editState.quotes){const x=db.quotes.find(v=>v.id===editState.quotes);if(x)Object.assign(x,data)}
- else db.quotes.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('quotes');renderAll();quoteCalc();toast('報價紀錄已儲存')}
-}
-window.addTodo=function(){const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');const rel=resolveCustomer($('tCustomer').value),data={date:$('tDate').value||'',text,customerId:rel.customerId,customerName:rel.customerName};if(editState.todos){const x=db.todos.find(v=>v.id===editState.todos);if(x)Object.assign(x,data)}else db.todos.unshift(Object.assign({id:Date.now(),done:false},data));if(save()){cancelEdit('todos');renderAll();toast('待辦已儲存')}}
-
-function timelineForCustomer(id){const c=customerById(id);if(!c)return[];const arr=[];db.visits.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'拜訪',date:x.date||x.nextVisitDate||'',title:'拜訪紀錄',content:[x.note,x.next?`後續：${x.next}`:''].filter(Boolean).join('｜'),id:x.id,page:'customers'}));db.projects.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'專案',date:x.followDate||'',title:x.name,content:`階段：${x.stage||'—'}｜負責：${x.owner||'—'}`,id:x.id,page:'projects'}));db.contacts.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'聯絡',date:x.date||x.nextContactDate||'',title:x.who,content:x.note,id:x.id,page:'contacts'}));db.commands.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'指令',date:x.confirmDate||'',title:x.task||x.scene||'指令',content:x.message||'',id:x.id,page:'commands'}));db.quotes.filter(x=>String(x.customerId)===String(id)||lc(x.customer)===lc(c.name)).forEach(x=>arr.push({type:'報價',date:x.followDate||'',title:x.model,content:`售價 ${num(x.price)}｜毛利率 ${num(x.margin)}%`,id:x.id,page:'quotes'}));db.todos.filter(x=>String(x.customerId)===String(id)).forEach(x=>arr.push({type:'待辦',date:x.date||'',title:x.text,content:x.done?'已完成':'未完成',id:x.id,page:'todos'}));return arr.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||ts(b.id)-ts(a.id))}
-window.openCustomer360=function(id){const c=customerById(id);if(!c)return;const timeline=timelineForCustomer(id),stats=$('customer360Stats'),box=$('customer360Timeline');$('customer360Title').textContent=c.name;const pc=db.projects.filter(x=>String(x.customerId)===String(id)).length,qc=db.quotes.filter(x=>String(x.customerId)===String(id)||lc(x.customer)===lc(c.name)).length,vc=db.visits.filter(x=>String(x.customerId)===String(id)).length;if(stats)stats.innerHTML=`<div class="mini-stat"><span>專案</span><b>${pc}</b></div><div class="mini-stat"><span>報價</span><b>${qc}</b></div><div class="mini-stat"><span>拜訪</span><b>${vc}</b></div>`;if(box)box.innerHTML=timeline.length?timeline.map(x=>`<div class="timeline-item" onclick="openTimelineRecord('${x.page}',${x.id},'${x.type}')"><div class="timeline-type">${esc(x.type)}｜${esc(x.date||'未設定日期')}</div><div class="timeline-title">${esc(x.title)}</div><div class="timeline-content">${esc(x.content||'')}</div></div>`).join(''):'<div class="empty">這個客戶目前沒有關聯紀錄</div>';location.hash='customer360'}
-window.openTimelineRecord=function(page,id,type){location.hash=page;const map={'專案':'projects','聯絡':'contacts','指令':'commands','報價':'quotes','待辦':'todos','拜訪':'visits'};setTimeout(()=>{const el=$(`record-${map[type]||page}-${id}`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('record-highlight');setTimeout(()=>el.classList.remove('record-highlight'),1900)}},80)}
-function renderHomeCRM(){const today=localToday(),end=new Date();end.setDate(end.getDate()+7);const endStr=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;const dates=[...db.projects.map(x=>x.followDate),...db.contacts.map(x=>x.nextContactDate),...db.commands.map(x=>x.confirmDate),...db.quotes.map(x=>x.followDate),...db.todos.filter(x=>!x.done).map(x=>x.date),...db.visits.map(x=>x.nextVisitDate)].filter(Boolean);if($('homeTodayCount'))$('homeTodayCount').textContent=reminderDefs().length;if($('homeOpenTodoCount'))$('homeOpenTodoCount').textContent=db.todos.filter(x=>!x.done).length;if($('homeWeekCount'))$('homeWeekCount').textContent=dates.filter(d=>d>=today&&d<=endStr).length}
-
-
-
-function fitQuotePreview(){
- const paper=$('quotePaper');if(!paper)return;
- const shell=paper.closest('.quote-paper-shell');if(!shell)return;
- paper.style.transform='none';
- const available=Math.max(240,shell.clientWidth);
- const scale=Math.min(1,available/794);
- paper.style.transform=`scale(${scale})`;
- shell.style.height=`${Math.ceil(paper.scrollHeight*scale)}px`;
-}
-function scheduleQuoteFit(){requestAnimationFrame(()=>requestAnimationFrame(fitQuotePreview))}
-window.addEventListener('resize',scheduleQuoteFit);
-window.addEventListener('load',scheduleQuoteFit);
-
-
-
-function r60SyncNotes(){
- const qn=$('qdNotes'),out=$('qpNotes'); if(!out)return;
- const text=(qn&&qn.value.trim())?qn.value:`1：　以上價格為未稅價。\n2：　本報價僅供參考，實際價格以訂單確認為準。\n3：　特殊規格或需求，請先行告知。\n4：　如有任何問題，歡迎隨時與我們聯繫。`;
- out.innerHTML=esc(text).replace(/\n/g,'<br>');
-}
-
-// ===== R58 報價單：估價直接帶入 / 每4品項分頁 / 無頁尾PDF =====
-window.openQuoteDocumentFromEstimate=function(){
-  const customer=$('qCustomer').value.trim();
-  const model=$('qModel').value.trim();
-  const productName=$('qProductName').value.trim();
-  const spec=$('qSpec').value.trim();
-  const price=$('qPrice').value.trim();
-  const moq=$('qMoq').value.trim();
-  if(!customer && !model && !productName)return alert('請先輸入預估報價資料');
-  openQuoteDocument();
-  $('qdCustomer').value=customer||'';
-  window.quoteDocItems=[{name:productName||'',model:model||'',spec:spec||'',price:price||'',moq:moq||''}];
-  const c=customerByName(customer||'');
-  if(c){$('qdTel').value=c.tel||'';$('qdFax').value=c.fax||''}
-  renderQuoteDocEditor();renderQuoteDocument();scheduleQuoteFit();
-}
-
-function fillQuotePaperClone(paper,items){
-  const tb=paper.querySelector('tbody');
-  if(tb)tb.innerHTML=items.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');
-}
-function paginateQuotePages(){
-  const pages=$('quotePages'),first=$('quotePaper');if(!pages||!first)return;
-  pages.querySelectorAll('.quote-paper-shell[data-r58-extra],.quote-paper-shell[data-r59-extra]').forEach(x=>x.remove());
-  const chunks=[];for(let i=0;i<window.quoteDocItems.length;i+=4)chunks.push(window.quoteDocItems.slice(i,i+4));
-  if(!chunks.length)chunks.push([]);
-  fillQuotePaperClone(first,chunks[0]);
-  let shells=[first.parentElement];
-  for(let i=1;i<chunks.length;i++){
-    const shell=first.parentElement.cloneNode(true);
-    shell.dataset.r59Extra='1';
-    const paper=shell.querySelector('.quote-paper');
-    paper.removeAttribute('id');
-    paper.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
-    fillQuotePaperClone(paper,chunks[i]);
-    pages.appendChild(shell);
-    shells.push(shell);
-  }
-  shells.forEach((shell,i)=>{
-    const no=shell.querySelector('.q-page-no');
-    if(no)no.textContent=shells.length>1?`第 ${i+1} / ${shells.length} 頁`:'';
-  });
-  scheduleQuoteFitAll();
-}
-function scheduleQuoteFitAll(){
- requestAnimationFrame(()=>requestAnimationFrame(()=>{
-   document.querySelectorAll('#quotePages .quote-paper-shell').forEach(shell=>{
-     const paper=shell.querySelector('.quote-paper');if(!paper)return;
-     paper.style.transform='none';
-     const available=Math.max(240,shell.clientWidth);
-     const scale=Math.min(1,available/794);
-     paper.style.transform=`scale(${scale})`;
-     shell.style.height=`${Math.ceil(paper.scrollHeight*scale)}px`;
-   });
- }))
-}
-window.addEventListener('resize',scheduleQuoteFitAll);
-
-// 將頁面轉成影像後直接組成 PDF；不經 Safari 列印，所以不會有網址/日期頁尾。
-async function nodeToJpeg(node){
-  const clone=node.cloneNode(true);
-  clone.style.transform='none';clone.style.margin='0';clone.style.boxShadow='none';
-  const serializer=new XMLSerializer();
-  const html=serializer.serializeToString(clone);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:794px;height:1123px;background:white">${html}</div></foreignObject></svg>`;
-  const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  try{
-    const img=new Image();
-    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
-    const canvas=document.createElement('canvas');canvas.width=1588;canvas.height=2246;
-    const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    return canvas.toDataURL('image/jpeg',0.92);
-  }finally{URL.revokeObjectURL(url)}
-}
-function dataUrlBytes(dataUrl){
- const b64=dataUrl.split(',')[1],bin=atob(b64),u=new Uint8Array(bin.length);
- for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;
-}
-function buildJpegPdf(jpegs){
- const enc=new TextEncoder(),parts=[],offsets=[0],push=s=>parts.push(enc.encode(s)),pushBytes=b=>parts.push(b);
- const objects=[];
- const addObj=fn=>objects.push(fn);
- // catalog/pages placeholders
- addObj(()=>`<< /Type /Catalog /Pages 2 0 R >>`);
- const pageObjNums=[],imgObjNums=[];
- for(let i=0;i<jpegs.length;i++){pageObjNums.push(3+i*3);imgObjNums.push(5+i*3)}
- addObj(()=>`<< /Type /Pages /Count ${jpegs.length} /Kids [${pageObjNums.map(n=>n+' 0 R').join(' ')}] >>`);
- for(let i=0;i<jpegs.length;i++){
-   const page=3+i*3,content=4+i*3,img=5+i*3,bytes=dataUrlBytes(jpegs[i]);
-   addObj(()=>`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${img} 0 R >> >> /Contents ${content} 0 R >>`);
-   const stream='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
-   addObj(()=>`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
-   addObj(()=>({header:`<< /Type /XObject /Subtype /Image /Width 1588 /Height 2246 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`,bytes,footer:'\nendstream'}));
- }
- push('%PDF-1.4\n');
- let cursor=9;
- for(let i=0;i<objects.length;i++){
-   offsets[i+1]=cursor;
-   const val=objects[i]();
-   const head=`${i+1} 0 obj\n`;push(head);cursor+=enc.encode(head).length;
-   if(typeof val==='string'){push(val);cursor+=enc.encode(val).length}
-   else{
-     push(val.header);cursor+=enc.encode(val.header).length;pushBytes(val.bytes);cursor+=val.bytes.length;push(val.footer);cursor+=enc.encode(val.footer).length;
-   }
-   push('\nendobj\n');cursor+=enc.encode('\nendobj\n').length;
- }
- const xref=cursor;
- push(`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`);
- for(let i=1;i<=objects.length;i++)push(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
- push(`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
- return new Blob(parts,{type:'application/pdf'});
-}
-window.exportQuotePdf=function(){openCleanPrint()}
-
-// ===== R51 正式報價單產生器 =====
-window.quoteDocItems=[];
-function qdVal(id){const e=$(id);return e?e.value.trim():''}
-function defaultQuoteNo(){const d=new Date(),ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;return `Q${ymd}-${String((db.quotes||[]).length+1).padStart(3,'0')}`}
-window.openQuoteDocument=function(quoteId){
- const q=quoteId?db.quotes.find(x=>String(x.id)===String(quoteId)):null;
- const customer=q?(q.customer||customerNameOf(q)):'';
- const c=customerByName(customer||'');
- $('qdCustomer').value=customer||'';
- $('qdContact').value='';
- $('qdTel').value=(c&&c.tel)||'';
- $('qdFax').value=(c&&c.fax)||'';
- $('qdNo').value=defaultQuoteNo();
- $('qdDate').value=localToday();
-
- // 從某筆已儲存報價進入時，只先帶入該筆，避免不同客戶資料被混在同一張報價單。
- window.quoteDocItems=q?[{
-   name:q.productName||'',
-   model:q.model||'',
-   spec:q.spec||'',
-   price:q.price?`${num(q.price)}`:'',
-   moq:q.moq||''
- }]:[{name:'',model:'',spec:'',price:'',moq:''}];
-
- renderQuoteDocEditor();
- renderQuoteDocument();
- location.hash='quoteDocument';
- scheduleQuoteFit();
-}
-window.addQuoteDocItem=function(){window.quoteDocItems.push({name:'',model:'',spec:'',price:'',moq:''});renderQuoteDocEditor()}
-window.removeQuoteDocItem=function(i){window.quoteDocItems.splice(i,1);if(!window.quoteDocItems.length)addQuoteDocItem();else renderQuoteDocEditor()}
-window.renderQuoteDocEditor=function(){
- const b=$('qdItemsEditor');if(!b)return;
- b.innerHTML=window.quoteDocItems.map((x,i)=>`<div class="q-item-card"><div class="q-item-card-title">品項 ${i+1}</div><div class="q-item-grid"><div class="q-item-field"><label>品名</label><input placeholder="品名" value="${esc(x.name)}" oninput="window.quoteDocItems[${i}].name=this.value"></div><div class="q-item-field"><label>品號</label><input placeholder="品號" value="${esc(x.model)}" oninput="window.quoteDocItems[${i}].model=this.value"></div><div class="q-item-field"><label>規格</label><input placeholder="規格" value="${esc(x.spec)}" oninput="window.quoteDocItems[${i}].spec=this.value"></div><div class="q-item-field"><label>單價 (NT)</label><input placeholder="例如：999元/KG" value="${esc(x.price)}" oninput="window.quoteDocItems[${i}].price=this.value"></div><div class="q-item-field wide"><label>最低訂購量 (MOQ)</label><input placeholder="例如：5000 KG" value="${esc(x.moq)}" oninput="window.quoteDocItems[${i}].moq=this.value"></div></div><div class="q-item-actions"><button class="danger q-item-del" type="button" onclick="removeQuoteDocItem(${i})">刪除品項</button></div></div>`).join('');
-}
-window.renderQuoteDocument=function(){
- const set=(id,v)=>{const e=$(id);if(e)e.textContent=v||''};set('qpCustomer',qdVal('qdCustomer'));set('qpContact',qdVal('qdContact'));set('qpTel',qdVal('qdTel'));set('qpFax',qdVal('qdFax'));set('qpNo',qdVal('qdNo'));set('qpDate',(qdVal('qdDate')||'').replaceAll('-','/'));set('qpDelivery',qdVal('qdDelivery'));set('qpPayment',qdVal('qdPayment'));set('qpPlace',qdVal('qdPlace'));set('qpValid',qdVal('qdValid'));set('qpSales',qdVal('qdSales'));set('qpSalesTel',qdVal('qdSalesTel'));
- const b=$('qpItems');if(b)b.innerHTML=window.quoteDocItems.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.model)}</td><td>${esc(x.spec)}</td><td>${esc(x.price)}</td><td>${esc(x.moq)}</td></tr>`).join('');scheduleQuoteFit();
-
- paginateQuotePages();
-
- r60SyncNotes();
-}
-
-function reminderDefs(){
- const today=localToday(),r=[];
- db.projects.forEach(x=>{if(x.followDate===today)r.push({page:'projects',label:'專案',title:x.name,id:x.id,type:'projects'})});
- db.contacts.forEach(x=>{if(x.nextContactDate===today)r.push({page:'contacts',label:'聯絡',title:x.who,id:x.id,type:'contacts'})});
- db.commands.forEach(x=>{if(x.confirmDate===today)r.push({page:'commands',label:'指令',title:x.task||x.scene||'指令',id:x.id,type:'commands'})});
- db.quotes.forEach(x=>{if(x.followDate===today)r.push({page:'quotes',label:'報價',title:`${x.customer} ${x.model}`,id:x.id,type:'quotes'})});
- db.todos.forEach(x=>{if(!x.done&&x.date===today)r.push({page:'todos',label:'待辦',title:x.text,id:x.id,type:'todos'})});
- db.visits.forEach(v=>{if(v.nextVisitDate===today){const c=db.customers.find(x=>String(x.id)===String(v.customerId));r.push({page:'customers',label:'客戶',title:c?.name||'客戶',id:v.id,type:'visits'})}});
- return r;
-}
-function renderNotifications(){
- const list=reminderDefs(),box=$('notificationList'),badge=$('notificationCount');
- if(badge){badge.textContent=list.length;badge.classList.toggle('show',list.length>0)}
- if(!box)return;
- box.innerHTML=list.length?list.map(r=>`<div class="item reminder-item" onclick="openReminder('${r.page}','${r.type}',${JSON.stringify(r.id)})"><div><div class="reminder-main">${esc(r.label)} / ${esc(r.title)} / 今天</div></div><div class="reminder-arrow">›</div></div>`).join(''):'<div class="empty">今天沒有提醒</div>';
-}
-window.openReminder=function(page,type,id){
- location.hash=page;
- setTimeout(()=>{
-   const el=$(`record-${type}-${id}`);
-   if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('record-highlight');setTimeout(()=>el.classList.remove('record-highlight'),1900)}
- },80);
-}
-
-const oldRenderAll=renderAll;
-renderAll=function(){
- oldRenderAll();
- renderCommands();
- renderNotifications();
- renderHomeCRM();
-}
-const oldDeleteItem=window.deleteItem;
-window.deleteItem=function(type,id){oldDeleteItem(type,id);setTimeout(()=>renderAll(),0)}
-const oldDeleteCustomer=window.deleteCustomer;
-window.deleteCustomer=function(id){oldDeleteCustomer(id);setTimeout(()=>renderAll(),0)}
-const oldToggleTodo=window.toggleTodo;
-window.toggleTodo=function(id,checked){oldToggleTodo(id,checked);setTimeout(()=>renderAll(),0)}
-
-applyDefaultPage();
-const today=localToday();setDefaultDate('cNoDate','cDate',today);setDefaultDate('vNoDate','vDate',today);setDefaultDate('pNoFollow','pFollowDate','');setOptionalDate('cNoNext','cNextDate','');setDefaultDate('mNoConfirm','mConfirmDate','');setDefaultDate('qNoFollow','qFollowDate','');setDefaultDate('tNoDate','tDate',today);if($('vNoNextDate')) $('vNoNextDate').checked=false; if($('vNextDate')){$('vNextDate').disabled=false;$('vNextDate').value='';}
-
-
-
-renderAll();quoteCalc();
-
-try{
-  const probe='__hbcrm_probe__';
-  localStorage.setItem(probe,'1');localStorage.removeItem(probe);
-  const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：正常';
-}catch(e){
-  const s=$('storageStatus'); if(s) s.textContent='本機資料儲存狀態：此預覽模式不可寫入';
-}
-const off=$('offlineReady'); if(off) off.textContent='離線快取準備中…';
-if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(()=>{const el=$('offlineReady');if(el)el.textContent='✅ 離線已就緒'}).catch(()=>{const el=$('offlineReady');if(el)el.textContent='⚠️ 離線快取尚未完成'}));
-}
-window.addEventListener('online',()=>{const el=$('offlineReady');const sw=('serviceWorker' in navigator)?navigator.serviceWorker:null;if(el&&sw&&sw.controller)el.textContent='✅ 離線已就緒'});
-window.addEventListener('offline',()=>{const el=$('offlineReady');const sw=('serviceWorker' in navigator)?navigator.serviceWorker:null;if(el)el.textContent=(sw&&sw.controller)?'✅ 目前離線，功能仍可使用':'⚠️ 目前離線，但快取尚未完成'});
-})();
-</script>
-<div id="toast" class="toast"></div>
-<script id="r26-structural-shell-js">
-(function(){
-  function decorate(el){
-    if(!el || el.dataset.r26Decorated) return;
-    el.dataset.r26Decorated='1';
-    el.classList.add('metalized');
-    const bevel=document.createElement('i');
-    bevel.className='r26-bevel';
-    el.appendChild(bevel);
-    ['tl','tr','br','bl'].forEach(pos=>{
-      const c=document.createElement('i');
-      c.className='r26-corner r26-'+pos;
-      el.appendChild(c);
-    });
-  }
-
-  // Heavy panels only. No data/function rewrites.
-  decorate(document.querySelector('.brand-plaque'));
-  const kpiCard=document.querySelector('.app > .card:first-of-type');
-  decorate(kpiCard);
-  document.querySelectorAll('.card').forEach(decorate);
-  document.querySelectorAll('.item').forEach(decorate);
-
-  document.querySelectorAll('.nav a').forEach(a=>{
-    // split visible emoji from label into stable structural pieces
-    if(!a.querySelector('.r26-nav-icon')){
-      const raw=a.textContent.trim();
-      const m=raw.match(/^(\S+)\s+(.+)$/);
-      if(m){
-        a.textContent='';
-        const icon=document.createElement('span');
-        icon.className='r26-nav-icon';
-        icon.textContent=m[1];
-        const label=document.createElement('span');
-        label.className='r26-nav-label';
-        label.textContent=m[2];
-        a.append(icon,label);
-      }
-    }
-    decorate(a);
-  });
-
-  // Future dynamically rendered list cards also receive frame structure.
-  const obs=new MutationObserver(muts=>{
-    for(const m of muts){
-      for(const n of m.addedNodes){
-        if(n.nodeType!==1) continue;
-        if(n.matches?.('.item')) decorate(n);
-        n.querySelectorAll?.('.item').forEach(decorate);
-      }
-    }
-  });
-  obs.observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-
-
-<script id="r28-svg-components-js">
-(function(){
-  // Map visible nav labels to real SVG component icons.
-  document.querySelectorAll('.nav a').forEach(a=>{
-    const label = a.querySelector('.r26-nav-label')?.textContent.trim() || a.textContent.trim();
-    a.dataset.r28Icon = label;
-  });
-})();
-</script>
-
-
-<script id="r30-fix-dashboard-js">
-(function(){
-  function refresh(){
-    try{
-      if(typeof renderR41Home==='function') renderR41Home();
-    }catch(e){ console.error('R41 home render failed',e); }
-  }
-  window.addEventListener('hashchange',refresh);
-  window.addEventListener('pageshow',refresh);
-  setTimeout(refresh,50);
-})();
-</script>
-
-
-
-
-
-
-<script>
-async function scanBusinessCardLocal(){
- const f=$('bcImage')?.files?.[0], s=$('bcStatus');
- if(!f){if(s)s.textContent='請先拍攝或選擇名片';return}
- if(!window.Tesseract){if(s)s.textContent='離線 OCR 引擎尚未安裝到此測試包；不會上傳照片或改用雲端辨識。';return}
- try{
-   if(s)s.textContent='本機辨識中…';
-   const r=await Tesseract.recognize(f,'chi_tra+eng',{logger:m=>{if(s&&m.progress)s.textContent=`本機辨識中 ${Math.round(m.progress*100)}%`}});
-   const t=r?.data?.text||'';
-   parseBusinessCardText(t);
-   if(s)s.textContent='辨識完成，請確認欄位後再存入客戶資料。';
- }catch(e){if(s)s.textContent='辨識失敗：'+(e?.message||e)}
-}
-function parseBusinessCardText(t){
- const lines=(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
- const email=(t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
- const web=(t.match(/(?:https?:\/\/|www\.)[^\s]+/i)||[])[0]||'';
- const phones=[...t.matchAll(/(?:\+?886[-\s]?)?(?:0\d{1,2}[-\s]?)?\d{3,4}[-\s]?\d{3,4}/g)].map(x=>x[0]);
- const company=lines.find(x=>/(公司|企業|科技|實業|股份|有限公司|CO\.|LTD|INC)/i.test(x))||'';
- const addr=lines.find(x=>/(路|街|巷|弄|號|樓|區|市|縣)/.test(x))||'';
- const set=(id,v)=>{const e=$(id);if(e&&!e.value)e.value=v||''};
- set('bcCompany',company);set('bcEmail',email);set('bcWebsite',web);set('bcAddress',addr);
- set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
-}
-</script>
-<script>window.CRM_VERSION="R62";</script>
-<script>
-window.openCleanPrint=function(){
-  const w=window.open('about:blank','_blank');
-  if(!w)return alert('Safari 阻擋了列印視窗。請允許此網站開啟彈出式視窗後再按一次。');
-  try{
-    renderQuoteDocument();paginateQuotePages();r60SyncNotes();
-    const shells=[...document.querySelectorAll('#quotePages .quote-paper-shell')];
-    if(!shells.length){w.close();return alert('目前沒有可列印的報價單');}
-    const headStyles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('\n');
-    const bodyHtml=shells.map(shell=>{
-      const c=shell.cloneNode(true);
-      const paper=c.querySelector('.quote-paper');
-      if(paper){
-        paper.style.transform='none';
-        paper.style.width='200mm';
-        paper.style.minWidth='200mm';
-        paper.style.maxWidth='200mm';
-        paper.style.minHeight='287mm';
-        paper.style.margin='0 auto';
-        paper.style.boxShadow='none';
-      }
-      c.style.height='auto'; c.style.width='100%'; c.style.margin='0'; c.style.padding='0'; c.style.background='#fff';
-      return c.outerHTML;
-    }).join('\n');
-    w.document.open();
-    w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>報價單</title>${headStyles}<style>
-html,body{margin:0!important;padding:0!important;background:#fff!important}
-body{width:210mm!important}
-.quote-paper-shell{width:100%!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}
-.quote-paper-shell:last-child{page-break-after:auto!important;break-after:auto!important}
-.quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:5mm 6mm!important;box-shadow:none!important;overflow:hidden!important}
-.quote-preview-note,.card,.nav,.top-shell{display:none!important}
-@page{size:A4 portrait;margin:5mm}
-</style></head><body>${bodyHtml}</body></html>`);
-    w.document.close();
-    const imgs=[...w.document.images];
-    Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res}))).then(()=>{
-      setTimeout(()=>{w.focus();w.print();},300);
-    });
-  }catch(e){console.error(e);try{w.close()}catch(_){ } alert('列印準備失敗，請截圖給我。');}
-}
-</script>
-
-<script id="r61-print-script">
-function r61SyncNotes(){
+<script id="r63-runtime">
+function r63SyncNotes(){
   const input=$('qdNotes'),out=$('qpNotes');
   if(!out)return;
   const fallback=`1：　以上價格為未稅價。
@@ -4314,40 +3344,24 @@ function r61SyncNotes(){
   const text=(input&&input.value.trim())?input.value:fallback;
   out.innerHTML=esc(text).replace(/\n/g,'<br>');
 }
-window.printQuoteR61=function(){
+window.printQuoteR63=function(){
   try{
-    renderQuoteDocument();paginateQuotePages();r61SyncNotes();
-    const shells=[...document.querySelectorAll('#quotePages .quote-paper-shell')];
-    if(!shells.length)return alert('目前沒有可列印的報價單');
-    let frame=document.getElementById('r61PrintFrame'); if(frame)frame.remove();
-    frame=document.createElement('iframe');
-    frame.id='r61PrintFrame';
-    frame.style.position='fixed';frame.style.left='0';frame.style.top='0';
-    frame.style.width='1px';frame.style.height='1px';frame.style.border='0';frame.style.opacity='0.01';
-    document.body.appendChild(frame);
-
-    const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('\n');
-    const pages=shells.map(shell=>{
-      const c=shell.cloneNode(true),paper=c.querySelector('.quote-paper');
-      if(paper){paper.style.transform='none';paper.style.width='200mm';paper.style.minWidth='200mm';paper.style.maxWidth='200mm';paper.style.minHeight='287mm';paper.style.margin='0 auto';paper.style.boxShadow='none'}
-      c.style.width='210mm';c.style.height='auto';c.style.margin='0';c.style.padding='0';c.style.background='#fff';
-      return c.outerHTML;
-    }).join('\n');
-
-    const fd=frame.contentDocument||frame.contentWindow.document;
-    fd.open();
-    fd.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>報價單</title>'+styles+
-      '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important}.quote-paper-shell{width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}.quote-paper-shell:last-child{page-break-after:auto!important;break-after:auto!important}.quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:4.5mm 7.5mm 5mm!important;box-shadow:none!important;overflow:hidden!important}.quote-preview-note,.card,.nav,.top-shell{display:none!important}@page{size:A4 portrait;margin:5mm}</style></head><body>'+pages+'</body></html>');
-    fd.close();
-
-    const doPrint=()=>{try{frame.contentWindow.focus();frame.contentWindow.print();setTimeout(()=>{try{frame.remove()}catch(e){}},2000)}catch(e){console.error(e);alert('列印功能啟動失敗，請截圖給我。')}};
-    const pending=[...fd.images].filter(i=>!i.complete);
-    if(!pending.length){setTimeout(doPrint,180);return}
-    let left=pending.length;
-    const done=()=>{left--;if(left<=0)setTimeout(doPrint,180)};
-    pending.forEach(img=>{img.onload=done;img.onerror=done});
-    setTimeout(()=>{if(left>0)doPrint()},1500);
-  }catch(e){console.error(e);alert('列印準備失敗，請截圖給我。')}
+    renderQuoteDocument();
+    paginateQuotePages();
+    r63SyncNotes();
+    if(!document.querySelectorAll('#quotePages .quote-paper-shell').length){
+      return alert('目前沒有可列印的報價單');
+    }
+    document.body.classList.add('quote-printing');
+    const cleanup=()=>document.body.classList.remove('quote-printing');
+    window.addEventListener('afterprint',cleanup,{once:true});
+    window.print();
+    setTimeout(cleanup,3000);
+  }catch(e){
+    document.body.classList.remove('quote-printing');
+    console.error(e);
+    alert('列印準備失敗，請截圖給我。');
+  }
 }
 </script>
 
