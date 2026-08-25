@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R64 Beta</title>
+<title>鴻繽科技 CRM｜R65 Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -2933,6 +2933,43 @@ input,select,textarea{font-size:16px!important}
 }
 </style>
 
+
+<style id="r65-print-fix">
+/* Screen quote: keep full content visible instead of clipping it. */
+#quotePages,.quote-paper-shell{overflow:visible!important}
+.quote-paper{overflow:visible!important;height:auto!important}
+
+/* Print ONLY the quotation document.  No hidden app page can consume a sheet. */
+@page{size:A4 portrait;margin:0}
+@media print{
+ html,body{width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important}
+ body.r65-print{overflow:visible!important}
+ body.r65-print > *{display:none!important}
+ body.r65-print > #quotePages{
+   display:block!important;position:static!important;width:210mm!important;
+   margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important
+ }
+ body.r65-print #quotePages .quote-paper-shell{
+   display:block!important;width:210mm!important;height:297mm!important;
+   margin:0!important;padding:0!important;overflow:hidden!important;
+   break-after:page!important;page-break-after:always!important
+ }
+ body.r65-print #quotePages .quote-paper-shell:last-child{
+   break-after:auto!important;page-break-after:auto!important
+ }
+ body.r65-print #quotePages .quote-paper{
+   display:block!important;width:210mm!important;min-width:210mm!important;max-width:210mm!important;
+   height:297mm!important;min-height:297mm!important;max-height:297mm!important;
+   margin:0!important;padding:8mm 10mm!important;box-sizing:border-box!important;
+   transform:none!important;box-shadow:none!important;border:0!important;overflow:hidden!important;
+   background:#fff!important
+ }
+ body.r65-print #quotePages .q-letterhead{width:100%!important}
+ body.r65-print #quotePages .q-table{width:100%!important;max-width:100%!important;table-layout:fixed!important}
+ body.r65-print #quotePages .q-table th,body.r65-print #quotePages .q-table td{overflow:hidden!important;overflow-wrap:anywhere!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -3184,7 +3221,7 @@ input,select,textarea{font-size:16px!important}
     <h3>報價品項</h3>
     <div class="q-items-editor" id="qdItemsEditor"></div>
     <button class="secondary" type="button" onclick="addQuoteDocItem()">＋ 新增品項</button>
-    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR64()">列印／儲存 PDF</button></div>
+    <div class="btnrow"><button type="button" onclick="renderQuoteDocument()">更新預覽</button><button type="button" class="secondary" onclick="printQuoteR65()">列印／儲存 PDF</button></div>
   </div>
   <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
@@ -3224,7 +3261,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R64</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R65</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -4292,7 +4329,7 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R64";</script>
+<script>window.CRM_VERSION="R65";</script>
 <script>
 window.openCleanPrint=function(){
   const w=window.open('about:blank','_blank');
@@ -4401,6 +4438,41 @@ window.printQuoteR64=function(){
    alert('列印啟動失敗：'+(e.message||e));
  }
 }
+</script>
+
+
+<script id="r65-runtime">
+(function(){
+  function forceQuoteRefresh(){
+    try{
+      if(typeof renderQuoteDocument==='function') renderQuoteDocument();
+      if(typeof paginateQuotePages==='function') paginateQuotePages();
+    }catch(e){ console.error('R65 quote refresh',e); }
+  }
+  window.printQuoteR65=function(){
+    try{
+      forceQuoteRefresh();
+      var pages=document.getElementById('quotePages');
+      if(!pages || !pages.textContent.trim()) throw new Error('報價單內容尚未產生');
+      document.body.classList.add('r65-print');
+      var clean=function(){document.body.classList.remove('r65-print');};
+      window.addEventListener('afterprint',clean,{once:true});
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ window.print(); });
+      });
+      setTimeout(clean,5000);
+    }catch(e){
+      document.body.classList.remove('r65-print');
+      console.error(e);
+      alert('列印啟動失敗：'+(e.message||e));
+    }
+  };
+  /* Initial page had stale/partial quote state on first entry. Refresh after DOM and pages settle. */
+  window.addEventListener('load',function(){
+    setTimeout(forceQuoteRefresh,120);
+    setTimeout(forceQuoteRefresh,500);
+  });
+})();
 </script>
 
 </body>
