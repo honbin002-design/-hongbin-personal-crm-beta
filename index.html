@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R68 Beta</title>
+<title>鴻繽科技 CRM｜R70 Integrated Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -3476,7 +3476,7 @@ input,select,textarea{font-size:16px!important}
 <section class="panel" id="settings">
   <div class="card">
     <h2 class="section-title">系統資訊</h2>
-    <div class="content"><b>目前版本：R68</b><br>更新日期：2026-08-24<br>環境：Beta 測試版</div>
+    <div class="content"><b>目前版本：R70 Integrated Beta</b><br>更新日期：2026-08-27<br>環境：Beta 測試版</div>
   </div>
 
   <div class="card">
@@ -4544,7 +4544,7 @@ function parseBusinessCardText(t){
  set('bcMobile',phones[0]);set('bcTel',phones[1]);set('bcFax',phones[2]);
 }
 </script>
-<script>window.CRM_VERSION="R68";</script>
+<script>window.CRM_VERSION="R70";</script>
 <script>
 window.openCleanPrint=function(){
   const w=window.open('about:blank','_blank');
@@ -4867,5 +4867,8 @@ window.printQuoteR64=function(){
 })();
 </script>
 
+<script src="./r69-fix.js?v=70-integrated"></script>
+<script src="./r70-masterdata.js?v=70-seg1"></script>
+<script src="./r70-complete.js?v=70-complete"></script>
 </body>
 </html>
