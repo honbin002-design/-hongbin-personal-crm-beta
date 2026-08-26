@@ -1,0 +1,36 @@
+name: R70 Finalize Index
+on:
+  push:
+    paths:
+      - '.github/workflows/r70-finalize-index.yml'
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch R70 shell without touching layout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<title>鴻繽科技 CRM｜R68 Beta</title>','<title>鴻繽科技 CRM｜R70 Integrated Beta</title>')
+          s=s.replace('<b>目前版本：R68</b><br>更新日期：2026-08-24','<b>目前版本：R70 Integrated Beta</b><br>更新日期：2026-08-27')
+          s=s.replace('window.CRM_VERSION="R68"','window.CRM_VERSION="R70"')
+          tags='''<script src="./r69-fix.js?v=70-integrated"></script>\n<script src="./r70-masterdata.js?v=70-seg1"></script>\n<script src="./r70-complete.js?v=70-complete"></script>\n'''
+          for src in ['./r69-fix.js','./r70-masterdata.js','./r70-complete.js']:
+              import re
+              s=re.sub(r'<script src="'+re.escape(src)+r'[^>]*></script>\s*','',s)
+          s=s.replace('</body>\n</html>',tags+'</body>\n</html>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit finalized shell
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'R70 finalize index shell and direct module loading'
+          git push
