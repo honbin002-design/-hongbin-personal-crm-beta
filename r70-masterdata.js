@@ -1,0 +1,54 @@
+(()=>{'use strict';
+const KEY='hongbin_crm_master_r70',REPORT_KEY='hongbin_crm_master_r70_report';
+const $=id=>document.getElementById(id);
+const norm=v=>String(v??'').trim().toLowerCase().replace(/[\s　]+/g,'');
+const text=v=>String(v??'').trim();
+const valid=v=>{const s=text(v);return !!s&&s!=='-'&&s!=='—'&&s.toLowerCase()!=='null'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function loadMaster(){try{return Object.assign({customers:[],products:[],suppliers:[],updatedAt:''},JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(_){return {customers:[],products:[],suppliers:[],updatedAt:''}}}
+function saveMaster(m){m.updatedAt=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(m))}
+function pick(o,...keys){for(const k of keys){if(o&&o[k]!==undefined&&valid(o[k]))return text(o[k])}return''}
+function sheetRows(wb,name){const ws=wb.Sheets[name];return ws?XLSX.utils.sheet_to_json(ws,{defval:'',raw:false}):null}
+function keyCustomer(x){return norm(x.name)}
+function keySupplier(x){return norm(x.supplierName)+'|'+norm(x.partNo)}
+function keyProduct(x){return norm(x.customerName)+'|'+norm(x.customerPartNo)}
+function uniqueBy(arr,keyfn){const m=new Map();for(const x of arr){const k=keyfn(x);if(k)m.set(k,x)}return [...m.values()]}
+function requireSheets(wb){const need=['客戶資料','客戶品項紀錄','供應商資料'];const miss=need.filter(n=>!wb.Sheets[n]);if(miss.length)throw new Error('缺少必要工作表：'+miss.join('、'))}
+function parseCustomerRows(rows,stats){const out=[];for(const r of rows){const x={
+ name:pick(r,'公司名稱','客戶名稱'),address:pick(r,'公司地址','地址'),deliveryAddress:pick(r,'送貨地址'),invoiceAddress:pick(r,'發票地址'),tel:pick(r,'電話','TEL'),fax:pick(r,'傳真','FAX'),taxId:pick(r,'統一編號'),contact:pick(r,'聯繫人','聯絡人'),mobile:pick(r,'聯繫人行動','手機'),invoiceWithGoods:pick(r,'是否隨貨發票'),coa:pick(r,'是否附COA')
+};
+ const missing=[];if(!valid(x.name))missing.push('公司名稱');if(!valid(x.address))missing.push('公司地址');if(!valid(x.tel))missing.push('電話');if(!valid(x.contact))missing.push('聯絡人');
+ if(missing.length){stats.customerSkip++;stats.reasons.customerMissing+=1;continue}out.push(x);stats.customerOk++}
+ return uniqueBy(out,keyCustomer)}
+function parseSupplierRows(rows,stats){const out=[];for(const r of rows){const x={supplierName:pick(r,'供應商名稱'),name:pick(r,'品項','品名'),partNo:pick(r,'品號'),unit:pick(r,'最小包裝單位'),package:pick(r,'包裝')};
+ if(![x.supplierName,x.name,x.partNo,x.unit,x.package].every(valid)){stats.supplierSkip++;stats.reasons.supplierMissing+=1;continue}out.push(x);stats.supplierOk++}
+ return uniqueBy(out,keySupplier)}
+function parseProductRows(rows,customers,suppliers,stats){const out=[];const cMap=new Map(customers.map(x=>[norm(x.name),x]));const sPartMap=new Map();for(const s of suppliers){const k=norm(s.partNo);if(!sPartMap.has(k))sPartMap.set(k,[]);sPartMap.get(k).push(s)}
+ for(const r of rows){const priceRaw=pick(r,'售價');const price=Number(String(priceRaw).replace(/,/g,''));const rawCustomer=pick(r,'公司名稱','客戶名稱');const x={customerName:rawCustomer,name:pick(r,'品項','品名'),customerPartNo:pick(r,'品號'),supplierPartNo:pick(r,'對應供應商編號'),unit:pick(r,'單位'),price,coa:pick(r,'隨貨附COA'),invoiceWithGoods:pick(r,'隨貨附發票'),type:pick(r,'類型')};
+ if(![x.customerName,x.name,x.customerPartNo,x.supplierPartNo,x.unit,priceRaw].every(valid)||!Number.isFinite(price)||price<0){stats.productSkip++;stats.reasons.productMissing+=1;continue}
+ const c=cMap.get(norm(x.customerName));if(!c){stats.productSkip++;stats.reasons.customerNoExactMatch+=1;continue}
+ const matches=sPartMap.get(norm(x.supplierPartNo))||[];if(matches.length!==1){stats.productSkip++;stats.reasons.supplierPartNoNoUniqueMatch+=1;continue}
+ const s=matches[0];x.customerName=c.name;x.supplierName=s.supplierName;x.supplierProductName=s.name;x.package=s.package;x.moq=s.package;x.supplierUnit=s.unit;out.push(x);stats.productOk++}
+ return uniqueBy(out,keyProduct)}
+function buildStats(){return {customerOk:0,customerSkip:0,productOk:0,productSkip:0,supplierOk:0,supplierSkip:0,reasons:{customerMissing:0,supplierMissing:0,productMissing:0,customerNoExactMatch:0,supplierPartNoNoUniqueMatch:0}}}
+async function ensureXLSX(){if(window.XLSX)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Excel 引擎載入失敗；第一次使用請先連網'));document.head.appendChild(s)})}
+async function importFile(file){await ensureXLSX();const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});requireSheets(wb);const stats=buildStats();const cRows=sheetRows(wb,'客戶資料')||[],sRows=sheetRows(wb,'供應商資料')||[],pRows=sheetRows(wb,'客戶品項紀錄')||[];
+ const customers=parseCustomerRows(cRows,stats);const suppliers=parseSupplierRows(sRows,stats);const products=parseProductRows(pRows,customers,suppliers,stats);
+ if(!customers.length)throw new Error('沒有任何符合完整性規則的客戶資料');if(!suppliers.length)throw new Error('沒有任何符合完整性規則的供應商資料');
+ const master={customers,products,suppliers,updatedAt:new Date().toISOString()};saveMaster(master);
+ const report={at:new Date().toISOString(),stats,counts:{customers:customers.length,products:products.length,suppliers:suppliers.length}};sessionStorage.setItem(REPORT_KEY,JSON.stringify(report));return report}
+function exportRows(master){return {
+ customers:master.customers.map(x=>({'公司名稱':x.name||'','公司地址':x.address||'','送貨地址':x.deliveryAddress||'','發票地址':x.invoiceAddress||'','電話':x.tel||'','傳真':x.fax||'','統一編號':x.taxId||'','聯繫人':x.contact||'','聯繫人行動':x.mobile||'','是否隨貨發票':x.invoiceWithGoods||'','是否附COA':x.coa||''})),
+ products:master.products.map(x=>({'公司名稱':x.customerName||'','品項':x.name||'','品號':x.customerPartNo||'','對應供應商編號':x.supplierPartNo||'','單位':x.unit||'','售價':x.price??'','隨貨附COA':x.coa||'','隨貨附發票':x.invoiceWithGoods||'','類型':x.type||''})),
+ suppliers:master.suppliers.map(x=>({'供應商名稱':x.supplierName||'','品項':x.name||'','品號':x.partNo||'','最小包裝單位':x.unit||'','包裝':x.package||''}))
+}}
+async function exportFile(){await ensureXLSX();const master=loadMaster();if(!master.customers.length&&!master.products.length&&!master.suppliers.length)throw new Error('目前沒有主資料可匯出');const rows=exportRows(master),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.customers),'客戶資料');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.products),'客戶品項紀錄');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.suppliers),'供應商資料');XLSX.writeFile(wb,`CRM主資料_${new Date().toISOString().slice(0,10)}.xlsx`)}
+function reportText(r){if(!r)return'';const s=r.stats;return `本次匯入：客戶 ${r.counts.customers}、產品 ${r.counts.products}、供應商 ${r.counts.suppliers}\n略過：客戶 ${s.customerSkip}、產品 ${s.productSkip}、供應商 ${s.supplierSkip}\n原因：客戶必要欄位不足 ${s.reasons.customerMissing}；供應商必要欄位不足 ${s.reasons.supplierMissing}；產品必要欄位/售價不足 ${s.reasons.productMissing}；客戶名稱無完全對應 ${s.reasons.customerNoExactMatch}；供應商品號無唯一完全對應 ${s.reasons.supplierPartNoNoUniqueMatch}`}
+function render(){const card=$('r70MasterCard');if(!card)return;const master=loadMaster();const count=$('r70Counts');if(count)count.textContent=`客戶 ${master.customers.length}｜產品 ${master.products.length}｜供應商 ${master.suppliers.length}`;const q=norm($('r70MasterSearch')?.value),box=$('r70MasterResults');if(box){const c=master.customers.filter(x=>!q||norm(JSON.stringify(x)).includes(q)).slice(0,20);const p=master.products.filter(x=>!q||norm(JSON.stringify(x)).includes(q)).slice(0,30);const s=master.suppliers.filter(x=>!q||norm(JSON.stringify(x)).includes(q)).slice(0,20);box.innerHTML=[...c.map(x=>`<div class="r70-row"><b>客戶</b> ${esc(x.name)}｜${esc(x.contact)}｜${esc(x.tel)}</div>`),...p.map(x=>`<div class="r70-row"><b>產品</b> ${esc(x.customerName)}｜${esc(x.name)}｜${esc(x.customerPartNo)}｜${esc(x.supplierName)}</div>`),...s.map(x=>`<div class="r70-row"><b>供應商</b> ${esc(x.supplierName)}｜${esc(x.name)}｜${esc(x.partNo)}</div>`)].join('')||'<div class="status">沒有符合資料</div>'}}
+function installUI(){const sec=$('settings');if(!sec)return;let card=$('r70MasterCard');if(!card){card=document.createElement('div');card.id='r70MasterCard';card.className='card';sec.insertBefore(card,sec.children[1]||null)}card.innerHTML=`<h2 class="section-title">📚 主資料管理</h2><div id="r70Counts" class="content"></div><div class="status">匯入時以 Excel 為主資料來源重新建立。只接受必要欄位完整、且客戶名稱／供應商品號可完全對應的資料；不模糊猜配。</div><div style="height:10px"></div><input id="r70Import" type="file" accept=".xlsx,.xls"><div class="btnrow"><button class="primary" id="r70ImportBtn" type="button">匯入 Excel</button><button class="secondary" id="r70ExportBtn" type="button">匯出 Excel</button></div><div id="r70ImportReport" class="status" style="white-space:pre-wrap;margin-top:8px"></div><input id="r70MasterSearch" type="search" placeholder="搜尋客戶、產品、品號、供應商"><div id="r70MasterResults"></div>`;
+ $('r70ImportBtn').onclick=async()=>{const f=$('r70Import')?.files?.[0];if(!f)return alert('請先選擇 Excel 檔');const b=$('r70ImportBtn');b.disabled=true;b.textContent='匯入檢查中…';try{const r=await importFile(f);$('r70ImportReport').textContent=reportText(r);render();alert('主資料匯入完成。資料已重新建立；頁面將重新載入讓所有候選功能同步。');setTimeout(()=>location.reload(),250)}catch(e){alert('匯入失敗：'+(e?.message||e))}finally{b.disabled=false;b.textContent='匯入 Excel'}};
+ $('r70ExportBtn').onclick=async()=>{const b=$('r70ExportBtn');b.disabled=true;b.textContent='匯出中…';try{await exportFile()}catch(e){alert('匯出失敗：'+(e?.message||e))}finally{b.disabled=false;b.textContent='匯出 Excel'}};
+ $('r70MasterSearch').oninput=render;const rr=sessionStorage.getItem(REPORT_KEY);if(rr){try{$('r70ImportReport').textContent=reportText(JSON.parse(rr))}catch(_){}sessionStorage.removeItem(REPORT_KEY)}render()}
+function boot(){installUI();window.R70_MASTER_SEGMENT={loadMaster,importFile,exportFile,render}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,30));else setTimeout(boot,30);
+})();
