@@ -1,27 +1,6 @@
-const CACHE='hongbin-crm-r69-force3';
+const CACHE='hongbin-crm-r70-integrated';
 const CORE=['./','./index.html','./manifest.webmanifest','./quote-letterhead.jpg','./r69-fix.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE.map(x=>new Request(x,{cache:'reload'})))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-async function patchHtml(resp){
- try{
-  let text=await resp.clone().text();
-  text=text.replace(/R68 Beta/g,'R69 Beta');
-  text=text.replace(/目前版本：R68/g,'目前版本：R69');
-  text=text.replace(/window\.CRM_VERSION="R68"/g,'window.CRM_VERSION="R69"');
-  if(!text.includes('r69-fix.js')) text=text.replace('</body>','<script src="./r69-fix.js?v=69-force3"></script></body>');
-  const headers=new Headers(resp.headers);headers.set('content-type','text/html; charset=utf-8');headers.set('cache-control','no-store, max-age=0');headers.delete('content-length');
-  return new Response(text,{status:resp.status,statusText:resp.statusText,headers});
- }catch(_){return resp}
-}
-self.addEventListener('fetch',e=>{
- if(e.request.method!=='GET')return;
- const u=new URL(e.request.url);
- if(e.request.mode==='navigate'){
-  e.respondWith((async()=>{
-   try{return patchHtml(await fetch(e.request,{cache:'reload'}))}
-   catch(_){const cached=await caches.match('./index.html')||await caches.match('./');return cached?patchHtml(cached):Response.error()}
-  })());return;
- }
- if(u.pathname.endsWith('/r69-fix.js')){e.respondWith(fetch(e.request,{cache:'reload'}));return;}
- e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
-});
+async function patchHtml(resp){try{let text=await resp.clone().text();text=text.replace(/R68 Beta/g,'R70 Integrated Beta').replace(/目前版本：R68/g,'目前版本：R70').replace(/window\.CRM_VERSION="R68"/g,'window.CRM_VERSION="R70"');text=text.replace(/<script src="\.\/r69-fix\.js[^>]*><\/script>/g,'');text=text.replace('</body>','<script src="./r69-fix.js?v=70-integrated"></script></body>');const h=new Headers(resp.headers);h.set('content-type','text/html; charset=utf-8');h.set('cache-control','no-store, max-age=0');h.delete('content-length');return new Response(text,{status:resp.status,statusText:resp.statusText,headers:h})}catch(_){return resp}}
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(e.request.mode==='navigate'){e.respondWith((async()=>{try{return patchHtml(await fetch(e.request,{cache:'reload'}))}catch(_){const c=await caches.match('./index.html')||await caches.match('./');return c?patchHtml(c):Response.error()}})());return}if(u.pathname.endsWith('/r69-fix.js')){e.respondWith(fetch(e.request,{cache:'reload'}).catch(()=>caches.match('./r69-fix.js')));return}e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))) });
