@@ -1,4 +1,4 @@
-const CACHE='hongbin-crm-r70-final-20260827';
+const CACHE='hongbin-crm-r70-final-20260827b';
 const CORE=['./','./index.html','./manifest.webmanifest','./quote-letterhead.jpg','./r69-fix.js','./r70-masterdata.js','./r70-complete.js'];
 
 self.addEventListener('install',event=>{
@@ -51,12 +51,13 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  if(url.hostname==='cdn.jsdelivr.net'){
+  const externalCacheHosts=new Set(['cdn.jsdelivr.net','tessdata.projectnaptha.com']);
+  if(externalCacheHosts.has(url.hostname)){
     event.respondWith((async()=>{
       const cache=await caches.open(CACHE);
       try{
         const fresh=await fetch(event.request);
-        if(fresh&&fresh.ok) cache.put(event.request,fresh.clone()).catch(()=>{});
+        if(fresh&&(fresh.ok||fresh.type==='opaque')) cache.put(event.request,fresh.clone()).catch(()=>{});
         return fresh;
       }catch(_){
         return (await cache.match(event.request)) || Response.error();
