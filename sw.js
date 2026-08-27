@@ -1,6 +1,69 @@
-const CACHE='hongbin-crm-r70-stable-20260827a';
+const CACHE='hongbin-crm-r70-final-20260827';
 const CORE=['./','./index.html','./manifest.webmanifest','./quote-letterhead.jpg','./r69-fix.js','./r70-masterdata.js','./r70-complete.js'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE.map(x=>new Request(x,{cache:'reload'})))).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-async function patchHtml(resp){try{let text=await resp.clone().text();text=text.replace(/R68 Beta/g,'R70 Integrated Beta').replace(/目前版本：R68/g,'目前版本：R70 Integrated Beta').replace(/window\.CRM_VERSION="R68"/g,'window.CRM_VERSION="R70"');text=text.replace(/<script src="\.\/r69-fix\.js[^>]*><\/script>/g,'').replace(/<script src="\.\/r70-masterdata\.js[^>]*><\/script>/g,'').replace(/<script src="\.\/r70-complete\.js[^>]*><\/script>/g,'');text=text.replace('</body>','<script src="./r69-fix.js?v=70-integrated"></script><script src="./r70-masterdata.js?v=70-seg1"></script><script src="./r70-complete.js?v=70-complete"></script></body>');const h=new Headers(resp.headers);h.set('content-type','text/html; charset=utf-8');h.set('cache-control','no-store, max-age=0');h.delete('content-length');return new Response(text,{status:resp.status,statusText:resp.statusText,headers:h})}catch(_){return resp}}
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(e.request.mode==='navigate'){e.respondWith((async()=>{try{return patchHtml(await fetch(e.request,{cache:'reload'}))}catch(_){const c=await caches.match('./index.html')||await caches.match('./');return c?patchHtml(c):Response.error()}})());return}if(u.pathname.endsWith('/r69-fix.js')||u.pathname.endsWith('/r70-masterdata.js')||u.pathname.endsWith('/r70-complete.js')){e.respondWith(fetch(e.request,{cache:'reload'}).catch(()=>caches.match(e.request,{ignoreSearch:true})));return}if(u.hostname==='cdn.jsdelivr.net'){e.respondWith((async()=>{const cache=await caches.open(CACHE);try{const r=await fetch(e.request);if(r&&r.ok)cache.put(e.request,r.clone());return r}catch(_){return (await cache.match(e.request))||Response.error()}})());return}e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))) });
+
+self.addEventListener('install',event=>{
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache=>cache.addAll(CORE.map(url=>new Request(url,{cache:'reload'}))))
+      .then(()=>self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET') return;
+  const url=new URL(event.request.url);
+
+  if(event.request.mode==='navigate'){
+    event.respondWith((async()=>{
+      try{
+        const fresh=await fetch(event.request,{cache:'no-store'});
+        if(fresh&&fresh.ok){
+          const cache=await caches.open(CACHE);
+          cache.put('./index.html',fresh.clone()).catch(()=>{});
+          return fresh;
+        }
+      }catch(_){ }
+      return (await caches.match('./index.html')) || (await caches.match('./')) || Response.error();
+    })());
+    return;
+  }
+
+  if(CORE.some(path=>url.pathname.endsWith(path.replace('./','/')))){
+    event.respondWith((async()=>{
+      try{
+        const fresh=await fetch(event.request,{cache:'no-store'});
+        if(fresh&&fresh.ok){
+          const cache=await caches.open(CACHE);
+          cache.put(event.request,fresh.clone()).catch(()=>{});
+          return fresh;
+        }
+      }catch(_){ }
+      return (await caches.match(event.request,{ignoreSearch:true})) || Response.error();
+    })());
+    return;
+  }
+
+  if(url.hostname==='cdn.jsdelivr.net'){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE);
+      try{
+        const fresh=await fetch(event.request);
+        if(fresh&&fresh.ok) cache.put(event.request,fresh.clone()).catch(()=>{});
+        return fresh;
+      }catch(_){
+        return (await cache.match(event.request)) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));
+});
