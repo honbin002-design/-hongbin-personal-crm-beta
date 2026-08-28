@@ -1,0 +1,38 @@
+name: R72 safe activation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'r72-fixes.js'
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair R71 misplaced injection and activate R72
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          # Remove the R71 script tag accidentally injected inside the print-frame JavaScript string.
+          s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>\n</body></html>\'');','</body></html>\'');')
+          # Remove any direct R71/R72 script tag at the real document tail, then add R72 exactly once.
+          s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>','')
+          s=s.replace('<script src="./r72-fixes.js?v=72-batch"></script>','')
+          s=s.replace('鴻繽科技 CRM｜R71 Integrated Beta','鴻繽科技 CRM｜R72 Integrated Beta')
+          marker='</body>'
+          pos=s.rfind(marker)
+          if pos<0: raise SystemExit('real </body> not found')
+          s=s[:pos]+'<script src="./r72-fixes.js?v=72-batch"></script>\n'+s[pos:]
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.html
+          git diff --cached --quiet || git commit -m 'R72 repair HTML boundary and activate batch fixes'
+          git push
