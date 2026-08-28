@@ -1,0 +1,31 @@
+name: R71 direct index activation
+on:
+  push:
+    paths:
+      - '.github/workflows/r71-index-fix.yml'
+permissions:
+  contents: write
+jobs:
+  activate-r71:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index directly
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('鴻繽科技 CRM｜R70 Integrated Beta','鴻繽科技 CRM｜R71 Integrated Beta')
+          if 'r71-fixes.js?v=71-direct' not in s:
+              s=s.replace('</body>','<script src="./r71-fixes.js?v=71-direct"></script>\n</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit direct R71 index
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'R71 direct index activation'
+          git push
