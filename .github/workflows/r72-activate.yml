@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'r72-fixes.js'
+      - '.github/workflows/r72-activate.yml'
 jobs:
   activate:
     runs-on: ubuntu-latest
@@ -17,9 +18,7 @@ jobs:
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text()
-          # Remove the R71 script tag accidentally injected inside the print-frame JavaScript string.
           s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>\n</body></html>\'');','</body></html>\'');')
-          # Remove any direct R71/R72 script tag at the real document tail, then add R72 exactly once.
           s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>','')
           s=s.replace('<script src="./r72-fixes.js?v=72-batch"></script>','')
           s=s.replace('鴻繽科技 CRM｜R71 Integrated Beta','鴻繽科技 CRM｜R72 Integrated Beta')
