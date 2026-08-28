@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R70 Integrated Beta</title>
+<title>鴻繽科技 CRM｜R71 Integrated Beta</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -4578,7 +4578,8 @@ body{width:210mm!important}
 .quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:5mm 6mm!important;box-shadow:none!important;overflow:hidden!important}
 .quote-preview-note,.card,.nav,.top-shell{display:none!important}
 @page{size:A4 portrait;margin:5mm}
-</style></head><body>${bodyHtml}</body></html>`);
+</style></head><body>${bodyHtml}<script src="./r71-fixes.js?v=71-direct"></script>
+</body></html>`);
     w.document.close();
     const imgs=[...w.document.images];
     Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res}))).then(()=>{
@@ -4622,7 +4623,8 @@ window.printQuoteR61=function(){
     const fd=frame.contentDocument||frame.contentWindow.document;
     fd.open();
     fd.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>報價單</title>'+styles+
-      '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important}.quote-paper-shell{width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}.quote-paper-shell:last-child{page-break-after:auto!important;break-after:auto!important}.quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:4.5mm 7.5mm 5mm!important;box-shadow:none!important;overflow:hidden!important}.quote-preview-note,.card,.nav,.top-shell{display:none!important}@page{size:A4 portrait;margin:5mm}</style></head><body>'+pages+'</body></html>');
+      '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important}.quote-paper-shell{width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;page-break-after:always!important;break-after:page!important}.quote-paper-shell:last-child{page-break-after:auto!important;break-after:auto!important}.quote-paper{transform:none!important;position:static!important;width:200mm!important;min-width:200mm!important;max-width:200mm!important;min-height:287mm!important;margin:0 auto!important;padding:4.5mm 7.5mm 5mm!important;box-shadow:none!important;overflow:hidden!important}.quote-preview-note,.card,.nav,.top-shell{display:none!important}@page{size:A4 portrait;margin:5mm}</style></head><body>'+pages+'<script src="./r71-fixes.js?v=71-direct"></script>
+</body></html>');
     fd.close();
 
     const doPrint=()=>{try{frame.contentWindow.focus();frame.contentWindow.print();setTimeout(()=>{try{frame.remove()}catch(e){}},2000)}catch(e){console.error(e);alert('列印功能啟動失敗，請截圖給我。')}};
@@ -4870,5 +4872,6 @@ window.printQuoteR64=function(){
 <script src="./r69-fix.js?v=70-integrated"></script>
 <script src="./r70-masterdata.js?v=70-seg1"></script>
 <script src="./r70-complete.js?v=70-complete"></script>
+<script src="./r71-fixes.js?v=71-direct"></script>
 </body>
 </html>
