@@ -12,19 +12,22 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Repair R71 misplaced injection and activate R72
+      - name: Repair misplaced R71 injection and activate R72
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text()
-          s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>\n</body></html>\'');','</body></html>\'');')
+          bad='<script src="./r71-fixes.js?v=71-direct"></script>\n</body></html>'
+          s=s.replace(bad,'</body></html>')
           s=s.replace('<script src="./r71-fixes.js?v=71-direct"></script>','')
           s=s.replace('<script src="./r72-fixes.js?v=72-batch"></script>','')
+          s=s.replace('鴻繽科技 CRM｜R70 Integrated Beta','鴻繽科技 CRM｜R72 Integrated Beta')
           s=s.replace('鴻繽科技 CRM｜R71 Integrated Beta','鴻繽科技 CRM｜R72 Integrated Beta')
           marker='</body>'
           pos=s.rfind(marker)
-          if pos<0: raise SystemExit('real </body> not found')
+          if pos < 0:
+              raise SystemExit('real body closing tag not found')
           s=s[:pos]+'<script src="./r72-fixes.js?v=72-batch"></script>\n'+s[pos:]
           p.write_text(s)
           PY
