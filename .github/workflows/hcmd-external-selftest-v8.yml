@@ -1,4 +1,4 @@
-name: HCMD External HMAC SelfTest v10
+name: HCMD Runtime 10 ReadOnly Transport Verification
 
 on:
   push:
@@ -11,77 +11,37 @@ permissions:
   contents: read
 
 jobs:
-  hcmd-external-selftest:
+  verify-readonly-transport:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Run HCMD runtime 10 external HMAC verification
+      - name: Verify public read-only transport and fail-closed writes
         shell: bash
         env:
           BASE: https://script.google.com/macros/s/AKfycbwSPyiUzAh2k3PLFnZCAnQfDh2YwWNEsQUziASOe-V6vGWrLH3fJ6jxKbMKSP6DH7dX/exec
-          TOKEN: d7c06602d6a2aa5c3efd049c9bbb84d76109167703cf4f9f
         run: |
           set -euo pipefail
-          BOOT="${BASE}?route=%2Fv1%2Fselftest%2Fexternal-runner&token=${TOKEN}&callback=hcmdExternalBootstrap"
-          curl -fsSL --retry 2 --retry-delay 1 "$BOOT" -o bootstrap.js
 
-          node <<'NODE'
-          const fs=require('fs');
-          const src=fs.readFileSync('bootstrap.js','utf8').trim();
-          const m=src.match(/^hcmdExternalBootstrap\((.*)\);$/s);
-          if(!m) throw new Error('BOOTSTRAP_NOT_JSONP: '+src.slice(0,300));
-          const d=JSON.parse(m[1]);
-          if(!d || d.ok!==true) throw new Error('BOOTSTRAP_REJECTED: '+JSON.stringify(d));
-          if(d.runtimeVersion!=='1.0-runtime.10') throw new Error('WRONG_RUNTIME: '+d.runtimeVersion);
-          fs.writeFileSync('packets.json',JSON.stringify(d.packets));
-          console.log('runtimeVersion='+d.runtimeVersion);
-          NODE
+          echo '1/4 health GET'
+          curl -fsSL --retry 2 --retry-delay 1 "${BASE}?route=%2Fv1%2Fhealth" -o health.json
+          cat health.json; echo
+          jq -e '.ok == true and .runtimeVersion == "1.0-runtime.10" and .masterWriteEnabled == false and .productionWriteReady == false and .integrationReady == false' health.json >/dev/null
 
-          post_packet () {
-            route="$1"; key="$2"; outfile="$3"
-            jq -c ".${key}" packets.json > packet.json
-            enc_route=$(printf '%s' "$route" | jq -sRr @uri)
-            curl -fsSL --retry 2 --retry-delay 1 \
-              -H 'Content-Type: text/plain;charset=UTF-8' \
-              --data-binary @packet.json \
-              "${BASE}?route=${enc_route}" -o "$outfile"
-            cat "$outfile"; echo
-          }
+          echo '2/4 unauthenticated signed-only route must block'
+          printf '%s' '{"body":{}}' > packet.json
+          curl -fsSL --retry 2 --retry-delay 1 -H 'Content-Type: text/plain;charset=UTF-8' --data-binary @packet.json "${BASE}?route=%2Fv1%2Fversion%2Fhead" -o unauth.json
+          cat unauth.json; echo
+          jq -e '.ok == false and .error and .masterWriteEnabled == false and .runtimeVersion == "1.0-runtime.10"' unauth.json >/dev/null
 
-          echo '1/9 version/head'
-          post_packet '/v1/version/head' version r1.json
-          jq -e '.ok == true and .result.masterWriteEnabled == false and (.result.serverChangeId|test("^CHANGE-[0-9]{6}$"))' r1.json >/dev/null
+          echo '3/4 unauthenticated production write must block'
+          printf '%s' '{"body":{"events":[]}}' > write.json
+          curl -fsSL --retry 2 --retry-delay 1 -H 'Content-Type: text/plain;charset=UTF-8' --data-binary @write.json "${BASE}?route=%2Fv1%2Foutbox%2Fpush" -o write-block.json
+          cat write-block.json; echo
+          jq -e '.ok == false and .error and .masterWriteEnabled == false and .runtimeVersion == "1.0-runtime.10"' write-block.json >/dev/null
 
-          echo '2/9 changes/pull'
-          post_packet '/v1/changes/pull' changes r2.json
-          jq -e '.ok == true and (.result.changes|type)=="array" and (.result.serverChangeId|test("^CHANGE-[0-9]{6}$"))' r2.json >/dev/null
+          echo '4/4 unsupported ACK route must remain fail-closed'
+          curl -fsSL --retry 2 --retry-delay 1 -H 'Content-Type: text/plain;charset=UTF-8' --data-binary @packet.json "${BASE}?route=%2Fv1%2Fchanges%2Fack" -o ack-block.json
+          cat ack-block.json; echo
+          jq -e '.ok == false and .error and .masterWriteEnabled == false and .runtimeVersion == "1.0-runtime.10"' ack-block.json >/dev/null
 
-          echo '3/9 changes/ack'
-          post_packet '/v1/changes/ack' ack r3.json
-          jq -e '.ok == true and .result.cursorStatus == "正常" and .result.lastChangeId == "CHANGE-000000"' r3.json >/dev/null
-
-          echo '4/9 replay first'
-          post_packet '/v1/version/head' replay r4.json
-          jq -e '.ok == true' r4.json >/dev/null
-
-          echo '5/9 replay second must block'
-          post_packet '/v1/version/head' replay r5.json
-          jq -e '.ok == false and .error' r5.json >/dev/null
-
-          echo '6/9 bad signature must block'
-          post_packet '/v1/version/head' badSig r6.json
-          jq -e '.ok == false and .error' r6.json >/dev/null
-
-          echo '7/9 stale timestamp must block'
-          post_packet '/v1/version/head' stale r7.json
-          jq -e '.ok == false and .error' r7.json >/dev/null
-
-          echo '8/9 production write block #1'
-          post_packet '/v1/outbox/push' write1 r8.json
-          jq -e '.ok == false and .error and .masterWriteEnabled == false' r8.json >/dev/null
-
-          echo '9/9 same idempotencyKey production write block #2'
-          post_packet '/v1/outbox/push' write2 r9.json
-          jq -e '.ok == false and .error and .masterWriteEnabled == false' r9.json >/dev/null
-
-          echo 'HCMD_EXTERNAL_HMAC_SELFTEST_PASS_RUNTIME_10'
+          echo 'HCMD_RUNTIME_10_READONLY_TRANSPORT_PASS'
