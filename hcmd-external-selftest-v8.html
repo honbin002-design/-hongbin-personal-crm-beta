@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HCMD External HMAC SelfTest v8</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;margin:0;padding:24px;background:#111;color:#f5f5f5;line-height:1.6}main{max-width:720px;margin:auto}.card{background:#1d1d1f;border-radius:18px;padding:20px}h1{font-size:22px;margin-top:0}.ok{color:#75d67a}.bad{color:#ff7b72}pre{white-space:pre-wrap;word-break:break-word;background:#000;padding:14px;border-radius:12px;font-size:13px}</style>
+</head>
+<body><main><div class="card"><h1>HCMD 外部 HMAC 驗證</h1><p id="s">正在取得一次性簽章封包…</p><pre id="log"></pre></div></main>
+<script>
+const BASE='https://script.google.com/macros/s/AKfycbwSPyiUzAh2k3PLFnZCAnQfDh2YwWNEsQUziASOe-V6vGWrLH3fJ6jxKbMKSP6DH7dX/exec';
+const TOKEN='6a307d052da142b820bbeed95c564af715dcad23cfc11e5c';
+const s=document.getElementById('s'),log=document.getElementById('log');
+function note(x){log.textContent+=x+'\n';}
+async function send(route,p,label){s.textContent=label;note(label);await fetch(BASE+route,{method:'POST',mode:'no-cors',cache:'no-store',redirect:'follow',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(p)});await new Promise(r=>setTimeout(r,450));}
+window.hcmdExternalBootstrap=async function(data){try{
+ if(!data||data.ok!==true) throw new Error('bootstrap failed');
+ const P=data.packets;
+ await send('/v1/version/head',P.version,'1/9 version/head');
+ await send('/v1/changes/pull',P.changes,'2/9 changes/pull');
+ await send('/v1/changes/ack',P.ack,'3/9 changes/ack');
+ await send('/v1/version/head',P.replay,'4/9 replay 第一次');
+ await send('/v1/version/head',P.replay,'5/9 replay 第二次（應阻擋）');
+ await send('/v1/version/head',P.badSig,'6/9 錯誤簽章（應阻擋）');
+ await send('/v1/version/head',P.stale,'7/9 過期 timestamp（應阻擋）');
+ await send('/v1/outbox/push',P.write1,'8/9 正式寫入阻擋 #1');
+ await send('/v1/outbox/push',P.write2,'9/9 同 idempotencyKey 正式寫入阻擋 #2');
+ s.textContent='整理證據中…';
+ await new Promise(r=>setTimeout(r,1600));
+ location.href=BASE+'/v1/selftest/external-evidence?token='+encodeURIComponent(TOKEN);
+}catch(e){s.className='bad';s.textContent='測試失敗：'+e;note(String(e));}}
+const sc=document.createElement('script');
+sc.src=BASE+'/v1/selftest/external-runner?token='+encodeURIComponent(TOKEN)+'&callback=hcmdExternalBootstrap&_='+Date.now();
+sc.onerror=()=>{s.className='bad';s.textContent='無法載入 HCMD bootstrap';};
+document.head.appendChild(sc);
+</script></body></html>
