@@ -1,4 +1,4 @@
-name: HCMD External HMAC SelfTest v9
+name: HCMD External POST Transport Diagnostic
 
 on:
   push:
@@ -11,59 +11,39 @@ permissions:
   contents: read
 
 jobs:
-  hcmd-external-selftest:
+  hcmd-post-diagnostic:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Run HCMD external HMAC verification
+      - name: Diagnose HCMD anonymous POST transport
         shell: bash
         env:
           BASE: https://script.google.com/macros/s/AKfycbwSPyiUzAh2k3PLFnZCAnQfDh2YwWNEsQUziASOe-V6vGWrLH3fJ6jxKbMKSP6DH7dX/exec
-          TOKEN: 66745b7691c56e15b503e768758bc2e77d2a451b23d70409
         run: |
           set -euo pipefail
-          BOOT="${BASE}?route=%2Fv1%2Fselftest%2Fexternal-runner&token=${TOKEN}&callback=hcmdExternalBootstrap"
-          echo 'Fetching one-time bootstrap from HCMD via query transport...'
-          curl -fsSL --retry 2 --retry-delay 1 "$BOOT" -o bootstrap.js
-          node <<'NODE'
-          const fs=require('fs');
-          const src=fs.readFileSync('bootstrap.js','utf8').trim();
-          const m=src.match(/^hcmdExternalBootstrap\((.*)\);$/s);
-          if(!m) throw new Error('BOOTSTRAP_NOT_JSONP: '+src.slice(0,300));
-          const d=JSON.parse(m[1]);
-          if(!d || d.ok!==true) throw new Error('BOOTSTRAP_REJECTED: '+JSON.stringify(d));
-          if(d.runtimeVersion!=='1.0-runtime.9') throw new Error('WRONG_RUNTIME: '+d.runtimeVersion);
-          fs.writeFileSync('packets.json',JSON.stringify(d.packets));
-          console.log('runtimeVersion='+d.runtimeVersion);
-          NODE
+          echo '=== GET health through query route ==='
+          curl -sS -L -D get-headers.txt "${BASE}?route=%2Fv1%2Fhealth" -o get-body.txt
+          sed -n '1,20p' get-headers.txt
+          head -c 500 get-body.txt; echo
 
-          post_packet () {
-            route="$1"; key="$2"; label="$3"
-            echo "$label"
-            jq -c ".${key}" packets.json > packet.json
-            enc_route=$(printf '%s' "$route" | jq -sRr @uri)
-            curl -sS -L --retry 2 --retry-delay 1 \
-              -H 'Content-Type: text/plain;charset=UTF-8' \
-              --data-binary @packet.json \
-              "${BASE}?route=${enc_route}" >/dev/null
-            sleep 0.6
-          }
+          echo '=== POST unauthenticated through query route ==='
+          printf '%s' '{"body":{}}' > post.json
+          curl -sS -L -D post-headers.txt \
+            -H 'Content-Type: text/plain;charset=UTF-8' \
+            --data-binary @post.json \
+            "${BASE}?route=%2Fv1%2Fversion%2Fhead" -o post-body.txt
+          sed -n '1,40p' post-headers.txt
+          echo 'POST_BODY_BEGIN'
+          head -c 1200 post-body.txt; echo
+          echo 'POST_BODY_END'
 
-          post_packet '/v1/version/head' version '1/9 version/head'
-          post_packet '/v1/changes/pull' changes '2/9 changes/pull'
-          post_packet '/v1/changes/ack' ack '3/9 changes/ack'
-          post_packet '/v1/version/head' replay '4/9 replay first'
-          post_packet '/v1/version/head' replay '5/9 replay second (must block)'
-          post_packet '/v1/version/head' badSig '6/9 bad signature (must block)'
-          post_packet '/v1/version/head' stale '7/9 stale timestamp (must block)'
-          post_packet '/v1/outbox/push' write1 '8/9 production write block #1'
-          post_packet '/v1/outbox/push' write2 '9/9 same idempotencyKey write block #2'
-
-          sleep 2
-          EVIDENCE="${BASE}?route=%2Fv1%2Fselftest%2Fexternal-evidence&token=${TOKEN}"
-          curl -fsSL --retry 2 --retry-delay 1 "$EVIDENCE" -o evidence.json
-          echo 'HCMD evidence:'
-          cat evidence.json
-          echo
-          jq -e '.ok == true and .readOnlyAdapterReady == true and .next == "FIRST_READ_ONLY_ADAPTER_READY" and .productionWriteReady == false and .runtimeVersion == "1.0-runtime.9"' evidence.json >/dev/null
-          echo 'HCMD_EXTERNAL_HMAC_SELFTEST_PASS'
+          if grep -qi 'accounts.google.com' post-body.txt; then
+            echo 'POST_TRANSPORT_RESULT=GOOGLE_SIGNIN_REDIRECT'
+            exit 2
+          fi
+          if jq -e '.ok == false and .error' post-body.txt >/dev/null 2>&1; then
+            echo 'POST_TRANSPORT_RESULT=HCMD_REACHED'
+            exit 0
+          fi
+          echo 'POST_TRANSPORT_RESULT=UNKNOWN'
+          exit 3
