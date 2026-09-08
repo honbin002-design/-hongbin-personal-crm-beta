@@ -1,0 +1,67 @@
+name: HCMD External HMAC SelfTest v8
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/hcmd-external-selftest-v8.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hcmd-external-selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run HCMD external HMAC verification
+        shell: bash
+        env:
+          BASE: https://script.google.com/macros/s/AKfycbwSPyiUzAh2k3PLFnZCAnQfDh2YwWNEsQUziASOe-V6vGWrLH3fJ6jxKbMKSP6DH7dX/exec
+          TOKEN: 6a307d052da142b820bbeed95c564af715dcad23cfc11e5c
+        run: |
+          set -euo pipefail
+          BOOT="${BASE}/v1/selftest/external-runner?token=${TOKEN}&callback=hcmdExternalBootstrap"
+          echo 'Fetching one-time bootstrap from HCMD...'
+          curl -fsSL --retry 2 --retry-delay 1 "$BOOT" -o bootstrap.js
+          node <<'NODE'
+          const fs=require('fs');
+          const src=fs.readFileSync('bootstrap.js','utf8').trim();
+          const m=src.match(/^hcmdExternalBootstrap\((.*)\);$/s);
+          if(!m) throw new Error('BOOTSTRAP_NOT_JSONP: '+src.slice(0,300));
+          const d=JSON.parse(m[1]);
+          if(!d || d.ok!==true) throw new Error('BOOTSTRAP_REJECTED: '+JSON.stringify(d));
+          fs.writeFileSync('packets.json',JSON.stringify(d.packets));
+          console.log('runtimeVersion='+d.runtimeVersion);
+          NODE
+
+          post_packet () {
+            route="$1"; key="$2"; label="$3"
+            echo "$label"
+            jq -c ".${key}" packets.json > packet.json
+            curl -sS -L --retry 2 --retry-delay 1 \
+              -H 'Content-Type: text/plain;charset=UTF-8' \
+              --data-binary @packet.json \
+              "${BASE}${route}" >/dev/null
+            sleep 0.6
+          }
+
+          post_packet '/v1/version/head' version '1/9 version/head'
+          post_packet '/v1/changes/pull' changes '2/9 changes/pull'
+          post_packet '/v1/changes/ack' ack '3/9 changes/ack'
+          post_packet '/v1/version/head' replay '4/9 replay first'
+          post_packet '/v1/version/head' replay '5/9 replay second (must block)'
+          post_packet '/v1/version/head' badSig '6/9 bad signature (must block)'
+          post_packet '/v1/version/head' stale '7/9 stale timestamp (must block)'
+          post_packet '/v1/outbox/push' write1 '8/9 production write block #1'
+          post_packet '/v1/outbox/push' write2 '9/9 same idempotencyKey write block #2'
+
+          sleep 2
+          EVIDENCE="${BASE}/v1/selftest/external-evidence?token=${TOKEN}"
+          curl -fsSL --retry 2 --retry-delay 1 "$EVIDENCE" -o evidence.json
+          echo 'HCMD evidence:'
+          cat evidence.json
+          echo
+          jq -e '.ok == true and .readOnlyAdapterReady == true and .next == "FIRST_READ_ONLY_ADAPTER_READY" and .productionWriteReady == false' evidence.json >/dev/null
+          echo 'HCMD_EXTERNAL_HMAC_SELFTEST_PASS'
