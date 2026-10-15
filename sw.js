@@ -1,5 +1,5 @@
-const CACHE='hongbin-crm-r71-integrated-20260827';
-const CORE=['./','./index.html','./manifest.webmanifest','./quote-letterhead.jpg','./r69-fix.js','./r70-masterdata.js','./r70-complete.js','./r71-fixes.js'];
+const CACHE='hongbin-crm-r73-integrated-20261014';
+const CORE=['./','./index.html','./manifest.webmanifest','./quote-letterhead.jpg','./r69-fix.js','./r70-masterdata.js','./r70-complete.js','./r73-fixes.js'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
@@ -17,13 +17,17 @@ self.addEventListener('activate',event=>{
   );
 });
 
-async function withR71(response){
+async function withR73(response){
   if(!response||!response.ok) return response;
   const type=response.headers.get('content-type')||'';
   if(!type.includes('text/html')) return response;
   let html=await response.text();
-  if(!html.includes('r71-fixes.js')) html=html.replace('</body>','<script src="./r71-fixes.js?v=71-integrated"></script></body>');
-  html=html.replace(/鴻繽科技 CRM｜R70 Integrated Beta/g,'鴻繽科技 CRM｜R71 Integrated Beta');
+  html=html.replace(/<script src="\.\/r(?:71|72)-fixes\.js[^>]*><\/script>\s*/g,'');
+  if(!html.includes('r73-fixes.js')){
+    const pos=html.lastIndexOf('</body>');
+    if(pos>=0) html=html.slice(0,pos)+'<script src="./r73-fixes.js?v=73-batch"></script>\n'+html.slice(pos);
+  }
+  html=html.replace(/鴻繽科技 CRM｜R\d+ Integrated Beta/g,'鴻繽科技 CRM｜R73 Integrated Beta');
   return new Response(html,{status:response.status,statusText:response.statusText,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});
 }
 
@@ -39,11 +43,11 @@ self.addEventListener('fetch',event=>{
           const raw=fresh.clone();
           const cache=await caches.open(CACHE);
           cache.put('./index.html',raw).catch(()=>{});
-          return withR71(fresh);
+          return withR73(fresh);
         }
       }catch(_){ }
       const cached=(await caches.match('./index.html')) || (await caches.match('./'));
-      return cached?withR71(cached):Response.error();
+      return cached?withR73(cached):Response.error();
     })());
     return;
   }
