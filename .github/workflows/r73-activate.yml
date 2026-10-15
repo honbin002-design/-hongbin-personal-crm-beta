@@ -1,0 +1,33 @@
+name: R73 source and activation verification
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'index.html'
+      - 'r73-fixes.js'
+      - 'sw.js'
+      - '.github/workflows/r73-activate.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify JavaScript syntax
+        run: node --check r73-fixes.js && node --check sw.js
+      - name: Verify safe R73 activation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert '<title>鴻繽科技 CRM｜R73 Integrated Beta</title>' in s
+          assert s.count('<script src="./r73-fixes.js?v=73-batch"></script>') == 1
+          assert '<script src="./r72-fixes.js?v=72-batch"></script>' not in s
+          assert s.rfind('r73-fixes.js?v=73-batch') < s.rfind('</body>')
+          assert s.rfind('r73-fixes.js?v=73-batch') > s.rfind('</script>') - 100
+          js=Path('r73-fixes.js').read_text()
+          for token in ['pStage','pProgress','pProgressNote','r73BackTop','R73_PARSE_CARD','qdCustomer']:
+              assert token in js, token
+          print('R73 activation checks passed')
+          PY
