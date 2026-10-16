@@ -26,8 +26,6 @@
 
 ## 本輪可核對驗證
 
-GitHub Actions：`388... `（請以最新的 `R74 Simple Core` workflow 執行頁面為準）。
-
 2026-10-16 已確認 workflow run：`38909099025`，結果 **SUCCESS，WebKit 27／27 PASS，pageErrors 0**。
 
 包含：既有報價相容、報價修改儲存、真實 PDF 二進位格式、舊客戶讀取、新客戶建立、月曆跨月與待辦完成、專案歷史、JSON 備份還原、R50/R70 備份相容、格式錯誤拒絕還原。
