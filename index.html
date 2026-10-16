@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="鴻繽CRM">
 <link rel="manifest" href="manifest.webmanifest">
-<title>鴻繽科技 CRM｜R73 Integrated Beta</title>
+<title>鴻繽科技 CRM｜R74 TEST 候選版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#d9dee7;
@@ -3440,7 +3440,7 @@ input,select,textarea{font-size:16px!important}
   </div>
   <div class="quote-doc-wrap"><div id="quotePages"><div class="quote-paper-shell">
     <div class="quote-paper" id="quotePaper">
-      <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭" onload="scheduleQuoteFit()"></div>
+      <div class="q-letterhead"><img class="q-letterhead-img" src="quote-letterhead.jpg" alt="鴻繽科技有限公司標準報價單抬頭" onload="window.scheduleQuoteFit?.()"></div>
       <div class="q-title">報價單</div>
       <div class="q-party">
         <div><div class="q-party-row"><span class="q-party-label">Messers.</span><b id="qpCustomer"></b></div><div class="q-party-row"><span></span><span>TEL： <span id="qpTel"></span></span></div><div class="q-party-row"><span></span><span>FAX： <span id="qpFax"></span></span></div></div>
@@ -4410,6 +4410,9 @@ window.deleteCustomer=function(id){oldDeleteCustomer(id);setTimeout(()=>renderAl
 const oldToggleTodo=window.toggleTodo;
 window.toggleTodo=function(id,checked){oldToggleTodo(id,checked);setTimeout(()=>renderAll(),0)}
 
+// R74: expose legacy inline handler targets after all render overrides are installed.
+window.renderAll=renderAll;
+window.scheduleQuoteFit=scheduleQuoteFit;
 applyDefaultPage();
 const today=localToday();setDefaultDate('cNoDate','cDate',today);setDefaultDate('vNoDate','vDate',today);setDefaultDate('pNoFollow','pFollowDate','');setOptionalDate('cNoNext','cNextDate','');setDefaultDate('mNoConfirm','mConfirmDate','');setDefaultDate('qNoFollow','qFollowDate','');setDefaultDate('tNoDate','tDate',today);if($('vNoNextDate')) $('vNoNextDate').checked=false; if($('vNextDate')){$('vNextDate').disabled=false;$('vNextDate').value='';}
 
@@ -4867,10 +4870,11 @@ window.printQuoteR64=function(){
 })();
 </script>
 
-<script src="./r69-fix.js?v=70-integrated"></script>
+<script src="./r69-fix.js?v=74-pdf1"></script>
 <script src="./r70-masterdata.js?v=70-seg1"></script>
 <script src="./r70-complete.js?v=70-complete"></script>
 
-<script src="./r73-fixes.js?v=73-batch"></script>
+<script src="./r73-fixes.js?v=74-candidate-3"></script>
+<script src="./r74-fixes.js?v=74-candidate-3"></script>
 </body>
 </html>
