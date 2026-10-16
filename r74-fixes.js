@@ -8,7 +8,7 @@ function master(){return Object.assign({customers:[],products:[],suppliers:[]},r
 function field(label,value){return '<div class="r74-field"><b>'+esc(label)+'</b><span>'+esc(value||'—')+'</span></div>'}
 function installCss(){
  if($('r74Style'))return;
- const s=document.createElement('style');s.id='r74Style';s.textContent='.r74-field{display:grid;grid-template-columns:minmax(90px,33%) 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #42484d;overflow-wrap:anywhere}.r74-field b{color:#d3bca0}.r74-panel{margin:12px 0}.r74-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.r74-grid a{display:block;padding:13px;background:#262c32;border:1px solid #8e734e;border-radius:8px;text-align:center;color:#fff;text-decoration:none}.r74-list{max-height:65vh;overflow:auto}.r74-item{padding:12px 4px;border-bottom:1px solid #454b50}.r74-item b{display:block;color:#f2e5d8}.r74-item small{display:block;font-size:14px;line-height:1.5;color:#d8cfc4}.r74-summary{color:#dbd0bf;padding:7px 0}.r74-customer-note{padding:9px;color:#e6d0b4}.r74-preview{padding:9px;margin-top:9px;border:1px solid #555;border-radius:6px;background:#1a2026}#r74OcrRaw{width:100%;height:130px;white-space:pre-wrap;resize:vertical}';
+ const s=document.createElement('style');s.id='r74Style';s.textContent='.r74-field{display:grid;grid-template-columns:minmax(90px,33%) 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #42484d;overflow-wrap:anywhere}.r74-field b{color:#d3bca0}.r74-panel{margin:12px 0}.r74-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.r74-grid a{display:block;padding:13px;background:#262c32;border:1px solid #8e734e;border-radius:8px;text-align:center;color:#fff;text-decoration:none}.r74-list{max-height:65vh;overflow:auto}.r74-item{padding:12px 4px;border-bottom:1px solid #454b50}.r74-item b{display:block;color:#f2e5d8}.r74-item small{display:block;font-size:14px;line-height:1.5;color:#d8cfc4}.r74-summary{color:#dbd0bf;padding:7px 0}.r74-customer-note{padding:9px;color:#e6d0b4}#quoteDocument .q-editor-grid{display:grid!important;visibility:visible!important}.r74-preview{padding:9px;margin-top:9px;border:1px solid #555;border-radius:6px;background:#1a2026}#r74OcrRaw{width:100%;height:130px;white-space:pre-wrap;resize:vertical}';
  document.head.appendChild(s)
 }
 function customerName(id){const crm=read(CRM,{});return (crm.customers||[]).find(x=>String(x.id)===String(id))?.name||''}
@@ -67,6 +67,17 @@ function installOcrRaw(){
  panel.appendChild(box);
  if(window.R74_LAST_OCR_RAW)$('r74OcrRaw').value=window.R74_LAST_OCR_RAW;
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();installProjectPreviews();installOcrRaw();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews()})}
+function auditProjectSelects(){
+ const stage=$('pStage'),progress=$('pProgress');
+ const sync=(el,values)=>{if(!el||el.tagName!=='SELECT')return;const actual=[...el.options].map(o=>o.value);if(actual.length===values.length&&actual.every((v,i)=>v===values[i]))return;const current=el.value;el.replaceChildren(...values.map((v,i)=>{const o=document.createElement('option');o.value=v;o.textContent=v||'未設定';return o}));if(values.includes(current))el.value=current};
+ sync(stage,['進行中','已成交','暫停','結案','取消']);
+ sync(progress,['','初步接洽','需求確認','送樣中','客戶測試中','報價中','待客戶確認','待採購確認','成交準備']);
+}
+function clarifyQuoteEntry(){
+ const sec=$('quotes'),doc=$('quoteDocument');
+ if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
+ if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
+}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();installProjectPreviews();installOcrRaw();auditProjectSelects();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')auditProjectSelects();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
