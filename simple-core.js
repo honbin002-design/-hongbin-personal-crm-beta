@@ -13,13 +13,19 @@ const getQuotes=()=>{const q=read(KEYS.quotes,[]);return Array.isArray(q)?q:[]};
 const getProgress=()=>read(KEYS.progress,{});
 const getHist=()=>read(KEYS.history,{});
 const field=id=>$(id)?.value.trim()||'';
-let currentTab='quotes',editCustomerName=null,editCustomerCrmId=null,editQuoteId=null,editTodoId=null,editProjectId=null,selectedDate=localDate(),monthDate=new Date(),lastPdfUrl=null;
+let currentTab='quotes',editCustomerName=null,editCustomerCrmId=null,editQuoteId=null,editTodoId=null,editProjectId=null,editSupplierIndex=null,editProductIndex=null,selectedDate=localDate(),monthDate=new Date(),lastPdfUrl=null,customer360Name=null;
 const QUOTE_FIELDS=['qdCustomer','qdContact','qdTel','qdFax','qdNo','qdDate','qdDelivery','qdPayment','qdPlace','qdValid','qdSales','qdSalesTel','qdNotes'];
 const defaults={qdDelivery:'有庫存 3 天內交貨，如無庫存需 30 天',qdPayment:'次月60天',qdPlace:'貴公司交貨處或指定交貨處',qdValid:'三十日',qdNotes:'1：以上價格為未稅價。\n2：實際價格以訂單確認為準。\n3：特殊規格或需求，請先行告知。'};
 function toast(msg){const n=$('toast');n.textContent=msg;n.style.display='block';setTimeout(()=>{n.style.display='none'},2500)}
-function openTab(tab){if(!['quotes','customers','calendar','projects','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers')renderCustomers();if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'})}
+function openTab(tab){if(!['quotes','customers','calendar','projects','suppliers','products','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers')renderCustomers();if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'})}
 function customerEntries(){const m=getMaster().customers,c=getCRM().customers,map=new Map();m.forEach(x=>{const key=norm(x.name);if(key)map.set(key,{...x,legacyId:c.find(v=>norm(v.name)===key)?.id})});c.forEach(x=>{const key=norm(x.name);if(key&&!map.has(key))map.set(key,{name:x.name,legacyId:x.id})});return [...map.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh-Hant'))}
-function fillCustomerNames(){const node=$('customerNames');node.replaceChildren(...customerEntries().map(x=>{const o=document.createElement('option');o.value=x.name;return o}))}
+function datalist(id,values){const n=$(id);if(!n)return;n.replaceChildren(...[...new Set(values.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant')).map(s=>{const o=document.createElement('option');o.value=s;return o}))}
+function fillCustomerNames(){
+ datalist('customerNames',customerEntries().map(x=>x.name));
+ datalist('supplierNames',supplierEntries().map(x=>supplierName(x)));
+ datalist('productNames',productEntries().map(x=>productName(x)));
+ datalist('productModels',productEntries().map(x=>productModel(x)));
+}
 function customerByName(name){return customerEntries().find(c=>norm(c.name)===norm(name))}
 function customerId(name){return getCRM().customers.find(c=>norm(c.name)===norm(name))?.id??null}
 function htmlListEmpty(label){return '<div class="muted">'+esc(label)+'</div>'}
