@@ -52,6 +52,26 @@
  #printRoot .legacy-quote .q-title{font-size:34px!important}
 }
 
+
+/* R73 daily input polish: seven simple modules, not a new dashboard */
+.nav{grid-template-columns:repeat(7,minmax(0,1fr))}
+.customer-section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.customer360-block{border:1px solid #d9e2ea;background:#f8fafc;border-radius:10px;padding:13px;margin-top:12px}
+.customer360-block h3{margin:0 0 10px;color:#224968;border-bottom:1px solid #d0dce7;padding-bottom:8px}
+.customer360-entry{background:white;border-left:3px solid #507ca0;border-radius:6px;padding:9px 10px;margin:7px 0}
+.customer360-entry .sub{margin-top:4px}
+.customer360-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.customer360-badges .pill{padding:6px 10px}
+.yearNav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:13px 0 4px}
+.yearNav label{margin:0;white-space:nowrap;font-size:14px}
+.yearNav select{width:auto;min-width:84px;flex:1 1 70px}
+.yearNav button{flex:0 0 auto}
+#calendarSwipeArea{touch-action:pan-y;user-select:none}
+#smartSuggestions{position:fixed;z-index:1000;background:#fff;border:1px solid #90aec6;box-shadow:0 7px 24px #09203540;border-radius:10px;max-height:232px;overflow:auto;padding:4px;min-width:180px}
+#smartSuggestions button{display:block;border:none;border-bottom:1px solid #e6edf3;border-radius:3px;text-align:left;background:#fff;color:#25445d;padding:12px 10px;width:100%;font-weight:500}
+#smartSuggestions button:active{background:#dfeefa}
+@media(max-width:640px){.nav{grid-template-columns:repeat(4,minmax(0,1fr));position:relative;padding:8px}.nav button{font-size:13px;min-height:46px}.yearNav select{min-width:78px}.yearNav label{font-size:13px}}
+
 </style>
 </head>
 <body><div class="app">
@@ -61,6 +81,8 @@
 <button type="button" data-tab="customers">客戶管理</button>
 <button type="button" data-tab="calendar">待辦日曆</button>
 <button type="button" data-tab="projects">專案追蹤</button>
+<button type="button" data-tab="suppliers">供應商</button>
+<button type="button" data-tab="products">產品資料</button>
 <button type="button" data-tab="backup">備份</button>
 </nav>
 <main>
@@ -92,6 +114,10 @@
 </section>
 <section class="panel" id="panel-customers" hidden>
 <div class="card"><h2>客戶管理</h2><div class="row"><input id="customerSearch" type="search" placeholder="搜尋公司、聯絡人、電話"><button id="newCustomer">＋ 新增客戶</button></div><div id="customerList"></div></div>
+<div class="card" id="customer360" hidden>
+  <div class="customer-section-title"><h2 id="customer360Title">客戶完整資料</h2><button type="button" class="secondary" id="closeCustomer360">關閉</button></div>
+  <div id="customer360Content"></div>
+</div>
 <div class="card editor" id="customerEditor" hidden><h2 id="customerEditorTitle">客戶資料</h2><div class="grid">
 <div><label for="cuName">公司名稱</label><input id="cuName"></div><div><label for="cuTax">統一編號</label><input id="cuTax"></div>
 <div><label for="cuContact">聯絡人</label><input id="cuContact"></div><div><label for="cuMobile">手機</label><input id="cuMobile" inputmode="tel"></div>
@@ -102,12 +128,17 @@
 </section>
 <section class="panel" id="panel-calendar" hidden>
 <div class="card"><h2>待辦行事曆</h2>
-<div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上個月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下個月 ›</button></div>
+<div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下月 ›</button></div>
+<div class="yearNav"><label for="calendarYear">快速選年份</label><select id="calendarYear" aria-label="行事曆年份"></select><label for="calendarMonth">月份</label><select id="calendarMonth" aria-label="行事曆月份"></select><button id="calendarToday" class="weak" type="button">回今天</button></div>
+<div id="calendarSwipeArea" aria-label="行事曆左右滑動切換月份">
 <div id="calendarGrid" class="cal" role="group" aria-label="選擇待辦日期"></div>
+</div>
+<div class="muted">在月曆區向左滑切換下月、向右滑切換上月</div>
 <h3 id="selectedDayTitle"></h3><div id="todoList"></div><button id="newTodo">＋ 新增當日待辦</button></div>
 <div class="card editor" id="todoEditor" hidden><h2>待辦事項</h2>
 <label for="tDate">日期</label><input id="tDate" type="date">
 <label for="tTime">時間（可留空）</label><input id="tTime" type="time">
+<label for="tCustomer">關聯客戶（可留空）</label><input id="tCustomer" list="customerNames" placeholder="選擇或輸入已建立客戶">
 <label for="tText">事項</label><input id="tText">
 <label for="tNotes">備註</label><textarea id="tNotes"></textarea>
 <div class="actions"><button id="saveTodo">儲存待辦</button><button id="cancelTodo" class="secondary">取消</button></div></div>
@@ -127,6 +158,28 @@
 <h3>歷史追蹤紀錄</h3><div id="projectHistory"></div>
 </div>
 </section>
+<section class="panel" id="panel-suppliers" hidden>
+<div class="card"><h2>供應商管理</h2><div class="row"><input id="supplierSearch" type="search" placeholder="搜尋供應商、聯絡人、電話"><button id="newSupplier" type="button">＋ 新增供應商</button></div><div id="supplierList"></div></div>
+<div class="card editor" id="supplierEditor" hidden><h2 id="supplierEditorTitle">供應商資料</h2><div class="grid">
+<div><label for="suName">供應商名稱</label><input id="suName"></div>
+<div><label for="suContact">聯絡人</label><input id="suContact"></div>
+<div><label for="suTel">聯絡電話</label><input id="suTel" inputmode="tel"></div>
+<div><label for="suEmail">Email</label><input id="suEmail" type="email"></div>
+<div class="wide"><label for="suAddress">地址</label><input id="suAddress"></div>
+<div class="wide"><label for="suNote">備註</label><textarea id="suNote"></textarea></div>
+</div><div class="actions"><button id="saveSupplier" type="button">儲存供應商</button><button id="cancelSupplier" type="button" class="secondary">取消</button></div></div>
+</section>
+<section class="panel" id="panel-products" hidden>
+<div class="card"><h2>產品資料</h2><div class="row"><input id="productSearch" type="search" placeholder="搜尋產品、型號、供應商或客戶"><button id="newProduct" type="button">＋ 新增產品</button></div><div id="productList"></div></div>
+<div class="card editor" id="productEditor" hidden><h2 id="productEditorTitle">產品資料</h2><div class="grid">
+<div><label for="pdName">產品名稱</label><input id="pdName" list="productNames" placeholder="輸入或選取產品"></div>
+<div><label for="pdModel">產品品號／型號</label><input id="pdModel" list="productModels"></div>
+<div><label for="pdSpec">產品規格</label><input id="pdSpec"></div>
+<div><label for="pdSupplier">供應商</label><input id="pdSupplier" list="supplierNames" placeholder="輸入或選取供應商"></div>
+<div class="wide"><label for="pdCustomer">使用客戶（選填）</label><input id="pdCustomer" list="customerNames" placeholder="指定使用這項產品的客戶"></div>
+<div class="wide"><label for="pdNotes">使用說明／備註</label><textarea id="pdNotes"></textarea></div>
+</div><div class="actions"><button id="saveProduct" type="button">儲存產品</button><button id="cancelProduct" type="button" class="secondary">取消</button></div>
+</div></section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
 <p>資料直接儲存在這台 iPhone 的瀏覽器。請定期備份到「檔案」或 iCloud Drive，避免更換手機或清除 Safari 資料時遺失。</p>
@@ -138,10 +191,10 @@
 <div class="note">舊版已儲存的 CRM 文字資料仍保留；新版不顯示的舊功能資料也會一併備份。不包含舊名片照片 IndexedDB 附件。</div>
 </div>
 </section>
-</main><datalist id="customerNames"></datalist>
+</main><datalist id="customerNames"></datalist><datalist id="supplierNames"></datalist><datalist id="productNames"></datalist><datalist id="productModels"></datalist>
 </div>
-<div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div>
+<div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div><div id="smartSuggestions" role="listbox" hidden aria-label="候選選項"></div>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./simple-core.js?v=r73-simple-20261016" defer></script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-simple-20261016').catch(()=>{}))}</script>
+<script src="./simple-core.js?v=r73-customer-links-20261017" defer></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-customer-links-20261017').catch(()=>{}))}</script>
 </body></html>
