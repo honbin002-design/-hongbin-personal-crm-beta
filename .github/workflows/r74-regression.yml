@@ -25,7 +25,8 @@ jobs:
       - name: Run mobile WebKit smoke test on loopback only
         shell: bash
         run: |
-          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/r74-test-server.log 2>&1 &
+          python3 -m py_compile .devcontainer/r74_server.py
+          python3 .devcontainer/r74_server.py --port 8765 --bind 127.0.0.1 >/tmp/r74-test-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
           node tests/r74-mobile-smoke.cjs
