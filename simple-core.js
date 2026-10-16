@@ -80,7 +80,7 @@ function editProject(id){const p=id==null?null:getCRM().projects.find(x=>String(
 function saveProject(){const name=field('pName');if(!name){alert('請輸入專案名稱');return}const crm=getCRM(),i=crm.projects.findIndex(p=>editProjectId!=null&&String(p.id)===String(editProjectId)),old=i>=0?crm.projects[i]:null;const nameOf=field('pCustomer'),pr=field('pProgress'),stage=field('pStage'),note=field('pNote'),id=old?.id??uniqueId();
  const next={...(old||{}),id,name,customerId:customerId(nameOf),customerName:nameOf,owner:field('pOwner'),followDate:field('pFollowDate'),stage};
  if(i>=0)crm.projects[i]=next;else crm.projects.unshift(next);
- const progress=getProgress(),hist=getHist();progress[id]={...(progress[id]||{}),progress:pr,note:note||progress[id]?.note||''};if(note){hist[id]=[...(hist[id]||[]),{id:uniqueId(),date:localDate(),note,stage,progress:pr}]}
+ const progress=getProgress(),hist=getHist();const existingProgress=progress[id]||progress[old?.name]||{};progress[id]={...existingProgress,progress:pr,note:existingProgress.note||''};if(note){hist[id]=[...(hist[id]||[]),{id:uniqueId(),date:localDate(),note,stage,progress:pr}]}
  // If writing one of the related keys fails, restore all from snapshots.
  const changes=[[KEYS.crm,crm],[KEYS.progress,progress],[KEYS.history,hist]],snapshots=changes.map(([k])=>localStorage.getItem(k));try{for(const [k,v] of changes)localStorage.setItem(k,JSON.stringify(v))}catch(e){changes.forEach(([k],idx)=>{try{snapshots[idx]===null?localStorage.removeItem(k):localStorage.setItem(k,snapshots[idx])}catch{}});alert('專案儲存失敗，已嘗試回復先前資料。請備份後確認儲存空間。');return}
  editProjectId=id;$('projectEditor').hidden=true;renderProjects();toast('專案已儲存，追蹤紀錄已保留')}
