@@ -48,12 +48,12 @@ function buildHub(id,title,placeholder,renderer){
  section=document.createElement('section');section.className='panel';section.id=id;
  section.innerHTML='<div class="card"><h2 class="section-title">'+esc(title)+'</h2><p class="r74-summary">直接查看既有主資料，不建立另一份資料。</p><input id="'+id+'Search" type="search" placeholder="'+esc(placeholder)+'"><div id="'+id+'Results" class="r74-list"></div></div>';
  main.appendChild(section);
- const input=$(id+'Search');const run=()=>renderer(norm(input.value),$(id+'Results'));input.addEventListener('input',run);run();
+ const input=$(id+'Search');const run=()=>renderer(norm(input.value),$(id+'Results'));section.r74Render=run;input.addEventListener('input',run);run();
 }
 function installHubs(){
  buildHub('r74Suppliers','供應商資料','搜尋供應商、供應商品號或品名',(q,box)=>{const a=master().suppliers.filter(x=>!q||norm([x.supplierName,x.name,x.partNo].join(' ')).includes(q));const groups=new Map();a.forEach(x=>{const k=x.supplierName||'未命名供應商';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)});box.innerHTML='<div class="r74-summary">共 '+groups.size+' 家供應商、'+a.length+' 筆供應商產品；顯示前 60 家</div>'+[...groups].slice(0,60).map(([name,items])=>'<details class="r74-item"><summary><b>'+esc(name)+'</b><small>產品 '+items.length+' 筆｜點選展開</small></summary>'+items.slice(0,100).map(x=>'<div class="r74-item"><small>品名：'+esc(x.name)+'｜品號：'+esc(x.partNo)+'</small><small>最小包裝單位：'+esc(x.unit||'—')+'｜包裝：'+esc(x.package||'—')+'</small></div>').join('')+'</details>').join('')});
  buildHub('r74Products','產品資料','搜尋產品、客戶品號、供應商品號',(q,box)=>{const a=master().products.filter(x=>!q||norm([x.name,x.customerName,x.customerPartNo,x.supplierPartNo,x.supplierName].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆客戶產品對照，顯示前 60 筆</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.name)+'</b><small>客戶：'+esc(x.customerName)+'｜客戶品號：'+esc(x.customerPartNo)+'</small><small>供應商：'+esc(x.supplierName||'—')+'｜供應商品號：'+esc(x.supplierPartNo||'—')+'｜售價：'+esc(x.price??'—')+'</small></div>').join('')});
- buildHub('r74Visits','拜訪紀錄','搜尋拜訪內容或客戶',(q,box)=>{const d=read(CRM,{}),customers=d.customers||[],a=(d.visits||[]).filter(x=>!q||norm([x.note,x.next,x.customerName,customers.find(c=>String(c.id)===String(x.customerId))?.name].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆拜訪紀錄。新增或編輯拜訪請至 <a href="#customers">客戶與拜訪操作</a>。</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.customerName||customers.find(c=>String(c.id)===String(x.customerId))?.name||'未關聯客戶')+'</b><small>'+esc(x.date||'未設定日期')+'｜'+esc(x.note)+'</small><small>後續：'+esc(x.next||'—')+'</small></div>').join('')});
+ buildHub('r74Visits','拜訪紀錄','搜尋拜訪內容或客戶',(q,box)=>{const d=read(CRM,{}),customers=d.customers||[],a=(d.visits||[]).filter(x=>!q||norm([x.note,x.next,x.customerName,customers.find(c=>String(c.id)===String(x.customerId))?.name].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆拜訪紀錄；直接在本頁新增或編輯。</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.customerName||customers.find(c=>String(c.id)===String(x.customerId))?.name||'未關聯客戶')+'</b><small>'+esc(x.date||'未設定日期')+'｜'+esc(x.note)+'</small><small>後續：'+esc(x.next||'—')+'</small><button type="button" class="secondary r74-edit-visit" data-id="'+esc(x.id)+'">編輯這筆拜訪</button></div>').join('');box.querySelectorAll('button.r74-edit-visit').forEach(btn=>btn.addEventListener('click',()=>window.editVisit?.(btn.dataset.id)))});
  const nav=document.querySelector('nav.nav');if(nav&&!$('r74SupplierNav'))[['r74Suppliers','供應商','r74SupplierNav'],['r74Products','產品','r74ProductNav'],['r74Visits','拜訪','r74VisitNav'],['businessCardScan','名片','r74CardNav'],['settings','設定','r74SettingsNav']].forEach(([id,label,nid])=>{const a=document.createElement('a');a.id=nid;a.href='#'+id;a.textContent=label;nav.appendChild(a)});
 }
 function organizeExistingForms(){
@@ -69,6 +69,14 @@ function organizeExistingForms(){
  if(masterTitle&&/主資料管理/.test(masterTitle.textContent||''))masterTitle.textContent='Excel 主資料匯入／匯出（系統管理）';
 }
 
+function keepVisitFlowConsistent(){
+ if(window.__r74VisitFlowWrapped)return;
+ if(typeof window.addVisit!=='function'||typeof window.editVisit!=='function')return;
+ const originalAdd=window.addVisit,originalEdit=window.editVisit;
+ window.addVisit=function(){const result=originalAdd.apply(this,arguments);$('r74Visits')?.r74Render?.();return result};
+ window.editVisit=function(id){const result=originalEdit.apply(this,arguments);location.hash='r74Visits';setTimeout(()=>{const form=$('vCustomer');if(form)form.scrollIntoView({behavior:'smooth',block:'center'})},70);return result};
+ window.__r74VisitFlowWrapped=true;
+}
 function organizeNavigation(){
  const nav=document.querySelector('nav.nav');if(!nav||nav.dataset.r74Nav==='1')return;
  const mappings=[
@@ -131,6 +139,6 @@ function clarifyQuoteEntry(){
  if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
  if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();installProjectPreviews();installOcrRaw();enforceProjectOptions();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')enforceProjectOptions();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();keepVisitFlowConsistent();installProjectPreviews();installOcrRaw();enforceProjectOptions();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')enforceProjectOptions();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
