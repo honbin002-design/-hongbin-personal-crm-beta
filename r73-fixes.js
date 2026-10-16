@@ -53,7 +53,7 @@ function installProjectFields(){
   const stageWrap=stage.parentElement;
   if(!$('pProgress')){const w=document.createElement('div');w.innerHTML='<label for="pProgress">進度</label><select id="pProgress"><option value="">未設定</option>'+PROGRESS_VALUES.slice(1).map(v=>`<option value="${v}">${v}</option>`).join('')+'</select>';stageWrap.after(w)}
   if(!$('pProgressNote')){const w=document.createElement('div');w.className='full';w.innerHTML='<label for="pProgressNote">進度註記</label><textarea id="pProgressNote" placeholder="例如：等 RD 測試結果"></textarea>';($('pProgress')?.parentElement||stageWrap).after(w)}
-  if(normalizeProjects()&&!sessionStorage.getItem('r73-project-migrated')){sessionStorage.setItem('r73-project-migrated','1');location.reload();return}
+  // R74 DATA SAFETY: never rewrite historical project stages on page load. Retain original stage text until the user explicitly edits and saves.
   if(window.__r73ProjectHooks)return;window.__r73ProjectHooks=true;
   const oldAdd=window.addProject,oldEdit=window.editProject;
   window.addProject=function(){
