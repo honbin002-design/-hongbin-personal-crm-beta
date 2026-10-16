@@ -10,10 +10,10 @@ const json=(key,fallback)=>{try{const v=JSON.parse(localStorage.getItem(key)||'n
 const put=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
 function master(){return Object.assign({customers:[],products:[],suppliers:[]},json(MASTER,{}))}
 function setVersion(){
-  window.CRM_VERSION='R73';
-  document.title='鴻繽科技 CRM｜R73 Integrated Beta';
+  window.CRM_VERSION='R74-TEST';
+  document.title='鴻繽科技 CRM｜R74 TEST 候選版';
   document.querySelectorAll('.content,.status,.sub').forEach(el=>{
-    if(/目前版本：R\d+/.test(el.textContent||'')){const next=el.innerHTML.replace(/目前版本：R\d+(?: Integrated Beta)?/g,'目前版本：R73 Integrated Beta');if(next!==el.innerHTML)el.innerHTML=next}
+    if(/目前版本：R\d+/.test(el.textContent||'')){const next=el.innerHTML.replace(/目前版本：R\d+(?: Integrated Beta| TEST 候選版)?/g,'目前版本：R74 TEST 候選版');if(next!==el.innerHTML)el.innerHTML=next}
   });
 }
 function installCss(){
@@ -53,7 +53,7 @@ function installProjectFields(){
   const stageWrap=stage.parentElement;
   if(!$('pProgress')){const w=document.createElement('div');w.innerHTML='<label for="pProgress">進度</label><select id="pProgress"><option value="">未設定</option>'+PROGRESS_VALUES.slice(1).map(v=>`<option value="${v}">${v}</option>`).join('')+'</select>';stageWrap.after(w)}
   if(!$('pProgressNote')){const w=document.createElement('div');w.className='full';w.innerHTML='<label for="pProgressNote">進度註記</label><textarea id="pProgressNote" placeholder="例如：等 RD 測試結果"></textarea>';($('pProgress')?.parentElement||stageWrap).after(w)}
-  if(normalizeProjects()&&!sessionStorage.getItem('r73-project-migrated')){sessionStorage.setItem('r73-project-migrated','1');location.reload();return}
+  // R74 DATA SAFETY: never rewrite historical project stages on page load. Retain original stage text until the user explicitly edits and saves.
   if(window.__r73ProjectHooks)return;window.__r73ProjectHooks=true;
   const oldAdd=window.addProject,oldEdit=window.editProject;
   window.addProject=function(){
@@ -117,10 +117,30 @@ function parseCardText(raw){
   out.name=candidates.find(x=>/^[\u3400-\u9fff·]{2,4}$/.test(x))||candidates.find(x=>/^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(x)&&x.length>=5)||'';
   if(!/^[\u3400-\u9fff·]{2,4}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(out.name))out.name='';
   if(out.company&&!/(股份有限公司|有限公司|公司|企業|科技|實業|工業|CO\.?\s*,?\s*LTD|CORPORATION|INC\.?)/i.test(out.company))out.company='';
+  // R74: prefer clear printed labels when OCR can identify them.
+  // A mistaken guess must never overwrite a reliably recognized field.
+  const labeled=(pattern)=>{
+    const line=lines.find(x=>pattern.test(x));if(!line)return'';
+    const match=line.match(pattern);return (match?.[1]||'').trim();
+  };
+  const labeledCompany=labeled(/^(?:公司名稱|公司|企業名稱|Company|Corporation)\s*[:：\-]\s*(.+)$/i);
+  if(labeledCompany&&labeledCompany.length<100)out.company=labeledCompany;
+  const labeledName=labeled(/^(?:姓名|聯絡人|Contact\s*Person|Contact Name|Name)\s*[:：\-]\s*(.+)$/i).replace(/(?:董事長|總經理|經理|副理|主任|專員|工程師)$/,'').trim();
+  if(/^[\u3400-\u9fff·]{2,5}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(labeledName))out.name=labeledName;
+  const labeledTitle=labeled(/^(?:職稱|職務|Title|Position)\s*[:：\-]\s*(.+)$/i);
+  if(labeledTitle)out.title=labeledTitle;
+  const labeledAddress=labeled(/^(?:公司地址|地址|Address|Addr\.?)\s*[:：\-]\s*(.+)$/i);
+  if(labeledAddress)out.address=labeledAddress;
+  const labeledTel=cleanPhone(labeled(/^(?:電話|TEL|Phone|Office)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
+  if(labeledTel)out.tel=labeledTel;
+  const labeledMobile=cleanPhone(labeled(/^(?:手機|行動電話|Mobile|Cell)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
+  if(labeledMobile)out.mobile=labeledMobile;
+  const labeledFax=cleanPhone(labeled(/^(?:傳真|FAX|Facsimile)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
+  if(labeledFax)out.fax=labeledFax;
   const set=(id,v)=>{if($(id))$(id).value=v||''};Object.entries({bcCompany:out.company,bcName:out.name,bcTitle:out.title,bcMobile:out.mobile,bcTel:out.tel,bcFax:out.fax,bcEmail:out.email,bcAddress:out.address,bcWebsite:out.website}).forEach(([id,v])=>set(id,v));return out;
 }
 async function ensureOcr(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('OCR 引擎下載失敗'));document.head.appendChild(s)})}
-function installOcr(){window.scanBusinessCardLocal=async function(){const file=$('bcImage')?.files?.[0],status=$('bcStatus');if(!file){if(status)status.textContent='請先拍攝或選擇名片';return}try{await ensureOcr();if(status)status.textContent='本機辨識中…';const r=await Tesseract.recognize(file,'chi_tra+eng',{langPath:'https://tessdata.projectnaptha.com/4.0.0',logger:m=>{if(status&&typeof m.progress==='number')status.textContent=`本機辨識中 ${Math.round(m.progress*100)}%`}});parseCardText(r?.data?.text||'');if(status)status.textContent='辨識完成，請確認欄位。不確定的欄位會留白。'}catch(e){if(status)status.textContent='辨識失敗：'+(e?.message||e)}};window.R73_PARSE_CARD=parseCardText}
+function installOcr(){window.scanBusinessCardLocal=async function(){const file=$('bcImage')?.files?.[0],status=$('bcStatus');if(!file){if(status)status.textContent='請先拍攝或選擇名片';return}try{await ensureOcr();if(status)status.textContent='本機辨識中…';const r=await Tesseract.recognize(file,'chi_tra+eng',{langPath:'https://tessdata.projectnaptha.com/4.0.0',logger:m=>{if(status&&typeof m.progress==='number')status.textContent=`本機辨識中 ${Math.round(m.progress*100)}%`}});window.R74_LAST_OCR_RAW=String(r?.data?.text||'');const rawBox=$('r74OcrRaw');if(rawBox)rawBox.value=window.R74_LAST_OCR_RAW;parseCardText(window.R74_LAST_OCR_RAW);if(status)status.textContent='辨識完成，請確認欄位。不確定的欄位會留白。'}catch(e){if(status)status.textContent='辨識失敗：'+(e?.message||e)}};window.R73_PARSE_CARD=parseCardText}
 function openImageDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open('hongbin_crm_images_r73',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('cards'))r.result.createObjectStore('cards')};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function compressCard(file){if(!file)return null;const url=URL.createObjectURL(file);try{const img=await new Promise((resolve,reject)=>{const x=new Image();x.onload=()=>resolve(x);x.onerror=reject;x.src=url}),max=1200,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);return await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.68))}finally{URL.revokeObjectURL(url)}}
 async function storePhoto(id,file){const blob=await compressCard(file);if(!blob)return;const dbi=await openImageDb();await new Promise((resolve,reject)=>{const tx=dbi.transaction('cards','readwrite');tx.objectStore('cards').put(blob,String(id));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});dbi.close()}
@@ -131,8 +151,8 @@ async function saveCard(mode){
   if(!customer){customer={name:x.company,contact:x.name,title:x.title,tel:x.tel,mobile:x.mobile,fax:x.fax,email:x.email,address:x.address,website:x.website,source:'business-card'};m.customers.push(customer)}else{for(const k of ['contact','title','tel','mobile','fax','email','address','website'])customer[k]=customer[k]||x[k==='contact'?'name':k]||''}
   m.updatedAt=new Date().toISOString();put(MASTER,m);
   const crm=json(CRM,{projects:[],contacts:[],commands:[],quotes:[],todos:[],customers:[],visits:[]});crm.customers=Array.isArray(crm.customers)?crm.customers:[];crm.contacts=Array.isArray(crm.contacts)?crm.contacts:[];let cc=crm.customers.find(c=>norm(c.name)===norm(x.company));if(!cc){cc={id:Date.now(),name:x.company};crm.customers.push(cc)}
-  if(x.name&&!crm.contacts.some(c=>norm(c.who)===norm(x.name)&&String(c.customerId)===String(cc.id)))crm.contacts.unshift({id:Date.now()+1,who:x.name,customerId:cc.id,customerName:x.company,date:'',note:[x.title,x.tel,x.mobile,x.email].filter(Boolean).join('｜'),nextContactDate:''});put(CRM,crm);
-  const cards=json(CARDS,[]),old=cards.find(c=>norm(c.company)===norm(x.company)&&norm(c.name)===norm(x.name)),id=old?.id||Date.now(),saved=Object.assign({},x,{id,photoId:String(id)});if(old)Object.assign(old,saved);else cards.unshift(saved);put(CARDS,cards);
+  /* 名片聯絡人是客戶主資料，不再將新名片偽裝成一筆聯絡追蹤；保留原有追蹤紀錄。 */put(CRM,crm);
+  const cards=json(CARDS,[]),old=cards.find(c=>norm(c.company)===norm(x.company)&&norm(c.name)===norm(x.name)),id=old?.id||Date.now(),saved=Object.assign({},x,{id,photoId:String(id),customerId:cc.id,customerName:cc.name,source:'business-card'});if(old)Object.assign(old,saved);else cards.unshift(saved);put(CARDS,cards);
   try{await storePhoto(id,$('bcImage')?.files?.[0])}catch(e){console.warn('名片照片儲存失敗',e)}
   window.R70_COMPLETE?.syncLists?.();window.R70_COMPLETE?.renderCards?.();if($('bcStatus'))$('bcStatus').textContent=mode==='create'?'已建立新客戶與聯絡人，名片照片已壓縮保存。':'已連結既有客戶與聯絡人，名片照片已壓縮保存。';alert(mode==='create'?'新客戶已建立並連結名片':'名片已連結既有客戶');location.reload();
 }
@@ -141,10 +161,30 @@ function installCardActions(){const card=$('businessCardScan')?.querySelector('.
 function formalQuotes(){const a=json(FORMAL,[]);return Array.isArray(a)?a:[]}
 let currentFormalId=null;
 function formalSnapshot(){const ids=['qdCustomer','qdContact','qdTel','qdFax','qdNo','qdDate','qdDelivery','qdPayment','qdPlace','qdValid','qdSales','qdSalesTel','qdNotes'],fields={};ids.forEach(id=>fields[id]=$(id)?.value||'');return {id:currentFormalId||Date.now(),updatedAt:new Date().toISOString(),fields,items:(window.quoteDocItems||[]).map(x=>({...x}))}}
-function renderFormalList(){const box=$('r73FormalList');if(!box)return;const list=formalQuotes();const html=list.length?'<h3>已儲存正式報價</h3>'+list.map(x=>`<div class="r73-formal-row"><div><b>${esc(x.fields?.qdNo||'未編號')}</b><div class="meta">${esc(x.fields?.qdCustomer||'未指定客戶')}｜${esc(x.fields?.qdDate||'')}</div></div><button type="button" class="secondary" data-id="${x.id}">再次編輯</button></div>`).join(''):'<div class="meta">尚無已儲存正式報價</div>';if(box.innerHTML!==html)box.innerHTML=html;box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>openFormal(b.dataset.id))}
-function saveFormal(){window.renderQuoteDocument?.();const x=formalSnapshot(),list=formalQuotes(),i=list.findIndex(v=>String(v.id)===String(x.id));if(i>=0)list[i]=x;else list.unshift(x);put(FORMAL,list);currentFormalId=x.id;renderFormalList();alert('正式報價已儲存')}
+function renderFormalList(){const box=$('r73FormalList');if(!box)return;const list=formalQuotes(),counts=new Map();list.forEach(x=>{const k=norm(x.fields?.qdNo);if(k)counts.set(k,(counts.get(k)||0)+1)});const html=list.length?'<h3>已儲存正式報價</h3>'+list.map(x=>`<div class="r73-formal-row"><div><b>${esc(x.fields?.qdNo||'未編號')}</b>${counts.get(norm(x.fields?.qdNo))>1?'<div class="meta" style="color:#f2b18b">注意：此報價編號重複，紀錄 ID：'+esc(x.id)+'</div>':''}<div class="meta">${esc(x.fields?.qdCustomer||'未指定客戶')}｜${esc(x.fields?.qdDate||'')}</div></div><button type="button" class="secondary" data-id="${x.id}">再次編輯</button></div>`).join(''):'<div class="meta">尚無已儲存正式報價</div>';if(box.innerHTML!==html)box.innerHTML=html;box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>openFormal(b.dataset.id))}
+function saveFormal(){window.renderQuoteDocument?.();const x=formalSnapshot(),list=formalQuotes(),i=list.findIndex(v=>String(v.id)===String(x.id));const quoteNo=norm(x.fields?.qdNo);if(quoteNo&&list.some((v,j)=>j!==i&&norm(v.fields?.qdNo)===quoteNo)&&(i<0||norm(list[i]?.fields?.qdNo)!==quoteNo)){alert('報價編號已存在於其他紀錄，為避免重複或覆蓋，已停止儲存。請先核對編號與原報價。');return}if(i>=0)list[i]=x;else list.unshift(x);put(FORMAL,list);currentFormalId=x.id;renderFormalList();alert('正式報價已儲存')}
 function openFormal(id){const x=formalQuotes().find(v=>String(v.id)===String(id));if(!x)return;currentFormalId=x.id;Object.entries(x.fields||{}).forEach(([k,v])=>{if($(k))$(k).value=v});window.quoteDocItems=(x.items||[]).map(v=>({...v}));renderQuoteDocEditor();renderQuoteDocument();location.hash='quoteDocument'}
-function installFormalSave(){const panel=$('quoteDocument');if(!panel)return;let row=panel.querySelector('.btnrow');if(row&&!$('r73SaveFormal')){const b=document.createElement('button');b.id='r73SaveFormal';b.type='button';b.className='primary';b.textContent='儲存正式報價';b.onclick=saveFormal;row.prepend(b)}if(!$('r73FormalList')){const box=document.createElement('div');box.id='r73FormalList';box.className='r73-formal-list';panel.querySelector('.card')?.appendChild(box)}renderFormalList();if(!window.__r73OpenQuoteWrapped&&typeof window.openQuoteDocument==='function'){const old=window.openQuoteDocument;window.openQuoteDocument=function(){currentFormalId=null;return old.apply(this,arguments)};window.__r73OpenQuoteWrapped=true}}
+function nextUnusedQuoteNo(){
+  const d=new Date(),prefix='Q'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-';
+  const used=new Set(formalQuotes().map(q=>norm(q.fields?.qdNo)).filter(Boolean));
+  let n=1;while(used.has(norm(prefix+String(n).padStart(3,'0'))) && n<9999)n++;
+  return prefix+String(n).padStart(3,'0');
+}
+function resetFreshQuoteDefaults(){
+ const values={
+  qdDelivery:'有庫存 3 天內交貨，如無庫存需 30 天',
+  qdPayment:'次月60天',
+  qdPlace:'貴公司交貨處或指定交貨處',
+  qdValid:'三十日',
+  qdSales:'',qdSalesTel:'',
+  qdNotes:'1：　以上價格為未稅價。\n2：　本報價僅供參考，實際價格以訂單確認為準。\n3：　特殊規格或需求，請先行告知。\n4：　如有任何問題，歡迎隨時與我們聯繫。'
+ };
+ Object.entries(values).forEach(([id,v])=>{if($(id))$(id).value=v});
+ const company=$('qdCustomer')?.value;
+ const customer=master().customers.find(x=>norm(x.name)===norm(company));
+ if(customer){for(const [id,key] of [['qdContact','contact'],['qdTel','tel'],['qdFax','fax']])if($(id)&&customer[key])$(id).value=customer[key]}
+}
+function installFormalSave(){const panel=$('quoteDocument');if(!panel)return;let row=panel.querySelector('.btnrow');if(row&&!$('r73SaveFormal')){const b=document.createElement('button');b.id='r73SaveFormal';b.type='button';b.className='primary';b.textContent='儲存正式報價';b.onclick=saveFormal;row.prepend(b)}if(!$('r73FormalList')){const box=document.createElement('div');box.id='r73FormalList';box.className='r73-formal-list';panel.querySelector('.card')?.appendChild(box)}renderFormalList();if(!window.__r73OpenQuoteWrapped&&typeof window.openQuoteDocument==='function'){const old=window.openQuoteDocument;window.openQuoteDocument=function(){currentFormalId=null;const result=old.apply(this,arguments);resetFreshQuoteDefaults();if($('qdNo'))$('qdNo').value=nextUnusedQuoteNo();window.renderQuoteDocument?.();return result};window.__r73OpenQuoteWrapped=true}}
 
 function boot(){installCss();setVersion();installProjectFields();installBackTop();installQuoteCandidates();installOcr();installCardActions();installFormalSave();let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;setVersion();$$('.r72-top').forEach(x=>x.remove());installProductCandidates();productInfo('qCustomer','qProductName');productInfo('qdCustomer','qdItemsEditor');installCardActions();renderFormalList()})}).observe(document.body,{childList:true,subtree:true});window.addEventListener('hashchange',()=>setTimeout(()=>{installProjectFields();installQuoteCandidates();installBackTop();installCardActions();installFormalSave()},80))}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,160));else setTimeout(boot,160);

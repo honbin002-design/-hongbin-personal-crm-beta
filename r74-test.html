@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R74 隔離測試啟動</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC',sans-serif;background:#10171e;color:#f4f0e8;margin:0;padding:28px 18px;font-size:18px;line-height:1.7}.container{max-width:600px;margin:auto}.notice{border:2px solid #e6b055;border-radius:12px;padding:18px;background:#302410}a{color:#ffcf83}</style></head>
+<body><main class="container"><h1>鴻繽科技 CRM｜R74 TEST</h1><div class="notice" id="status" role="status">正在核對測試網域，並準備不含正式資料的示範內容……</div><p>此頁面僅限 GitHub Codespaces 私人預覽，不允許在 R73 正式 GitHub Pages 上執行。</p></main>
+<script>
+(()=>{
+'use strict';
+const box=document.getElementById('status');
+const hostname=location.hostname.toLowerCase();
+const safe=(hostname==='localhost'||hostname==='127.0.0.1'||hostname.endsWith('.app.github.dev'));
+if(!safe){
+  box.textContent='安全保護：目前不是隔離的 GitHub Codespaces TEST 網域。已停止初始化，沒有讀寫任何正式資料。';
+  return;
+}
+try{
+  const sampleMaster={
+    customers:[
+      {name:'R74測試客戶甲',address:'測試市示範路 1 號',deliveryAddress:'測試倉庫',invoiceAddress:'測試市示範路 1 號',taxId:'00000000',contact:'林測試',tel:'06-0000000',mobile:'0900-000-001',fax:'06-0000001'},
+      {name:'R74測試客戶乙',address:'測試市示範路 2 號',contact:'王測試',tel:'06-0000002'}
+    ],
+    products:[{customerName:'R74測試客戶甲',name:'R74示範產品',customerPartNo:'R74-C-001',supplierPartNo:'R74-S-001',supplierName:'R74測試供應商',unit:'kg',package:'20 kg',price:150}],
+    suppliers:[{supplierName:'R74測試供應商',name:'R74示範產品',partNo:'R74-S-001',unit:'kg',package:'20 kg'}],
+    updatedAt:''
+  };
+  const sampleCrm={
+    projects:[{id:740101,name:'R74示範專案',customerId:740001,customerName:'R74測試客戶甲',stage:'進行中',owner:'R74測試',supplier:'R74測試供應商',followDate:''}],
+    contacts:[{id:740301,who:'測試聯絡追蹤',customerId:740001,customerName:'R74測試客戶甲',date:'',note:'這是測試追蹤紀錄，不是名片聯絡人',nextContactDate:''}],
+    commands:[],quotes:[],todos:[],
+    customers:[{id:740001,name:'R74測試客戶甲'},{id:740002,name:'R74測試客戶乙'}],
+    visits:[{id:740401,customerId:740001,customerName:'R74測試客戶甲',date:'',note:'R74 示範拜訪，不涉及正式客戶',next:'追蹤示範'}]
+  };
+  const demo={
+    'hongbin_crm_master_r70':sampleMaster,
+    'hongbin_personal_crm_v3':sampleCrm,
+    'hongbin_crm_cards_r70':[{id:740501,customerId:740001,company:'R74測試客戶甲',customerName:'R74測試客戶甲',name:'陳測試',title:'測試採購',mobile:'0900-000-002',email:'demo@example.invalid'}],
+    'hongbin_crm_project_progress_r72':{'740101':{progress:'送樣中',note:'R74 TEST 資料，不得當正式交易'}},
+    'hongbin_crm_formal_quotes_r73':[]
+  };
+  // Codespaces is a different HTTPS origin; never clear or overwrite pre-existing keys.
+  for(const [key,value] of Object.entries(demo)){
+    if(localStorage.getItem(key)===null)localStorage.setItem(key,JSON.stringify(value));
+  }
+  box.textContent='隔離網域確認通過，測試資料已準備。正在開啟 R74 TEST……';
+  location.replace('./index.html#home');
+}catch(e){
+  box.textContent='測試資料初始化失敗：'+String(e?.message||e)+'。未前往正式網站。';
+}
+})();
+</script>
+</body></html>
