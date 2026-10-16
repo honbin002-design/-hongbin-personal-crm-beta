@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install WebKit
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npm install --no-save --no-audit --no-fund playwright@1.56.1 html2canvas@1.4.1 jspdf@2.5.1
           npx playwright install --with-deps webkit
       - name: Verify standalone five-module CRM using synthetic data
         run: |
