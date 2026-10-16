@@ -8,7 +8,7 @@ function master(){return Object.assign({customers:[],products:[],suppliers:[]},r
 function field(label,value){return '<div class="r74-field"><b>'+esc(label)+'</b><span>'+esc(value||'—')+'</span></div>'}
 function installCss(){
  if($('r74Style'))return;
- const s=document.createElement('style');s.id='r74Style';s.textContent='.r74-field{display:grid;grid-template-columns:minmax(90px,33%) 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #42484d;overflow-wrap:anywhere}.r74-field b{color:#d3bca0}.r74-panel{margin:12px 0}.r74-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.r74-grid a{display:block;padding:13px;background:#262c32;border:1px solid #8e734e;border-radius:8px;text-align:center;color:#fff;text-decoration:none}.r74-list{max-height:65vh;overflow:auto}.r74-item{padding:12px 4px;border-bottom:1px solid #454b50}.r74-item b{display:block;color:#f2e5d8}.r74-item small{display:block;font-size:14px;line-height:1.5;color:#d8cfc4}.r74-summary{color:#dbd0bf;padding:7px 0}.r74-customer-note{padding:9px;color:#e6d0b4}#quoteDocument .q-editor-grid{display:grid!important;visibility:visible!important}.r74-preview{padding:9px;margin-top:9px;border:1px solid #555;border-radius:6px;background:#1a2026}#r74OcrRaw{width:100%;height:130px;white-space:pre-wrap;resize:vertical}';
+ const s=document.createElement('style');s.id='r74Style';s.textContent='.r74-field{display:grid;grid-template-columns:minmax(90px,33%) 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #42484d;overflow-wrap:anywhere}.r74-field b{color:#d3bca0}.r74-panel{margin:12px 0}.r74-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.r74-grid a{display:block;padding:13px;background:#262c32;border:1px solid #8e734e;border-radius:8px;text-align:center;color:#fff;text-decoration:none}.r74-list{max-height:65vh;overflow:auto}.r74-item{padding:12px 4px;border-bottom:1px solid #454b50}.r74-item b{display:block;color:#f2e5d8}.r74-item small{display:block;font-size:14px;line-height:1.5;color:#d8cfc4}.r74-summary{color:#dbd0bf;padding:7px 0}.r74-customer-note{padding:9px;color:#e6d0b4}#quoteDocument .q-editor-grid{display:grid!important;visibility:visible!important}.nav{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}.nav a,.nav #r74MoreNav{font-size:14px!important;min-height:46px!important;padding:7px 2px!important;line-height:1.2!important}.nav .r74-nav-secondary{display:none!important}.nav.r74-more-open .r74-nav-secondary{display:flex!important}.nav #r74MoreNav{width:100%!important;border:1px solid #8e734e!important;border-radius:10px!important}.r74-preview{padding:9px;margin-top:9px;border:1px solid #555;border-radius:6px;background:#1a2026}#r74OcrRaw{width:100%;height:130px;white-space:pre-wrap;resize:vertical}';
  document.head.appendChild(s)
 }
 function customerName(id){const crm=read(CRM,{});return (crm.customers||[]).find(x=>String(x.id)===String(id))?.name||''}
@@ -68,6 +68,33 @@ function organizeExistingForms(){
  const masterTitle=$('r70MasterCard')?.querySelector('h2,.section-title');
  if(masterTitle&&/主資料管理/.test(masterTitle.textContent||''))masterTitle.textContent='Excel 主資料匯入／匯出（系統管理）';
 }
+
+function organizeNavigation(){
+ const nav=document.querySelector('nav.nav');if(!nav||nav.dataset.r74Nav==='1')return;
+ const mappings=[
+  ['customers','客戶'],['r74Suppliers','供應商'],['r74Products','產品'],['projects','專案'],
+  ['r74Visits','拜訪'],['quotes','報價'],['businessCardScan','名片'],['contacts','聯絡追蹤'],
+  ['commands','指令'],['todos','待辦'],['settings','設定']];
+ const existing=[...nav.querySelectorAll('a[href^="#"]')];
+ const ordered=mappings.map(([id,label])=>{
+   const a=existing.find(x=>x.getAttribute('href')==='#'+id);
+   if(!a)return null;
+   a.textContent=label;
+   a.classList.toggle('r74-nav-secondary',!['customers','r74Suppliers','r74Products','projects','r74Visits','quotes'].includes(id));
+   return a;
+ }).filter(Boolean);
+ const more=document.createElement('button');more.type='button';more.id='r74MoreNav';more.className='secondary r74-more-btn';more.textContent='更多功能 ▼';more.setAttribute('aria-expanded','false');
+ more.onclick=()=>{
+  const expanded=nav.classList.toggle('r74-more-open');
+  more.textContent=expanded?'收合 ▲':'更多功能 ▼';
+  more.setAttribute('aria-expanded',String(expanded));
+ };
+ ordered.slice(0,6).forEach(a=>nav.appendChild(a));
+ nav.appendChild(more);
+ ordered.slice(6).forEach(a=>nav.appendChild(a));
+ nav.querySelectorAll('a.r74-nav-secondary').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('r74-more-open');more.textContent='更多功能 ▼';more.setAttribute('aria-expanded','false')}));
+ nav.dataset.r74Nav='1';
+}
 function installProjectPreviews(){
  const box=$('projectList');if(!box)return;
  const enhance=()=>{box.querySelectorAll('[id^="record-projects-"]').forEach(item=>{if(item.querySelector('.r74-project-toggle'))return;const id=item.id.slice('record-projects-'.length);const actions=item.querySelector('.record-actions');if(!actions)return;const b=document.createElement('button');b.type='button';b.className='secondary r74-project-toggle';b.textContent='查看詳情';b.addEventListener('click',()=>{let details=item.querySelector('.r74-preview');if(details){details.remove();return}const p=(read(CRM,{}).projects||[]).find(x=>String(x.id)===id);if(!p)return;const pr=read(PROGRESS,{}),r=pr[id]||pr[p.name]||{};details=document.createElement('div');details.className='r74-preview';details.innerHTML=field('專案',p.name)+field('客戶',p.customerName)+field('供應商',p.supplier)+field('負責人',p.owner)+field('階段',p.stage)+field('進度',r.progress||p.progress)+field('進度註記',r.note||p.progressNote)+field('追蹤日期',p.followDate);item.appendChild(details)});actions.prepend(b)})};
@@ -79,17 +106,11 @@ function installOcrRaw(){
  panel.appendChild(box);
  if(window.R74_LAST_OCR_RAW)$('r74OcrRaw').value=window.R74_LAST_OCR_RAW;
 }
-function auditProjectSelects(){
- const stage=$('pStage'),progress=$('pProgress');
- const sync=(el,values)=>{if(!el||el.tagName!=='SELECT')return;const actual=[...el.options].map(o=>o.value);if(actual.length===values.length&&actual.every((v,i)=>v===values[i]))return;const current=el.value;el.replaceChildren(...values.map((v,i)=>{const o=document.createElement('option');o.value=v;o.textContent=v||'未設定';return o}));if(values.includes(current))el.value=current};
- sync(stage,['進行中','已成交','暫停','結案','取消']);
- sync(progress,['','初步接洽','需求確認','送樣中','客戶測試中','報價中','待客戶確認','待採購確認','成交準備']);
-}
 function clarifyQuoteEntry(){
  const sec=$('quotes'),doc=$('quoteDocument');
  if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
  if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeExistingForms();installProjectPreviews();installOcrRaw();auditProjectSelects();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')auditProjectSelects();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();installProjectPreviews();installOcrRaw();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
