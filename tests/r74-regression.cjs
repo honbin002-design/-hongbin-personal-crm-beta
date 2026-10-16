@@ -78,4 +78,24 @@ async function cardTest(){
  assert.equal(cards[0].name,'王小華');
  assert.equal(ctx.reloadCount,1);
 }
-cardTest().then(()=>{console.log('R74 regression PASS: syntax, branch loader, PDF fallback, quote uniqueness, legacy edits, card linking, read-only master views')}).catch(e=>{console.error(e);process.exitCode=1});
+function customer360Test(){
+ const data=new Map(),els=new Map(),writes=[];
+ data.set('hongbin_crm_master_r70',JSON.stringify({customers:[{name:'敏翔',taxId:'12345678',contact:'林小姐',tel:'06-1234567'}],products:[{customerName:'敏翔',name:'測試產品',customerPartNo:'C-01'}],suppliers:[]}));
+ data.set('hongbin_crm_cards_r70',JSON.stringify([{company:'敏翔',name:'名片聯絡人甲'},{company:'其他',name:'不該顯示'}]));
+ const panel={appendChild(el){els.set(el.id,el)},querySelector(){return null}};
+ els.set('customer360',panel);
+ const makeElement=()=>({id:'',innerHTML:'',className:'',style:{},children:[],appendChild(child){this.children.push(child)}});
+ const context={
+  window:{},document:{readyState:'loading',addEventListener(){},getElementById:id=>els.get(id),createElement:makeElement},
+  localStorage:{getItem:k=>data.get(k)||null,setItem:(...args)=>writes.push(args)},
+  setTimeout(){},console:{},MutationObserver:class{}
+ };
+ const src=fs.readFileSync('r74-fixes.js','utf8').replace(/\}\)\(\);\s*$/, 'window.__tests={showCustomerDetails};})();');
+ vm.runInNewContext(src,context,{filename:'r74-fixes.js'});
+ context.window.__tests.showCustomerDetails('敏翔',88);
+ const html=els.get('r74CustomerDetails').innerHTML;
+ for(const expected of ['12345678','名片聯絡人甲','測試產品','C-01'])assert(html.includes(expected),'Customer 360 must show '+expected);
+ assert(!html.includes('不該顯示'),'Customer 360 must not cross-link unrelated company cards');
+ assert.equal(writes.length,0);
+}
+cardTest().then(()=>{customer360Test();console.log('R74 regression PASS: syntax, branch loader, PDF fallback, quote uniqueness, legacy edits, card links, customer 360 and read-only views')}).catch(e=>{console.error(e);process.exitCode=1});
