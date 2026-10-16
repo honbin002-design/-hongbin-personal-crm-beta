@@ -6,6 +6,7 @@ on:
       - 'index.html'
       - 'simple-core.js'
       - 'sw.js'
+      - 'tests/r73-simple-acceptance.cjs'
       - '.github/workflows/r73-activate.yml'
   workflow_dispatch:
 permissions:
@@ -42,3 +43,13 @@ jobs:
           assert 'withR73(' not in sw
           print('R73 simplified release safety checks PASS')
           PY
+      - name: Install iPhone WebKit and PDF libraries
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1 html2canvas@1.4.1 jspdf@2.5.1
+          npx playwright install --with-deps webkit
+      - name: Verify quote original layout, task time, Enter navigation, and all five modules
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/r73-simple-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          node tests/r73-simple-acceptance.cjs
