@@ -1,6 +1,6 @@
 'use strict';
 const {webkit,devices}=require('playwright'),assert=require('node:assert/strict');
-const base='http://127.0.0.1:8765/simple-preview.html';
+const base='http://127.0.0.1:8765/index.html';
 const fixtures={
 'hongbin_crm_master_r70':{customers:[{name:'測試甲公司',contact:'林小姐',tel:'06-0000000',address:'虛構地址'}],products:[{name:'既有產品',customerName:'測試甲公司'}],suppliers:[]},
 'hongbin_personal_crm_v3':{customers:[{id:101,name:'測試甲公司'}],projects:[],todos:[],contacts:[{id:33,who:'舊聯絡記錄'}],commands:[{id:34,task:'舊指令'}],visits:[],quotes:[]},
