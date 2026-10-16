@@ -76,7 +76,7 @@ let browser;
  // A completely fresh, isolated origin must seed synthetic TEST records without a real customer's data.
  const demoContext=await browser.newContext({...devices['iPhone 13'],serviceWorkers:'block'});
  const demo=await demoContext.newPage();demo.on('pageerror',e=>errors.push('TEST launcher: '+e.message));
- await demo.goto(base+'/r74-test.html',{waitUntil:'domcontentloaded'});
+ await demo.goto(base+'/',{waitUntil:'domcontentloaded'});
  await demo.waitForURL('**/index.html#home',{timeout:15000});
  await demo.waitForFunction(()=>!!document.getElementById('r74TestBanner'),null,{timeout:15000});
  const demoState=await demo.evaluate(()=>({
