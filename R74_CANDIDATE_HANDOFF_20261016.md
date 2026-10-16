@@ -76,3 +76,14 @@
 - 新增及擴充無破壞性程式回歸測試；目前在隔離 JS 模擬環境跑整份回歸測試 PASS，亦已檢查 WebKit 測試程式的語法。
 - iPhone TEST 不得放在 `honbin002-design.github.io` 同源網域的另一子路徑，否則會共用正式 Local Storage；TEST 必須獨立來源網域且僅使用測試資料。
 - 未取得實際獨立 TEST 網址，正式 GitHub Pages 不變；PDF 真正輸出與手機排版仍須實機驗收。
+
+## 2026-10-16 iPhone 實機 TEST 入口異常（仍未 PASS）
+- 使用者已建立 Codespace `improved-computing-machine-p7gww44979x4c7v5j`，測試獨立埠 `4174`。
+- iPhone Safari 開啟 `https://improved-computing-machine-p7gww44979x4c7v5j-4174.app.github.dev/` 與 `/r74-test.html` **均全白**；未出現 R74 TEST 啟動提示。
+- **標記：R74 LIVE TEST ENTRY FAIL / BLOCKED。禁止把 GitHub Actions 20／20 自動化 PASS 當作私人 Safari Codespaces 入口 PASS。**
+- GitHub Actions 公開儲存庫 Runner（與 Codespaces 私人轉送層不同）已實測 WebKit `checks=20`、`pageErrors=[]`，包含真實 jsPDF 二進位檔案格式驗證；最新已知成功執行：`38873128698`。
+- 目前 GitHub 連接器沒有已授權的 Codespaces 遠端進程、埠診斷或終端指令功能；無法讀取使用者私人 Codespace 內 `4174` 監聽狀態、程序日誌或 iPhone Safari 的授權回應。
+- 官方 Codespaces 文件說明：私人埠須成功通過 GitHub 驗證，且服務必須正在 Codespace 執行；GitHub WebKit runner 本機成功不代表 Codespaces 的私人轉送服務可達。不可盲猜單一根因。
+- 使用者明確拒絕 Netlify，且無電腦、要求不再進行繁複 UI 操作。**不得要求反覆找 PORTS、終端機、輸入大量指令，或請使用者切 Public 埠來繞過私人權限。**
+- 先維持 R74 為獨立施工分支／Draft PR，正式 R73/main 不部署、不合併。後續只有在能獲得私人埠診斷授權或取得安全、簡單的 GitHub-only 檢視方式時，才重新開始實機驗收。
+- Codespace 仍執行時會持續計入使用量；若暫停測試，建議從 GitHub 的 Codespaces 管理頁停止。請勿以「更換網址」重複嘗試相同私人埠。
