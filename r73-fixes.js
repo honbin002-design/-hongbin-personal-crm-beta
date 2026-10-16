@@ -10,10 +10,10 @@ const json=(key,fallback)=>{try{const v=JSON.parse(localStorage.getItem(key)||'n
 const put=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
 function master(){return Object.assign({customers:[],products:[],suppliers:[]},json(MASTER,{}))}
 function setVersion(){
-  window.CRM_VERSION='R73';
-  document.title='鴻繽科技 CRM｜R73 Integrated Beta';
+  window.CRM_VERSION='R74-TEST';
+  document.title='鴻繽科技 CRM｜R74 TEST 候選版';
   document.querySelectorAll('.content,.status,.sub').forEach(el=>{
-    if(/目前版本：R\d+/.test(el.textContent||'')){const next=el.innerHTML.replace(/目前版本：R\d+(?: Integrated Beta)?/g,'目前版本：R73 Integrated Beta');if(next!==el.innerHTML)el.innerHTML=next}
+    if(/目前版本：R\d+/.test(el.textContent||'')){const next=el.innerHTML.replace(/目前版本：R\d+(?: Integrated Beta| TEST 候選版)?/g,'目前版本：R74 TEST 候選版');if(next!==el.innerHTML)el.innerHTML=next}
   });
 }
 function installCss(){
