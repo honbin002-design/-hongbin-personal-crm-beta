@@ -13,6 +13,8 @@ assert(pdfSource.includes("shareError?.name==='AbortError'"));
 const overlay=fs.readFileSync('r74-fixes.js','utf8');
 assert(!overlay.includes('localStorage.setItem('),'New read-only hubs must never write to official master data');
 assert(!overlay.includes('localStorage.removeItem('),'Read-only hubs must never delete official master data');
+const legacyGuard=fs.readFileSync('r73-fixes.js','utf8');
+assert(!legacyGuard.includes('if(normalizeProjects()&&'),'R74 may not rewrite historical project stages on page load');
 
 function fixture(){
  const data=new Map(),elements=new Map(),alerts=[];
@@ -90,7 +92,7 @@ async function cardTest(){
 function customer360Test(){
  const data=new Map(),els=new Map(),writes=[];
  data.set('hongbin_crm_master_r70',JSON.stringify({customers:[{name:'敏翔',taxId:'12345678',contact:'林小姐',tel:'06-1234567'}],products:[{customerName:'敏翔',name:'測試產品',customerPartNo:'C-01'}],suppliers:[]}));
- data.set('hongbin_crm_cards_r70',JSON.stringify([{company:'敏翔',name:'名片聯絡人甲'},{company:'其他',name:'不該顯示'}]));
+ data.set('hongbin_crm_cards_r70',JSON.stringify([{company:'敏翔',name:'名片聯絡人甲'},{company:'敏翔',customerId:999,name:'錯誤客戶ID不可顯示'},{company:'其他',name:'不該顯示'}]));
  const panel={appendChild(el){els.set(el.id,el)},querySelector(){return null}};
  els.set('customer360',panel);
  const makeElement=()=>({id:'',innerHTML:'',className:'',style:{},children:[],appendChild(child){this.children.push(child)}});
@@ -105,6 +107,7 @@ function customer360Test(){
  const html=els.get('r74CustomerDetails').innerHTML;
  for(const expected of ['12345678','名片聯絡人甲','測試產品','C-01'])assert(html.includes(expected),'Customer 360 must show '+expected);
  assert(!html.includes('不該顯示'),'Customer 360 must not cross-link unrelated company cards');
+ assert(!html.includes('錯誤客戶ID不可顯示'),'Customer 360 must prioritize saved card customerId over company name');
  assert.equal(writes.length,0);
 }
 cardTest().then(()=>{customer360Test();console.log('R74 regression PASS: syntax, branch loader, PDF fallback, quote uniqueness, legacy edits, card links, customer 360 and read-only views')}).catch(e=>{console.error(e);process.exitCode=1});
