@@ -74,7 +74,7 @@ function keepVisitFlowConsistent(){
  if(typeof window.addVisit!=='function'||typeof window.editVisit!=='function')return;
  const originalAdd=window.addVisit,originalEdit=window.editVisit;
  window.addVisit=function(){const result=originalAdd.apply(this,arguments);$('r74Visits')?.r74Render?.();return result};
- window.editVisit=function(id){const result=originalEdit.apply(this,arguments);location.hash='r74Visits';setTimeout(()=>{const form=$('vCustomer');if(form)form.scrollIntoView({behavior:'smooth',block:'center'})},70);return result};
+ window.editVisit=function(id){const numId=Number(id),resolved=Number.isSafeInteger(numId)&&String(numId)===String(id)?numId:id;const result=originalEdit.call(this,resolved);location.hash='r74Visits';setTimeout(()=>{const form=$('vCustomer');if(form)form.scrollIntoView({behavior:'smooth',block:'center'})},70);return result};
  window.__r74VisitFlowWrapped=true;
 }
 function organizeNavigation(){
