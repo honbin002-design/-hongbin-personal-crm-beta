@@ -3,7 +3,7 @@ const {webkit,devices}=require('playwright'),assert=require('node:assert/strict'
 const base='http://127.0.0.1:8765/index.html';
 const fixtures={
 'hongbin_crm_master_r70':{customers:[{name:'測試甲公司',contact:'林小姐',tel:'06-0000000',address:'虛構地址'}],products:[{name:'既有產品',customerName:'測試甲公司'}],suppliers:[]},
-'hongbin_personal_crm_v3':{customers:[{id:101,name:'測試甲公司'}],projects:[],todos:[],contacts:[{id:33,who:'舊聯絡記錄'}],commands:[{id:34,task:'舊指令'}],visits:[],quotes:[]},
+'hongbin_personal_crm_v3':{customers:[{id:101,name:'測試甲公司'}],projects:[{id:810,name:'舊ID專案',customerId:101,stage:'進行中',owner:'林測試'}],todos:[{id:809,text:'舊版未排日期事項',date:'',done:false}],contacts:[{id:33,who:'舊聯絡記錄'}],commands:[{id:34,task:'舊指令'}],visits:[],quotes:[]},
 'hongbin_crm_formal_quotes_r73':[{id:77,fields:{qdNo:'QTEST-001',qdCustomer:'測試甲公司',qdDate:'2026-10-16',qdNotes:'歷史備註'},items:[{name:'舊報價品項',price:100,qty:2}]}],
 'hongbin_crm_project_progress_r72':{}
 };
@@ -39,6 +39,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).customers.some(x=>x.name==='R74虛構新客戶')),'主資料沿用原本儲存位置');
  await page.locator('button[data-tab="calendar"]').click();
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
+ check((await page.locator('#todoList').innerText()).includes('舊版未排日期事項'),'舊版未指定日期待辦仍可看到');
+
  const originalSelected=(await page.locator('#selectedDayTitle').innerText()).slice(0,7);
  await page.locator('#nextMonth').click();
  const nextMonthTitle=await page.locator('#calTitle').innerText();
@@ -52,6 +54,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#todoList input[type="checkbox"]').first().check();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.done)),'待辦完成狀態持久保存');
  await page.locator('button[data-tab="projects"]').click();
+ await page.locator('#projectSearch').fill('舊ID專案');
+ check((await page.locator('#projectList').innerText()).includes('測試甲公司'),'舊版只有 customerId 的專案正確顯示客戶');
+ await page.locator('#projectList [data-project]').first().click();
+ check((await page.locator('#pCustomer').inputValue())==='測試甲公司','舊版只有 customerId 的專案可打開編輯且不遺失客戶');
+ await page.locator('#cancelProject').click();
+ await page.locator('#projectSearch').fill('');
+
  await page.locator('#newProject').click();await page.locator('#pName').fill('R74測試專案');await page.locator('#pCustomer').fill('測試甲公司');await page.locator('#pProgress').selectOption('送樣中');await page.locator('#pNote').fill('第一筆追蹤紀錄');await page.locator('#saveProject').click();
  check((await page.locator('#projectList').innerText()).includes('R74測試專案'),'新專案儲存成功');
  await page.locator('#projectList [data-project]').first().click();
