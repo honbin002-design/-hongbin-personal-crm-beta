@@ -20,7 +20,7 @@ jobs:
         run: node tests/r74-regression.cjs
       - name: Install browser for isolated mobile test
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npm install --no-save --no-audit --no-fund playwright@1.56.1 html2canvas@1.4.1 jspdf@2.5.1
           npx playwright install --with-deps webkit
       - name: Run mobile WebKit smoke test on loopback only
         shell: bash
