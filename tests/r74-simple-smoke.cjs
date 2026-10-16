@@ -39,6 +39,14 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).customers.some(x=>x.name==='R74虛構新客戶')),'主資料沿用原本儲存位置');
  await page.locator('button[data-tab="calendar"]').click();
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
+ const originalSelected=(await page.locator('#selectedDayTitle').innerText()).slice(0,7);
+ await page.locator('#nextMonth').click();
+ const nextMonthTitle=await page.locator('#calTitle').innerText();
+ const selectedMonth=(await page.locator('#selectedDayTitle').innerText()).slice(0,7);
+ check(nextMonthTitle.includes(String(Number(selectedMonth.slice(5,7)))+' 月')&&selectedMonth!==originalSelected,'切換月份時，選取日期與顯示月曆一致');
+ await page.locator('#prevMonth').click();
+ check((await page.locator('#selectedDayTitle').innerText()).startsWith(originalSelected),'回到上月可恢復該月待辦');
+
  await page.locator('#newTodo').click();await page.locator('#tText').fill('R74行事曆事項');await page.locator('#saveTodo').click();
  check((await page.locator('#todoList').innerText()).includes('R74行事曆事項'),'待辦儲存並顯示在選定日期');
  await page.locator('#todoList input[type="checkbox"]').first().check();
@@ -59,6 +67,26 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項')),'還原備份可恢復待辦資料');
 
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).commands[0].task==='舊指令'),'未顯示的舊資料仍保留');
+ // Import older R50 backup without deleting the separate modern master-data key.
+ const oldMaster=await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'));
+ const r50={version:3,app:'鴻繽科技 CRM',schema:'R50',data:{customers:[{id:501,name:'舊版R50客戶'}],projects:[],todos:[],contacts:[],commands:[],quotes:[],visits:[]}};
+ await page.locator('#restoreFile').setInputFiles({name:'legacy-R50.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(r50))});
+ await page.locator('#restoreBackup').click();
+ await page.waitForLoadState('load');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).customers.some(x=>x.name==='舊版R50客戶')),'R50 舊備份可還原原始 CRM');
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'))===oldMaster,'R50 還原不覆蓋較新客戶主資料');
+ const r70={version:4,app:'鴻繽科技 CRM',schema:'R70',data:{customers:[{id:701,name:'舊版R70客戶'}],projects:[],todos:[],contacts:[],commands:[],quotes:[],visits:[]},masterData:{customers:[{name:'舊版R70客戶',contact:'測試'}],products:[],suppliers:[]},cards:[],settings:{test:true}};
+ await page.locator('#restoreFile').setInputFiles({name:'legacy-R70.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(r70))});
+ await page.locator('#restoreBackup').click();
+ await page.waitForLoadState('load');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).customers.some(x=>x.name==='舊版R70客戶')),'R70 舊完整備份可還原客戶主資料');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).customers.some(x=>x.name==='舊版R70客戶')),'R70 舊完整備份可還原 CRM');
+ const intact=await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'));
+ const broken={version:4,app:'鴻繽科技 CRM',schema:'R70',data:{customers:'無效陣列'},masterData:{customers:[],products:[],suppliers:[]}};
+ await page.locator('#restoreFile').setInputFiles({name:'invalid-R70.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(broken))});
+ await page.locator('#restoreBackup').click();
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'))===intact,'拒絕資料結構錯誤的備份，不覆蓋現有資料');
+
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R74 SIMPLE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
 })().catch(async e=>{console.error('R74 SIMPLE WEBKIT FAIL',e.stack||String(e));try{await browser?.close()}catch{}process.exitCode=1});
