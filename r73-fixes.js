@@ -123,19 +123,19 @@ function parseCardText(raw){
     const line=lines.find(x=>pattern.test(x));if(!line)return'';
     const match=line.match(pattern);return (match?.[1]||'').trim();
   };
-  const labeledCompany=labeled(/^(?:公司名稱|公司|企業名稱|Company|Corporation)\\s*[:：\\-]\\s*(.+)$/i);
+  const labeledCompany=labeled(/^(?:公司名稱|公司|企業名稱|Company|Corporation)\s*[:：\-]\s*(.+)$/i);
   if(labeledCompany&&labeledCompany.length<100)out.company=labeledCompany;
-  const labeledName=labeled(/^(?:姓名|聯絡人|Contact\\s*Person|Contact Name|Name)\\s*[:：\\-]\\s*(.+)$/i).replace(/(?:董事長|總經理|經理|副理|主任|專員|工程師)$/,'').trim();
-  if(/^[\\u3400-\\u9fff·]{2,5}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(labeledName))out.name=labeledName;
-  const labeledTitle=labeled(/^(?:職稱|職務|Title|Position)\\s*[:：\\-]\\s*(.+)$/i);
+  const labeledName=labeled(/^(?:姓名|聯絡人|Contact\s*Person|Contact Name|Name)\s*[:：\-]\s*(.+)$/i).replace(/(?:董事長|總經理|經理|副理|主任|專員|工程師)$/,'').trim();
+  if(/^[\u3400-\u9fff·]{2,5}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(labeledName))out.name=labeledName;
+  const labeledTitle=labeled(/^(?:職稱|職務|Title|Position)\s*[:：\-]\s*(.+)$/i);
   if(labeledTitle)out.title=labeledTitle;
-  const labeledAddress=labeled(/^(?:公司地址|地址|Address|Addr\\.?)\\s*[:：\\-]\\s*(.+)$/i);
+  const labeledAddress=labeled(/^(?:公司地址|地址|Address|Addr\.?)\s*[:：\-]\s*(.+)$/i);
   if(labeledAddress)out.address=labeledAddress;
-  const labeledTel=cleanPhone(labeled(/^(?:電話|TEL|Phone|Office)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  const labeledTel=cleanPhone(labeled(/^(?:電話|TEL|Phone|Office)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
   if(labeledTel)out.tel=labeledTel;
-  const labeledMobile=cleanPhone(labeled(/^(?:手機|行動電話|Mobile|Cell)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  const labeledMobile=cleanPhone(labeled(/^(?:手機|行動電話|Mobile|Cell)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
   if(labeledMobile)out.mobile=labeledMobile;
-  const labeledFax=cleanPhone(labeled(/^(?:傳真|FAX|Facsimile)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  const labeledFax=cleanPhone(labeled(/^(?:傳真|FAX|Facsimile)\s*[:：\-]\s*([+0-9()#xXextEXT分機.\-\s]{7,})$/i));
   if(labeledFax)out.fax=labeledFax;
   const set=(id,v)=>{if($(id))$(id).value=v||''};Object.entries({bcCompany:out.company,bcName:out.name,bcTitle:out.title,bcMobile:out.mobile,bcTel:out.tel,bcFax:out.fax,bcEmail:out.email,bcAddress:out.address,bcWebsite:out.website}).forEach(([id,v])=>set(id,v));return out;
 }
