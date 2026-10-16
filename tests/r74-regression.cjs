@@ -37,7 +37,7 @@ function fixture(){
  return {data,elements,alerts,h:window.__tests,get reloadCount(){return reloadCount}};
 }
 const ocr=fixture();
-const cardSample='公司: R74測試股份有限公司\\n姓名: 陳小明\\n職稱: 經理\\n手機: 0912-345-678\\n電話: 06-1234567\\n傳真: 06-7654321\\n地址: 台南市測試路3號\\nEmail: test@example.com';
+const cardSample='公司: R74測試股份有限公司\n姓名: 陳小明\n職稱: 經理\n手機: 0912-345-678\n電話: 06-1234567\n傳真: 06-7654321\n地址: 台南市測試路3號\nEmail: test@example.com';
 const parsed=ocr.h.parseCardText(cardSample);
 assert.equal(parsed.company,'R74測試股份有限公司');
 assert.equal(parsed.name,'陳小明');
