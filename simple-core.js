@@ -104,7 +104,7 @@ function renderCalendar(){const year=monthDate.getFullYear(),month=monthDate.get
 function renderTodos(){
  const all=todoItems(),day=all.filter(t=>t.date===selectedDate).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99')),undated=all.filter(t=>!String(t.date||'').trim());
  $('selectedDayTitle').textContent=selectedDate+' 的待辦（'+day.length+'）';
- const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="listTitle">'+esc(t.text||'未命名待辦')+'</span></label>'+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<button type="button" class="secondary" data-todo="'+esc(t.id)+'">修改</button></div>';
+ const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="listTitle">'+(t.time?'<span class="pill">'+esc(t.time)+'</span>　':'')+esc(t.text||'未命名待辦')+'</span></label>'+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<button type="button" class="secondary" data-todo="'+esc(t.id)+'">修改</button></div>';
  $('todoList').innerHTML=(day.length?day.map(item).join(''):htmlListEmpty('當天沒有待辦'))+(undated.length?'<h3>尚未安排日期的待辦（'+undated.length+'）</h3><div class="muted">舊版未填日期的待辦仍保留，可按修改安排日期。</div>'+undated.map(item).join(''):'');
 }
 function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tTime').value=t?.time||'';$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
