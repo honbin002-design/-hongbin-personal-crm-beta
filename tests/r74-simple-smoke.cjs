@@ -12,7 +12,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
 (async()=>{
  browser=await webkit.launch({headless:true});
  const ctx=await browser.newContext({...devices['iPhone 13'],acceptDownloads:true,serviceWorkers:'block'});
- const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+ const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
  await page.addInitScript(data=>{for(const [k,v] of Object.entries(data))localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
  check(await page.locator('.nav button').count()===5,'僅保留五個主選單');
@@ -72,7 +72,9 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#restoreBackup').click();
  await page.waitForLoadState('load');
  await page.locator('button[data-tab="backup"]').click();
- check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項')),'還原備份可恢復待辦資料');
+ const restoredTodos=await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')||'{}').todos||[]);
+ check(restoredTodos.some(x=>x.text==='R74行事曆事項'),'還原備份可恢復待辦資料；訊息：'+dialogs.slice(-3).join('｜'));
+
 
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).commands[0].task==='舊指令'),'未顯示的舊資料仍保留');
  // Import older R50 backup without deleting the separate modern master-data key.
