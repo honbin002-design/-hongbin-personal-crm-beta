@@ -64,6 +64,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#restoreFile').setInputFiles(jsonBackupPath);
  await page.locator('#restoreBackup').click();
  await page.waitForLoadState('load');
+ await page.locator('button[data-tab="backup"]').click();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項')),'還原備份可恢復待辦資料');
 
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).commands[0].task==='舊指令'),'未顯示的舊資料仍保留');
@@ -73,12 +74,14 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#restoreFile').setInputFiles({name:'legacy-R50.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(r50))});
  await page.locator('#restoreBackup').click();
  await page.waitForLoadState('load');
+ await page.locator('button[data-tab="backup"]').click();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).customers.some(x=>x.name==='舊版R50客戶')),'R50 舊備份可還原原始 CRM');
  check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'))===oldMaster,'R50 還原不覆蓋較新客戶主資料');
  const r70={version:4,app:'鴻繽科技 CRM',schema:'R70',data:{customers:[{id:701,name:'舊版R70客戶'}],projects:[],todos:[],contacts:[],commands:[],quotes:[],visits:[]},masterData:{customers:[{name:'舊版R70客戶',contact:'測試'}],products:[],suppliers:[]},cards:[],settings:{test:true}};
  await page.locator('#restoreFile').setInputFiles({name:'legacy-R70.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(r70))});
  await page.locator('#restoreBackup').click();
  await page.waitForLoadState('load');
+ await page.locator('button[data-tab="backup"]').click();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).customers.some(x=>x.name==='舊版R70客戶')),'R70 舊完整備份可還原客戶主資料');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).customers.some(x=>x.name==='舊版R70客戶')),'R70 舊完整備份可還原 CRM');
  const intact=await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'));
