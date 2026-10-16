@@ -1,8 +1,5 @@
 name: R74 isolated regression checks
 on:
-  push:
-    branches:
-      - r74-safety-work-20261016
   workflow_dispatch:
   pull_request:
     branches:
