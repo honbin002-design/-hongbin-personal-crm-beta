@@ -8,8 +8,9 @@ const cards=[{id:301,name:'測試聯絡人',company:'R74測試客戶甲',mobile:
 const localFields={'hongbin_crm_master_r70':master,'hongbin_personal_crm_v3':crm,'hongbin_crm_cards_r70':cards,'hongbin_crm_project_progress_r72':{'201':{progress:'送樣中',note:'等待回覆'}}};
 let checkCount=0;
 function check(condition,message){assert(condition,message);checkCount++;console.log('PASS: '+message)}
+let browser;
 (async()=>{
- const browser=await webkit.launch({headless:true});
+ browser=await webkit.launch({headless:true});
  const context=await browser.newContext({...devices['iPhone 13'],serviceWorkers:'block'});
  const page=await context.newPage(); const errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
@@ -76,4 +77,4 @@ function check(condition,message){assert(condition,message);checkCount++;console
  const results={checks:checkCount,pageErrors:errors};
  console.log('R74 WEBKIT MOBILE SMOKE PASS '+JSON.stringify(results));
  await browser.close();
-})().catch(e=>{console.error('R74 WEBKIT MOBILE SMOKE FAIL',e.stack||String(e));process.exitCode=1});
+})().catch(async e=>{console.error('R74 WEBKIT MOBILE SMOKE FAIL',e.stack||String(e));try{await browser?.close()}catch(_){}process.exitCode=1});
