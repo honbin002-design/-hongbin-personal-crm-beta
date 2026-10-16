@@ -50,10 +50,44 @@ function quoteData(){const fields={};QUOTE_FIELDS.forEach(k=>fields[k]=field(k))
 function validateQuote(x){if(!x.fields.qdCustomer){alert('請輸入報價客戶');return false}if(!x.fields.qdNo){alert('請輸入報價編號');return false}if(!x.items.some(i=>i.name)){alert('請至少輸入一個品項');return false}if(x.items.some(i=>!Number.isFinite(i.qty)||i.qty<=0||!Number.isFinite(Number(i.price||0))||Number(i.price||0)<0)){alert('數量需大於 0，單價不可為負數');return false}return true}
 function saveQuote(){const data=quoteData();if(!validateQuote(data))return;const list=getQuotes(),i=list.findIndex(x=>editQuoteId!=null&&String(x.id)===String(editQuoteId));const duplicate=list.some((x,j)=>j!==i&&norm(x.fields?.qdNo)===norm(data.fields.qdNo));if(duplicate&&(i<0||norm(list[i]?.fields?.qdNo)!==norm(data.fields.qdNo))){alert('報價編號已存在。為保護舊資料，請使用不同編號。');return}
  const existing=i>=0?list[i]:null;const next={...(existing||{}),id:existing?.id??uniqueId(),fields:data.fields,items:data.items};if(i>=0)list[i]=next;else list.unshift(next);if(!store(KEYS.quotes,list))return;editQuoteId=next.id;renderQuotes();toast('正式報價已儲存')}
-function quoteSheets(data){const fields=data.fields||{},items=data.items?.length?data.items:[{}],pageItems=[];for(let i=0;i<items.length;i+=4)pageItems.push(items.slice(i,i+4));
- return pageItems.map((subset,p)=>{const sum=items.reduce((a,i)=>a+(Number(i.price)||0)*(Number(i.qty)||1),0);const last=p===pageItems.length-1;
- return '<article class="sheet"><img class="letterhead" src="./quote-letterhead.jpg" alt="鴻繽科技有限公司報價單抬頭"><h2>報　價　單</h2><div class="paperMeta"><div>客戶：'+esc(fields.qdCustomer)+'</div><div>編號：'+esc(fields.qdNo)+'</div><div>聯絡人：'+esc(fields.qdContact)+'</div><div>日期：'+esc(fields.qdDate)+'</div><div>電話：'+esc(fields.qdTel)+'</div><div>傳真：'+esc(fields.qdFax)+'</div></div><table class="paperTbl"><thead><tr><th>品名／規格</th><th>型號</th><th>數量</th><th>單價</th><th>小計</th></tr></thead><tbody>'+subset.map(it=>'<tr><td>'+esc(it.name)+'<div>'+esc(it.spec)+'</div><div>'+esc(it.moq?'MOQ：'+it.moq:'')+'</div></td><td>'+esc(it.model)+'</td><td>'+esc(it.qty||1)+'</td><td>'+esc(it.price||0)+'</td><td>'+esc((((Number(it.price)||0)*(Number(it.qty)||1))).toLocaleString('zh-TW'))+'</td></tr>').join('')+'</tbody></table>'+(last?'<div class="paperTotal">未稅總額：NT$ '+sum.toLocaleString('zh-TW')+'</div><div class="labelLine">交貨時間：'+esc(fields.qdDelivery)+'</div><div class="labelLine">付款條件：'+esc(fields.qdPayment)+'</div><div class="labelLine">交貨地點：'+esc(fields.qdPlace)+'</div><div class="labelLine">有效期限：'+esc(fields.qdValid)+'</div><p class="paperFoot">備註：\n'+esc(fields.qdNotes)+'</p><div class="paperFoot">業務代表：'+esc(fields.qdSales)+'　'+esc(fields.qdSalesTel)+'</div>':'<div class="muted">接續第 '+(p+2)+' 頁</div>')+'<div class="muted" style="text-align:right">第 '+(p+1)+'／'+pageItems.length+' 頁</div></article>'}).join('')}
-function previewQuote(){const data=quoteData();if(!validateQuote(data))return false;const pages=quoteSheets(data);$('quotePreviewPages').innerHTML=pages;$('printRoot').innerHTML=pages;$('quotePreview').hidden=false;$('quotePreview').scrollIntoView({block:'start',behavior:'smooth'});return true}
+/* R73 confirmed paper markup; originally in rollback branch (five columns, unchanged business wording). */
+const LEGACY_QUOTE_PAPER="<div class=\"quote-paper\" >\n      <div class=\"q-letterhead\"><img class=\"q-letterhead-img\" src=\"quote-letterhead.jpg\" alt=\"鴻繽科技有限公司標準報價單抬頭\"></div>\n      <div class=\"q-title\">報價單</div>\n      <div class=\"q-party\">\n        <div><div class=\"q-party-row\"><span class=\"q-party-label\">Messers.</span><b id=\"qpCustomer\"></b></div><div class=\"q-party-row\"><span></span><span>TEL： <span id=\"qpTel\"></span></span></div><div class=\"q-party-row\"><span></span><span>FAX： <span id=\"qpFax\"></span></span></div></div>\n        <div><div>NO： <span id=\"qpNo\"></span></div><div>DATE： <span id=\"qpDate\"></span></div><div>聯絡人： <span id=\"qpContact\"></span></div></div>\n      </div>\n      <table class=\"q-table\"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id=\"qpItems\"></tbody></table>\n      <div class=\"q-terms\">交貨日期：<span id=\"qpDelivery\"></span><br>付款條件：<span id=\"qpPayment\"></span><br>交貨地點：<span id=\"qpPlace\"></span><br>有效期限：<span id=\"qpValid\"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>\n      <div class=\"q-notes\">備　註：<br><span id=\"qpNotes\"></span></div>\n      <div class=\"q-sales\">業務代表：　<span id=\"qpSales\"></span> <span id=\"qpSalesTel\"></span></div><div class=\"q-page-no\"></div>\n    </div>";
+function quoteSheets(data){
+ const f=data.fields||{},raw=Array.isArray(data.items)?data.items:[],all=raw.length?raw:[{}],pages=[];
+ for(let i=0;i<all.length;i+=4)pages.push(all.slice(i,i+4));
+ const binding={qpCustomer:f.qdCustomer,qpContact:f.qdContact,qpTel:f.qdTel,qpFax:f.qdFax,qpNo:f.qdNo,qpDate:(f.qdDate||'').replaceAll('-','/'),qpDelivery:f.qdDelivery,qpPayment:f.qdPayment,qpPlace:f.qdPlace,qpValid:f.qdValid,qpSales:f.qdSales,qpSalesTel:f.qdSalesTel,qpNotes:f.qdNotes};
+ return pages.map((subset,idx)=>{
+   const rows=subset.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.model)+'</td><td>'+esc(x.spec)+'</td><td>'+esc(x.price)+'</td><td>'+esc(x.moq)+'</td></tr>');
+   while(rows.length<4)rows.push('<tr><td>　</td><td></td><td></td><td></td><td></td></tr>');
+   const page=LEGACY_QUOTE_PAPER.replace('class="quote-paper"','class="sheet quote-paper legacy-quote"')
+     .replace('<tbody id="qpItems"></tbody>','<tbody>'+rows.join('')+'</tbody>')
+     .replace(/<(b|span) id="([^"]+)"><\/\1>/g,(_,tag,id)=>'<'+tag+'>'+esc(binding[id]||'')+'</'+tag+'>')
+     .replace('<div class="q-page-no"></div>','<div class="q-page-no">第 '+(idx+1)+'／'+pages.length+' 頁</div>');
+   return '<div class="legacy-sheet-shell">'+page+'</div>';
+ }).join('');
+}
+function fitLegacyQuotePreview(){
+ document.querySelectorAll('#quotePreviewPages .legacy-sheet-shell').forEach(shell=>{
+  const paper=shell.querySelector('.legacy-quote');if(!paper)return;
+  const available=shell.clientWidth||300,scale=Math.min(1,available/794);
+  paper.style.position='absolute';
+  paper.style.top='0';
+  paper.style.left=Math.max(0,(available-794*scale)/2)+'px';
+  paper.style.transformOrigin='top left';
+  paper.style.transform='scale('+scale+')';
+  shell.style.height=Math.ceil(Math.max(paper.scrollHeight,1123)*scale)+'px';
+ });
+}
+function previewQuote(){
+ const data=quoteData();if(!validateQuote(data))return false;
+ const pages=quoteSheets(data);
+ $('quotePreviewPages').innerHTML=pages;
+ $('printRoot').innerHTML=pages;
+ $('quotePreview').hidden=false;
+ requestAnimationFrame(fitLegacyQuotePreview);
+ $('quotePreviewPages').querySelectorAll('img').forEach(img=>img.addEventListener('load',fitLegacyQuotePreview,{once:true}));
+ $('quotePreview').scrollIntoView({block:'start',behavior:'smooth'});return true
+}
 function printQuote(){if(previewQuote())window.print()}
 async function loadScript(url,isReady){if(isReady())return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(new Error('PDF 元件載入失敗，請使用列印／儲存 PDF'));document.head.appendChild(s)})}
 async function pdfQuote(){if(!previewQuote())return;const msg=$('pdfNotice');msg.textContent='正在產生 PDF，請稍候……';try{
@@ -68,13 +102,13 @@ function renderCalendar(){const year=monthDate.getFullYear(),month=monthDate.get
  for(let i=0;i<first;i++){const n=document.createElement('div');n.className='day empty';cal.appendChild(n)}
  for(let d=1;d<=count;d++){const date=localDate(new Date(year,month,d));const n=document.createElement('button');n.type='button';n.className='day'+(date===localDate()?' today':'')+(items.some(t=>t.date===date)?' dot':'')+(date===selectedDate?' chosen':'');n.textContent=String(d);n.setAttribute('aria-label',date+' 待辦事項');n.setAttribute('aria-pressed',String(date===selectedDate));n.onclick=()=>{selectedDate=date;renderCalendar()};cal.appendChild(n)}renderTodos()}
 function renderTodos(){
- const all=todoItems(),day=all.filter(t=>t.date===selectedDate),undated=all.filter(t=>!String(t.date||'').trim());
+ const all=todoItems(),day=all.filter(t=>t.date===selectedDate).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99')),undated=all.filter(t=>!String(t.date||'').trim());
  $('selectedDayTitle').textContent=selectedDate+' 的待辦（'+day.length+'）';
  const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="listTitle">'+esc(t.text||'未命名待辦')+'</span></label>'+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<button type="button" class="secondary" data-todo="'+esc(t.id)+'">修改</button></div>';
  $('todoList').innerHTML=(day.length?day.map(item).join(''):htmlListEmpty('當天沒有待辦'))+(undated.length?'<h3>尚未安排日期的待辦（'+undated.length+'）</h3><div class="muted">舊版未填日期的待辦仍保留，可按修改安排日期。</div>'+undated.map(item).join(''):'');
 }
-function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
-function saveTodo(){const text=field('tText'),date=field('tDate');if(!text||!date){alert('請輸入待辦日期與內容');return}const d=getCRM(),i=d.todos.findIndex(x=>editTodoId!=null&&String(x.id)===String(editTodoId)),old=i>=0?d.todos[i]:null,next={...(old||{}),id:old?.id??uniqueId(),text,date,notes:field('tNotes'),done:old?.done??false};if(i>=0)d.todos[i]=next;else d.todos.unshift(next);if(!store(KEYS.crm,d))return;selectedDate=date;monthDate=new Date(date+'T12:00:00');$('todoEditor').hidden=true;renderCalendar();toast('待辦已儲存')}
+function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tTime').value=t?.time||'';$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
+function saveTodo(){const text=field('tText'),date=field('tDate');if(!text||!date){alert('請輸入待辦日期與內容');return}const d=getCRM(),i=d.todos.findIndex(x=>editTodoId!=null&&String(x.id)===String(editTodoId)),old=i>=0?d.todos[i]:null,next={...(old||{}),id:old?.id??uniqueId(),text,date,time:field('tTime'),notes:field('tNotes'),done:old?.done??false};if(i>=0)d.todos[i]=next;else d.todos.unshift(next);if(!store(KEYS.crm,d))return;selectedDate=date;monthDate=new Date(date+'T12:00:00');$('todoEditor').hidden=true;renderCalendar();toast('待辦已儲存')}
 function toggleTodo(id,checked){const d=getCRM(),t=d.todos.find(x=>String(x.id)===String(id));if(!t)return;t.done=checked;if(store(KEYS.crm,d))renderCalendar()}
 // ── Project ──
 const STAGES=['進行中','已成交','暫停','結案','取消'],PROGRESS=['','初步接洽','需求確認','送樣中','客戶測試中','報價中','待客戶確認','待採購確認','成交準備'];
@@ -153,5 +187,21 @@ $('prevMonth').onclick=()=>shiftMonth(-1);$('nextMonth').onclick=()=>shiftMonth(
 $('projectSearch').addEventListener('input',renderProjects);$('newProject').onclick=()=>editProject(null);$('projectList').onclick=e=>{const b=e.target.closest('[data-project]');if(b)editProject(b.dataset.project)};$('saveProject').onclick=saveProject;$('cancelProject').onclick=()=>$('projectEditor').hidden=true;
 $('downloadBackup').onclick=backup;$('restoreBackup').onclick=restore;
 window.addEventListener('beforeunload',()=>{if(lastPdfUrl)URL.revokeObjectURL(lastPdfUrl)});
+
+window.addEventListener('resize',fitLegacyQuotePreview);
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.isComposing||e.keyCode===229)return;
+  const el=e.target;
+  if(!(el instanceof HTMLElement)||!el.matches('input:not([type="submit"]):not([type="button"]),select'))return;
+  const form=el.closest('.editor');
+  if(!form||form.hidden||form.closest('[hidden]'))return;
+  const nodes=[...form.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="file"]),select,textarea')].filter(n=>!n.disabled&&n.getClientRects().length);
+  const i=nodes.indexOf(el);if(i<0)return;
+  const next=nodes[i+1]||form.querySelector('.actions button:not([disabled])');
+  if(!next)return;
+  e.preventDefault();next.focus();
+  if(next.matches('input[type="text"],input:not([type])')&&typeof next.select==='function')next.select();
+},true);
+
 fillCustomerNames();renderQuotes();openTab('quotes');
 })();
