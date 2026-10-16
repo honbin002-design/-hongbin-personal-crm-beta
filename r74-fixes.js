@@ -106,11 +106,31 @@ function installOcrRaw(){
  panel.appendChild(box);
  if(window.R74_LAST_OCR_RAW)$('r74OcrRaw').value=window.R74_LAST_OCR_RAW;
 }
+function enforceProjectOptions(){
+ const stageValues=['進行中','已成交','暫停','結案','取消'];
+ const progressValues=['','初步接洽','需求確認','送樣中','客戶測試中','報價中','待客戶確認','待採購確認','成交準備'];
+ let stage=$('pStage');if(!stage)return;
+ if(stage.tagName!=='SELECT'){const previous=stage.value||'';const select=document.createElement('select');select.id='pStage';stage.replaceWith(select);stage=select;stage.dataset.r74Previous=previous}
+ const repair=(el,values)=>{
+  if(!el||el.tagName!=='SELECT')return;
+  const present=[...el.options].map(o=>o.value);
+  if(present.length===values.length&&present.every((v,i)=>v===values[i]))return;
+  const old=el.value||el.dataset.r74Previous||'';
+  el.replaceChildren(...values.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=value||'未設定';return option}));
+  if(values.includes(old))el.value=old;else el.value=values[0];
+ };
+ repair(stage,stageValues);
+ let progress=$('pProgress');if(!progress){const row=document.createElement('div'),label=document.createElement('label');label.htmlFor='pProgress';label.textContent='進度（獨立選單）';progress=document.createElement('select');progress.id='pProgress';row.append(label,progress);stage.parentElement?.after(row)}
+ repair(progress,progressValues);
+ if(!$('pProgressNote')){const row=document.createElement('div'),label=document.createElement('label'),note=document.createElement('textarea');row.className='full';label.htmlFor='pProgressNote';label.textContent='進度註記';note.id='pProgressNote';row.append(label,note);progress.parentElement?.after(row)}
+ let info=$('r74ProjectOptionStatus');if(!info){info=document.createElement('div');info.id='r74ProjectOptionStatus';info.className='r74-summary';progress.parentElement?.after(info)}
+ if(info)info.textContent='固定選單已核對：階段 5 項｜進度 9 項（含未設定）｜進度註記可自由輸入';
+}
 function clarifyQuoteEntry(){
  const sec=$('quotes'),doc=$('quoteDocument');
  if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
  if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();installProjectPreviews();installOcrRaw();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();installProjectPreviews();installOcrRaw();enforceProjectOptions();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')enforceProjectOptions();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
