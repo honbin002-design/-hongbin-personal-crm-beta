@@ -11,7 +11,7 @@
       "visibility": "private"
     }
   },
-  "postStartCommand": "nohup python3 -m http.server 4174 --bind 0.0.0.0 --directory . >/tmp/r74-test-http.log 2>&1 < /dev/null &",
+  "postStartCommand": "nohup python3 .devcontainer/r74_server.py --port 4174 --bind 0.0.0.0 >/tmp/r74-test-http.log 2>&1 < /dev/null &",
   "customizations": {
     "vscode": {
       "settings": {
