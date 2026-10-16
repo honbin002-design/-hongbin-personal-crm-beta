@@ -4096,10 +4096,7 @@ window.saveQuote=function(){
  if(!customer||!model||![cost,price,qty].every(Number.isFinite))return alert('請完整輸入客戶、型號與數字欄位');
  const unit=price-cost,total=unit*qty,margin=price?unit/price*100:0,data={customer,model,cost,price,qty,unit,total,margin,followDate:$('qFollowDate').value||''};
  if(editState.quotes){const x=db.quotes.find(v=>v.id===editState.quotes);if(x)Object.assign(x,data)}else db.quotes.unshift(Object.assign({id:Date.now()},data));
- if(save()){cancelEdit('quotes');// R74: expose closure-owned functions used by legacy inline HTML event handlers.
-window.renderAll=renderAll;
-window.scheduleQuoteFit=scheduleQuoteFit;
-renderAll();quoteCalc();toast('報價紀錄已儲存')}
+ if(save()){cancelEdit('quotes');renderAll();quoteCalc();toast('報價紀錄已儲存')}
 }
 window.addTodo=function(){
  const text=$('tText').value.trim();if(!text)return alert('請輸入待辦事項');
@@ -4413,6 +4410,9 @@ window.deleteCustomer=function(id){oldDeleteCustomer(id);setTimeout(()=>renderAl
 const oldToggleTodo=window.toggleTodo;
 window.toggleTodo=function(id,checked){oldToggleTodo(id,checked);setTimeout(()=>renderAll(),0)}
 
+// R74: expose legacy inline handler targets after all render overrides are installed.
+window.renderAll=renderAll;
+window.scheduleQuoteFit=scheduleQuoteFit;
 applyDefaultPage();
 const today=localToday();setDefaultDate('cNoDate','cDate',today);setDefaultDate('vNoDate','vDate',today);setDefaultDate('pNoFollow','pFollowDate','');setOptionalDate('cNoNext','cNextDate','');setDefaultDate('mNoConfirm','mConfirmDate','');setDefaultDate('qNoFollow','qFollowDate','');setDefaultDate('tNoDate','tDate',today);if($('vNoNextDate')) $('vNoNextDate').checked=false; if($('vNextDate')){$('vNextDate').disabled=false;$('vNextDate').value='';}
 
