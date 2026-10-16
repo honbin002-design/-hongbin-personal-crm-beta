@@ -73,6 +73,28 @@ let browser;
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!document.querySelector('#r73FormalList'),null,{timeout:15000});
  check((await page.locator('#r73FormalList').innerText()).includes(quoteNo),'重新載入後報價仍在');
+ // Unlike the first PDF fallback check, this uses real html2canvas and jsPDF packages.
+ await page.goto(base+'/index.html#quotes',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>!!document.querySelector('#r73SaveFormal'),null,{timeout:15000});
+ await page.locator('#quotes button').filter({hasText:'新增正式報價（完整欄位）'}).first().click();
+ await page.locator('#qdCustomer').fill('R74測試客戶甲');
+ await page.locator('#qdItemsEditor input').first().fill('R74真實PDF格式驗證');
+ await page.addScriptTag({path:require.resolve('html2canvas/dist/html2canvas.min.js')});
+ await page.addScriptTag({path:require.resolve('jspdf/dist/jspdf.umd.min.js')});
+ await page.evaluate(()=>{
+   Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});
+ });
+ await page.locator('#quoteDocument .btnrow button').filter({hasText:'產生 PDF／列印'}).click();
+ await page.locator('#r74PdfDownload a').waitFor({timeout:20000});
+ const actualPdf=await page.evaluate(async()=>{
+   const href=document.querySelector('#r74PdfDownload a')?.href;
+   const response=await fetch(href);
+   const bytes=new Uint8Array(await response.arrayBuffer());
+   const prefix=String.fromCharCode(...bytes.slice(0,5));
+   const last=String.fromCharCode(...bytes.slice(-30));
+   return {bytes:bytes.length,prefix,hasEof:last.includes('%%EOF')};
+ });
+ check(actualPdf.prefix==='%PDF-'&&actualPdf.hasEof&&actualPdf.bytes>10000,'真實 PDF 引擎產生含內容的 PDF 檔案（格式、EOF、大小皆正確）');
  // A completely fresh, isolated origin must seed synthetic TEST records without a real customer's data.
  const demoContext=await browser.newContext({...devices['iPhone 13'],serviceWorkers:'block'});
  const demo=await demoContext.newPage();demo.on('pageerror',e=>errors.push('TEST launcher: '+e.message));
