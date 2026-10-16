@@ -15,8 +15,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
  await page.addInitScript(data=>{for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
- check(await page.locator('.nav button').count()===5,'僅保留五個主選單');
- check(!await page.locator('button[data-tab="commands"],button[data-tab="suppliers"]').count(),'不存在獨立指令或供應商管理');
+ check(await page.locator('.nav button').count()===7,'包含供應商與產品資料在內的七個功能主選單');
+ check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
  check((await page.locator('#quoteList').innerText()).includes('QTEST-001'),'讀取既有正式報價');
  await page.locator('[data-quote="77"]').click();
  check(await page.locator('#qdCustomer').inputValue()==='測試甲公司','既有報價可開啟編輯');
@@ -51,6 +51,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#newCustomer').click();await page.locator('#cuName').fill('R74虛構新客戶');await page.locator('#cuContact').fill('陳測試');await page.locator('#saveCustomer').click();
  check(await page.locator('#customerList').innerText().then(t=>t.includes('R74虛構新客戶')),'新增客戶成功');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).customers.some(x=>x.name==='R74虛構新客戶')),'主資料沿用原本儲存位置');
+
+ await page.locator('[data-customer="測試甲公司"]').click();
+ check((await page.locator('#customer360Content').innerText()).includes('QTEST-001'),'既有報價自動彙整到客戶完整資料');
+ check((await page.locator('#customer360Content').innerText()).includes('既有產品'),'已儲存客戶使用產品自動顯示');
+ check((await page.locator('#customer360Content').innerText()).includes('舊ID專案'),'使用客戶 ID 的舊專案也能顯示在客戶資料');
+ await page.locator('#closeCustomer360').click();
+
  await page.locator('button[data-tab="calendar"]').click();
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
  check((await page.locator('#todoList').innerText()).includes('舊版未排日期事項'),'舊版未指定日期待辦仍可看到');
@@ -63,6 +70,20 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#prevMonth').click();
  check((await page.locator('#selectedDayTitle').innerText()).startsWith(originalSelected),'回到上月可恢復該月待辦');
 
+ await page.locator('#calendarYear').selectOption('2028');
+ check((await page.locator('#calTitle').innerText()).includes('2028 年'),'可用年份選單快速跳到指定年');
+ await page.locator('#calendarMonth').selectOption('5');
+ check((await page.locator('#calTitle').innerText()).includes('5 月'),'可快速選擇指定月份');
+ const beforeSwipe=await page.locator('#calTitle').innerText();
+ await page.evaluate(()=>{
+   const el=document.getElementById('calendarSwipeArea'),mk=(type,changed)=>{const e=new Event(type,{bubbles:true});Object.defineProperty(e,type==='touchstart'?'touches':'changedTouches',{value:[{clientX:changed,clientY:180}]});return e};
+   el.dispatchEvent(mk('touchstart',240));el.dispatchEvent(mk('touchend',95));
+ });
+ check((await page.locator('#calTitle').innerText())!==beforeSwipe,'在月曆向左滑動會進入下個月');
+ await page.locator('#calendarToday').click();
+ check((await page.locator('#selectedDayTitle').innerText()).startsWith(originalSelected),'點回今天能回到目前月曆');
+
+
  await page.locator('#newTodo').click();
  await page.locator('#tDate').focus();await page.locator('#tDate').press('Enter');
  check(await page.evaluate(()=>document.activeElement.id==='tTime'),'待辦日期按 Enter 跳到時間欄');
@@ -70,6 +91,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#tTime').press('Enter');
  check(await page.evaluate(()=>document.activeElement.id==='tText'),'待辦時間按 Enter 跳到事項欄');
  await page.locator('#tText').fill('R74行事曆事項');
+ await page.locator('#tCustomer').fill('測試甲公司');
  await page.locator('#saveTodo').click();
  check((await page.locator('#todoList').innerText()).includes('14:30'),'行事曆正確顯示時間');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.time==='14:30')),'待辦時間持久保存');
@@ -95,6 +117,37 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#projectList [data-project]').first().click();
  const histItems=await page.locator('#projectHistory .note').count();
  check(histItems>=2&&(await page.locator('#projectHistory').innerText()).includes('暫停'),'專案階段異動即使沒有輸入備註，仍追加歷史');
+
+ await page.locator('button[data-tab="suppliers"]').click();
+ await page.locator('#newSupplier').click();
+ await page.locator('#suName').fill('R73測試供應商');
+ await page.locator('#suContact').fill('陳測試');
+ await page.locator('#saveSupplier').click();
+ check((await page.locator('#supplierList').innerText()).includes('R73測試供應商'),'新增供應商成功');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).suppliers.some(x=>x.name==='R73測試供應商')),'供應商存進既有主資料且不覆蓋客戶');
+ await page.locator('button[data-tab="products"]').click();
+ await page.locator('#newProduct').click();
+ await page.locator('#pdSupplier').fill('R73');
+ await page.locator('#pdSupplier').focus();
+ check((await page.locator('#smartSuggestions').innerText()).includes('R73測試供應商'),'供應商輸入欄會顯示可點選候選清單');
+ await page.locator('#smartSuggestions button').filter({hasText:'R73測試供應商'}).first().click();
+ check(await page.locator('#pdSupplier').inputValue()==='R73測試供應商','候選選項點選後自動帶入');
+ await page.locator('#pdName').fill('R73客戶使用產品');
+ await page.locator('#pdModel').fill('PU-T73');
+ await page.locator('#pdCustomer').fill('測試甲公司');
+ await page.locator('#pdSpec').fill('1kg');
+ await page.locator('#saveProduct').click();
+ check((await page.locator('#productList').innerText()).includes('R73客戶使用產品'),'新產品可以新增並在產品資料查詢');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).products.some(x=>x.name==='R73客戶使用產品'&&x.customerName==='測試甲公司')),'客戶使用產品關聯儲存成功');
+ await page.locator('button[data-tab="customers"]').click();
+ await page.locator('[data-customer="測試甲公司"]').click();
+ const overview=await page.locator('#customer360Content').innerText();
+ check(['R73客戶使用產品','QTEST-001','R74測試專案','R74行事曆事項'].every(t=>overview.includes(t)),'客戶完整資料同時彙整產品、報價、專案、待辦');
+ check(overview.includes('14:30'),'客戶待辦紀錄含設定的時間');
+ await page.locator('#addCustomerProduct').click();
+ check(await page.locator('#pdCustomer').inputValue()==='測試甲公司','從客戶頁新增使用產品自動帶入該客戶');
+ await page.locator('#cancelProduct').click();
+
 
  await page.locator('button[data-tab="backup"]').click();
  const dlPromise=page.waitForEvent('download');await page.locator('#downloadBackup').click();const download=await dlPromise;
