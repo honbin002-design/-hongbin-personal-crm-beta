@@ -89,7 +89,9 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>document.activeElement.id==='tTime'),'待辦日期按 Enter 跳到時間欄');
  await page.locator('#tTime').fill('14:30');
  await page.locator('#tTime').press('Enter');
- check(await page.evaluate(()=>document.activeElement.id==='tText'),'待辦時間按 Enter 跳到事項欄');
+ check(await page.evaluate(()=>document.activeElement.id==='tCustomer'),'待辦時間按 Enter 跳到關聯客戶欄');
+ await page.locator('#tCustomer').press('Enter');
+ check(await page.evaluate(()=>document.activeElement.id==='tText'),'關聯客戶按 Enter 跳到待辦事項欄');
  await page.locator('#tText').fill('R74行事曆事項');
  await page.locator('#tCustomer').fill('測試甲公司');
  await page.locator('#saveTodo').click();
