@@ -25,6 +25,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73'))[0].fields.qdNotes))==='僅修改目前這張','正式報價可儲存修改');
  await page.locator('#previewQuote').click();
  check((await page.locator('#quotePreviewPages').innerText()).includes('舊報價品項'),'報價預覽與金額呈現');
+ await page.addScriptTag({path:require.resolve('html2canvas/dist/html2canvas.min.js')});
+ await page.addScriptTag({path:require.resolve('jspdf/dist/jspdf.umd.min.js')});
+ await page.locator('#exportPdf').click();
+ await page.locator('#pdfNotice a').waitFor({timeout:20000});
+ const pdfBits=await page.evaluate(async()=>{const b=await (await fetch(document.querySelector('#pdfNotice a').href)).arrayBuffer();const bytes=new Uint8Array(b),head=String.fromCharCode(...bytes.slice(0,5)),tail=String.fromCharCode(...bytes.slice(-30));return {head,tail,size:bytes.length}});
+ check(pdfBits.head==='%PDF-'&&pdfBits.tail.includes('%%EOF')&&pdfBits.size>10000,'新簡易報價單可產生真實 PDF 檔案');
+
  await page.locator('button[data-tab="customers"]').click();
  check((await page.locator('#customerList').innerText()).includes('測試甲公司'),'舊客戶可讀取');
  await page.locator('#newCustomer').click();await page.locator('#cuName').fill('R74虛構新客戶');await page.locator('#cuContact').fill('陳測試');await page.locator('#saveCustomer').click();
@@ -44,6 +51,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('button[data-tab="backup"]').click();
  const dlPromise=page.waitForEvent('download');await page.locator('#downloadBackup').click();const download=await dlPromise;
  check(download.suggestedFilename().endsWith('.json'),'可從 iPhone 下載 JSON 備份');
+ const jsonBackupPath=await download.path();
+ await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('hongbin_personal_crm_v3'));x.todos=[];localStorage.setItem('hongbin_personal_crm_v3',JSON.stringify(x))});
+ await page.locator('#restoreFile').setInputFiles(jsonBackupPath);
+ await page.locator('#restoreBackup').click();
+ await page.waitForLoadState('load');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項')),'還原備份可恢復待辦資料');
+
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).commands[0].task==='舊指令'),'未顯示的舊資料仍保留');
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R74 SIMPLE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
