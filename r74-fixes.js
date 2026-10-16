@@ -23,7 +23,7 @@ function showCustomerDetails(name,id){
  let box=$('r74CustomerDetails');
  if(!box){box=document.createElement('div');box.id='r74CustomerDetails';box.className='card r74-panel';const timeline=panel.querySelector('.card:nth-of-type(2)');if(timeline)panel.insertBefore(box,timeline);else panel.appendChild(box)}
  const m=master(),c=m.customers.find(x=>norm(x.name)===norm(name))||null;
- const cards=read(CARDS,[]).filter(x=>(x.customerId!=null&&String(x.customerId)===String(id))||norm(x.customerName||x.company)===norm(name));
+ const cards=read(CARDS,[]).filter(x=>x.customerId!=null?String(x.customerId)===String(id):norm(x.customerName||x.company)===norm(name));
  const products=m.products.filter(x=>norm(x.customerName)===norm(name));
  let html='<h2 class="section-title">客戶基本資料</h2>';
  if(c)html+=field('公司',c.name)+field('統一編號',c.taxId)+field('公司地址',c.address)+field('送貨地址',c.deliveryAddress)+field('發票地址',c.invoiceAddress)+field('電話',c.tel)+field('傳真',c.fax)+field('聯繫人',c.contact)+field('手機',c.mobile);
