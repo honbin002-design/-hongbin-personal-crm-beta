@@ -56,6 +56,18 @@ function installHubs(){
  buildHub('r74Visits','拜訪紀錄','搜尋拜訪內容或客戶',(q,box)=>{const d=read(CRM,{}),customers=d.customers||[],a=(d.visits||[]).filter(x=>!q||norm([x.note,x.next,x.customerName,customers.find(c=>String(c.id)===String(x.customerId))?.name].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆拜訪紀錄。新增或編輯拜訪請至 <a href="#customers">客戶與拜訪操作</a>。</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.customerName||customers.find(c=>String(c.id)===String(x.customerId))?.name||'未關聯客戶')+'</b><small>'+esc(x.date||'未設定日期')+'｜'+esc(x.note)+'</small><small>後續：'+esc(x.next||'—')+'</small></div>').join('')});
  const nav=document.querySelector('nav.nav');if(nav&&!$('r74SupplierNav'))[['r74Suppliers','供應商','r74SupplierNav'],['r74Products','產品','r74ProductNav'],['r74Visits','拜訪','r74VisitNav'],['businessCardScan','名片','r74CardNav'],['settings','設定','r74SettingsNav']].forEach(([id,label,nid])=>{const a=document.createElement('a');a.id=nid;a.href='#'+id;a.textContent=label;nav.appendChild(a)});
 }
+function organizeExistingForms(){
+ const customers=$('customers'),visits=$('r74Visits');
+ if(customers&&visits&&!visits.querySelector('#vCustomer')){
+   const cards=[...customers.querySelectorAll(':scope > .card')];
+   const form=cards.find(card=>card.querySelector('#vCustomer')&&card.querySelector('#vNote'));
+   if(form){const first=visits.querySelector('.card');first?.before(form)}
+ }
+ const nav=document.querySelector('nav.nav');
+ if(nav){const follow=[...nav.querySelectorAll('a')].find(a=>a.getAttribute('href')==='#contacts');if(follow)follow.textContent='聯絡追蹤'}
+ const masterTitle=$('r70MasterCard')?.querySelector('h2,.section-title');
+ if(masterTitle&&/主資料管理/.test(masterTitle.textContent||''))masterTitle.textContent='Excel 主資料匯入／匯出（系統管理）';
+}
 function installProjectPreviews(){
  const box=$('projectList');if(!box)return;
  const enhance=()=>{box.querySelectorAll('[id^="record-projects-"]').forEach(item=>{if(item.querySelector('.r74-project-toggle'))return;const id=item.id.slice('record-projects-'.length);const actions=item.querySelector('.record-actions');if(!actions)return;const b=document.createElement('button');b.type='button';b.className='secondary r74-project-toggle';b.textContent='查看詳情';b.addEventListener('click',()=>{let details=item.querySelector('.r74-preview');if(details){details.remove();return}const p=(read(CRM,{}).projects||[]).find(x=>String(x.id)===id);if(!p)return;const pr=read(PROGRESS,{}),r=pr[id]||pr[p.name]||{};details=document.createElement('div');details.className='r74-preview';details.innerHTML=field('專案',p.name)+field('客戶',p.customerName)+field('供應商',p.supplier)+field('負責人',p.owner)+field('階段',p.stage)+field('進度',r.progress||p.progress)+field('進度註記',r.note||p.progressNote)+field('追蹤日期',p.followDate);item.appendChild(details)});actions.prepend(b)})};
@@ -78,6 +90,6 @@ function clarifyQuoteEntry(){
  if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
  if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();installProjectPreviews();installOcrRaw();auditProjectSelects();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')auditProjectSelects();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeExistingForms();installProjectPreviews();installOcrRaw();auditProjectSelects();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')auditProjectSelects();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
