@@ -1,4 +1,4 @@
-name: R73 simplified five-module release checks
+name: R73 simplified seven-module release checks
 on:
   push:
     branches: [main]
@@ -27,11 +27,11 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM｜R73 簡易版</title>' in html
-          assert html.count('src="./simple-core.js?v=r73-simple-20261016"') == 1
+          assert html.count('src="./simple-core.js?v=r73-customer-links-20261017"') == 1
           assert '<script src="./r73-fixes.js' not in html
           assert '<script src="./r70-complete.js' not in html
           assert 'navigator.serviceWorker.register' in html
-          assert all(html.count('data-tab="'+n+'"') == 1 for n in ['quotes','customers','calendar','projects','backup'])
+          assert all(html.count('data-tab="'+n+'"') == 1 for n in ['quotes','customers','calendar','projects','suppliers','products','backup'])
           assert 'const KEYS={master:' in js
           assert 'function restore()' in js
           assert 'function renderHistory(' in js
@@ -47,7 +47,7 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1 html2canvas@1.4.1 jspdf@2.5.1
           npx playwright install --with-deps webkit
-      - name: Verify quote original layout, task time, Enter navigation, and all five modules
+      - name: Verify quote original layout, task time, Enter navigation, and seven modules
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/r73-simple-http.log 2>&1 &
           pid=$!
