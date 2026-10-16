@@ -48,6 +48,16 @@ function check(condition,message){assert(condition,message);console.log('PASS: '
  await page.locator('#qdCustomer').fill('R74測試客戶甲');
  await page.locator('#qdNotes').fill('R74不對外交易測試');
  await page.locator('#qdItemsEditor input').first().fill('R74測試產品');
+ await page.evaluate(()=>{
+  window.html2canvas=async()=>({toDataURL:()=> 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD'});
+  window.jspdf={jsPDF:class{addPage(){}addImage(){}output(){return new Blob(['%PDF-1.4\\n%%EOF'],{type:'application/pdf'})}}};
+  Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
+  Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{const e=new Error('iPhone platform denied share');e.name='NotAllowedError';throw e}});
+ });
+ await page.locator('#quoteDocument .btnrow button').filter({hasText:'產生 PDF／列印'}).click();
+ await page.locator('#r74PdfDownload a').waitFor({timeout:8000});
+ const fallback=await page.locator('#r74PdfDownload a').getAttribute('href');
+ check(!!fallback&&fallback.startsWith('blob:'),'iOS 分享拒絕時可取得 PDF 下載連結');
  await page.locator('#r73SaveFormal').click();
  await page.waitForTimeout(180);
  const count=await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73')||'[]').length);
@@ -56,7 +66,7 @@ function check(condition,message){assert(condition,message);console.log('PASS: '
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!document.querySelector('#r73FormalList'),null,{timeout:15000});
  check((await page.locator('#r73FormalList').innerText()).includes(quoteNo),'重新載入後報價仍在');
- const results={checks:13,pageErrors:errors};
+ const results={checks:14,pageErrors:errors};
  console.log('R74 WEBKIT MOBILE SMOKE PASS '+JSON.stringify(results));
  await browser.close();
 })().catch(e=>{console.error('R74 WEBKIT MOBILE SMOKE FAIL',e.stack||String(e));process.exitCode=1});
