@@ -150,7 +150,21 @@ function nextUnusedQuoteNo(){
   let n=1;while(used.has(norm(prefix+String(n).padStart(3,'0'))) && n<9999)n++;
   return prefix+String(n).padStart(3,'0');
 }
-function installFormalSave(){const panel=$('quoteDocument');if(!panel)return;let row=panel.querySelector('.btnrow');if(row&&!$('r73SaveFormal')){const b=document.createElement('button');b.id='r73SaveFormal';b.type='button';b.className='primary';b.textContent='儲存正式報價';b.onclick=saveFormal;row.prepend(b)}if(!$('r73FormalList')){const box=document.createElement('div');box.id='r73FormalList';box.className='r73-formal-list';panel.querySelector('.card')?.appendChild(box)}renderFormalList();if(!window.__r73OpenQuoteWrapped&&typeof window.openQuoteDocument==='function'){const old=window.openQuoteDocument;window.openQuoteDocument=function(){currentFormalId=null;const result=old.apply(this,arguments);if($('qdNo'))$('qdNo').value=nextUnusedQuoteNo();window.renderQuoteDocument?.();return result};window.__r73OpenQuoteWrapped=true}}
+function resetFreshQuoteDefaults(){
+ const values={
+  qdDelivery:'有庫存 3 天內交貨，如無庫存需 30 天',
+  qdPayment:'次月60天',
+  qdPlace:'貴公司交貨處或指定交貨處',
+  qdValid:'三十日',
+  qdSales:'',qdSalesTel:'',
+  qdNotes:'1：　以上價格為未稅價。\n2：　本報價僅供參考，實際價格以訂單確認為準。\n3：　特殊規格或需求，請先行告知。\n4：　如有任何問題，歡迎隨時與我們聯繫。'
+ };
+ Object.entries(values).forEach(([id,v])=>{if($(id))$(id).value=v});
+ const company=$('qdCustomer')?.value;
+ const customer=master().customers.find(x=>norm(x.name)===norm(company));
+ if(customer){for(const [id,key] of [['qdContact','contact'],['qdTel','tel'],['qdFax','fax']])if($(id)&&customer[key])$(id).value=customer[key]}
+}
+function installFormalSave(){const panel=$('quoteDocument');if(!panel)return;let row=panel.querySelector('.btnrow');if(row&&!$('r73SaveFormal')){const b=document.createElement('button');b.id='r73SaveFormal';b.type='button';b.className='primary';b.textContent='儲存正式報價';b.onclick=saveFormal;row.prepend(b)}if(!$('r73FormalList')){const box=document.createElement('div');box.id='r73FormalList';box.className='r73-formal-list';panel.querySelector('.card')?.appendChild(box)}renderFormalList();if(!window.__r73OpenQuoteWrapped&&typeof window.openQuoteDocument==='function'){const old=window.openQuoteDocument;window.openQuoteDocument=function(){currentFormalId=null;const result=old.apply(this,arguments);resetFreshQuoteDefaults();if($('qdNo'))$('qdNo').value=nextUnusedQuoteNo();window.renderQuoteDocument?.();return result};window.__r73OpenQuoteWrapped=true}}
 
 function boot(){installCss();setVersion();installProjectFields();installBackTop();installQuoteCandidates();installOcr();installCardActions();installFormalSave();let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;setVersion();$$('.r72-top').forEach(x=>x.remove());installProductCandidates();productInfo('qCustomer','qProductName');productInfo('qdCustomer','qdItemsEditor');installCardActions();renderFormalList()})}).observe(document.body,{childList:true,subtree:true});window.addEventListener('hashchange',()=>setTimeout(()=>{installProjectFields();installQuoteCandidates();installBackTop();installCardActions();installFormalSave()},80))}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,160));else setTimeout(boot,160);
