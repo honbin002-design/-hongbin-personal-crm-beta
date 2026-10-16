@@ -56,6 +56,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await page.locator('#projectList').innerText()).includes('R74測試專案'),'新專案儲存成功');
  await page.locator('#projectList [data-project]').first().click();
  check((await page.locator('#projectHistory').innerText()).includes('第一筆追蹤紀錄'),'歷史追蹤紀錄保留');
+ await page.locator('#pStage').selectOption('暫停');
+ await page.locator('#pNote').fill('');
+ await page.locator('#saveProject').click();
+ await page.locator('#projectList [data-project]').first().click();
+ const histItems=await page.locator('#projectHistory .note').count();
+ check(histItems>=2&&(await page.locator('#projectHistory').innerText()).includes('暫停'),'專案階段異動即使沒有輸入備註，仍追加歷史');
+
  await page.locator('button[data-tab="backup"]').click();
  const dlPromise=page.waitForEvent('download');await page.locator('#downloadBackup').click();const download=await dlPromise;
  check(download.suggestedFilename().endsWith('.json'),'可從 iPhone 下載 JSON 備份');
