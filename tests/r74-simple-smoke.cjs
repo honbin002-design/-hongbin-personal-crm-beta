@@ -13,7 +13,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  browser=await webkit.launch({headless:true});
  const ctx=await browser.newContext({...devices['iPhone 13'],acceptDownloads:true,serviceWorkers:'block'});
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
- await page.addInitScript(data=>{for(const [k,v] of Object.entries(data))localStorage.setItem(k,JSON.stringify(v))},fixtures);
+ await page.addInitScript(data=>{for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
  check(await page.locator('.nav button').count()===5,'僅保留五個主選單');
  check(!await page.locator('button[data-tab="commands"],button[data-tab="suppliers"]').count(),'不存在獨立指令或供應商管理');
