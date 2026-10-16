@@ -12,6 +12,14 @@ function installCss(){
  document.head.appendChild(s)
 }
 function customerName(id){const crm=read(CRM,{});return (crm.customers||[]).find(x=>String(x.id)===String(id))?.name||''}
+function installTestBanner(){
+ if($('r74TestBanner'))return;
+ const host=document.querySelector('.app');if(!host)return;
+ const banner=document.createElement('div');banner.id='r74TestBanner';banner.setAttribute('role','status');
+ banner.style.cssText='padding:12px;margin:4px 0 12px;border:2px solid #e4a74a;border-radius:10px;background:#322008;color:#fff;font-weight:800;line-height:1.45;text-align:center';
+ banner.textContent='R74 TEST 候選版｜非正式版本。請勿匯入正式資料；須使用隔離測試網址。';
+ host.prepend(banner);
+}
 function installCustomer360(){
  if(window.__r74Customer360Wrapped||typeof window.openCustomer360!=='function')return;
  const original=window.openCustomer360;
@@ -139,6 +147,6 @@ function clarifyQuoteEntry(){
  if(sec){const b=[...sec.querySelectorAll('button')].find(x=>x.textContent.includes('產生正式報價單'));if(b)b.textContent='新增正式報價（完整欄位）'}
  if(doc&&!$('r74QuoteGuide')){const guide=document.createElement('div');guide.id='r74QuoteGuide';guide.className='r74-summary';guide.textContent='新增時即可填寫下方全部明細及條件；完成後按「儲存正式報價」，不必先建立再編輯。';doc.querySelector('.q-editor-grid')?.before(guide)}
 }
-function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();keepVisitFlowConsistent();installProjectPreviews();installOcrRaw();enforceProjectOptions();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')enforceProjectOptions();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
+function boot(){installCss();installTestBanner();installCustomer360();installCustomerSearch();installHubs();organizeNavigation();organizeExistingForms();keepVisitFlowConsistent();installProjectPreviews();installOcrRaw();enforceProjectOptions();clarifyQuoteEntry();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews();if(location.hash==='#projects')enforceProjectOptions();if(location.hash==='#quoteDocument'||location.hash==='#quotes')clarifyQuoteEntry()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
