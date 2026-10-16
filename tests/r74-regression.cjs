@@ -31,11 +31,20 @@ function fixture(){
   console:{warn(){},error(){},log(){}},
   MutationObserver:class{}
  };
- const source=fs.readFileSync('r73-fixes.js','utf8').replace(/\}\)\(\);\s*$/, "window.__tests={nextUnusedQuoteNo,saveFormal,formalQuotes,saveCard,setFormalId(id){currentFormalId=id}};})();");
+ const source=fs.readFileSync('r73-fixes.js','utf8').replace(/\}\)\(\);\s*$/, "window.__tests={nextUnusedQuoteNo,saveFormal,formalQuotes,saveCard,parseCardText,setFormalId(id){currentFormalId=id}};})();");
  assert(source.includes('window.__tests='));
  vm.runInNewContext(source,context,{filename:'r73-fixes.js'});
  return {data,elements,alerts,h:window.__tests,get reloadCount(){return reloadCount}};
 }
+const ocr=fixture();
+const cardSample='公司: R74測試股份有限公司\\n姓名: 陳小明\\n職稱: 經理\\n手機: 0912-345-678\\n電話: 06-1234567\\n傳真: 06-7654321\\n地址: 台南市測試路3號\\nEmail: test@example.com';
+const parsed=ocr.h.parseCardText(cardSample);
+assert.equal(parsed.company,'R74測試股份有限公司');
+assert.equal(parsed.name,'陳小明');
+assert.equal(parsed.mobile,'0912-345-678');
+assert.equal(parsed.tel,'06-1234567');
+assert.equal(parsed.fax,'06-7654321');
+assert.equal(parsed.address,'台南市測試路3號');
 const quote=fixture();
 const prefix=(()=>{const d=new Date(),pad=n=>String(n).padStart(2,'0');return 'Q'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'})();
 const existing=[
