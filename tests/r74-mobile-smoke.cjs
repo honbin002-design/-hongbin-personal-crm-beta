@@ -73,6 +73,20 @@ let browser;
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!document.querySelector('#r73FormalList'),null,{timeout:15000});
  check((await page.locator('#r73FormalList').innerText()).includes(quoteNo),'重新載入後報價仍在');
+ // A completely fresh, isolated origin must seed synthetic TEST records without a real customer's data.
+ const demoContext=await browser.newContext({...devices['iPhone 13'],serviceWorkers:'block'});
+ const demo=await demoContext.newPage();demo.on('pageerror',e=>errors.push('TEST launcher: '+e.message));
+ await demo.goto(base+'/r74-test.html',{waitUntil:'domcontentloaded'});
+ await demo.waitForURL('**/index.html#home',{timeout:15000});
+ await demo.waitForFunction(()=>!!document.getElementById('r74TestBanner'),null,{timeout:15000});
+ const demoState=await demo.evaluate(()=>({
+   master:JSON.parse(localStorage.getItem('hongbin_crm_master_r70')||'{}'),
+   crm:JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')||'{}'),
+   banner:document.getElementById('r74TestBanner')?.textContent||''
+ }));
+ check(demoState.master.customers?.length===2&&demoState.crm.customers?.length===2,'Codespaces TEST 啟動器自動填入兩筆合成示範客戶');
+ check(demoState.master.customers[0].name.startsWith('R74測試')&&demoState.banner.includes('R74 TEST'),'測試資料及候選版標示均清晰，無正式客戶');
+ await demoContext.close();
  assert.deepEqual(errors,[],'Browser JavaScript errors must be zero');
  const results={checks:checkCount,pageErrors:errors};
  console.log('R74 WEBKIT MOBILE SMOKE PASS '+JSON.stringify(results));
