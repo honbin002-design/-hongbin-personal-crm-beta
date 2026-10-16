@@ -117,6 +117,26 @@ function parseCardText(raw){
   out.name=candidates.find(x=>/^[\u3400-\u9fff·]{2,4}$/.test(x))||candidates.find(x=>/^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(x)&&x.length>=5)||'';
   if(!/^[\u3400-\u9fff·]{2,4}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(out.name))out.name='';
   if(out.company&&!/(股份有限公司|有限公司|公司|企業|科技|實業|工業|CO\.?\s*,?\s*LTD|CORPORATION|INC\.?)/i.test(out.company))out.company='';
+  // R74: prefer clear printed labels when OCR can identify them.
+  // A mistaken guess must never overwrite a reliably recognized field.
+  const labeled=(pattern)=>{
+    const line=lines.find(x=>pattern.test(x));if(!line)return'';
+    const match=line.match(pattern);return (match?.[1]||'').trim();
+  };
+  const labeledCompany=labeled(/^(?:公司名稱|公司|企業名稱|Company|Corporation)\\s*[:：\\-]\\s*(.+)$/i);
+  if(labeledCompany&&labeledCompany.length<100)out.company=labeledCompany;
+  const labeledName=labeled(/^(?:姓名|聯絡人|Contact\\s*Person|Contact Name|Name)\\s*[:：\\-]\\s*(.+)$/i).replace(/(?:董事長|總經理|經理|副理|主任|專員|工程師)$/,'').trim();
+  if(/^[\\u3400-\\u9fff·]{2,5}$|^[A-Za-z]+(?:[ .'-][A-Za-z]+){1,3}$/.test(labeledName))out.name=labeledName;
+  const labeledTitle=labeled(/^(?:職稱|職務|Title|Position)\\s*[:：\\-]\\s*(.+)$/i);
+  if(labeledTitle)out.title=labeledTitle;
+  const labeledAddress=labeled(/^(?:公司地址|地址|Address|Addr\\.?)\\s*[:：\\-]\\s*(.+)$/i);
+  if(labeledAddress)out.address=labeledAddress;
+  const labeledTel=cleanPhone(labeled(/^(?:電話|TEL|Phone|Office)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  if(labeledTel)out.tel=labeledTel;
+  const labeledMobile=cleanPhone(labeled(/^(?:手機|行動電話|Mobile|Cell)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  if(labeledMobile)out.mobile=labeledMobile;
+  const labeledFax=cleanPhone(labeled(/^(?:傳真|FAX|Facsimile)\\s*[:：\\-]\\s*([+0-9()#xXextEXT分機.\\-\\s]{7,})$/i));
+  if(labeledFax)out.fax=labeledFax;
   const set=(id,v)=>{if($(id))$(id).value=v||''};Object.entries({bcCompany:out.company,bcName:out.name,bcTitle:out.title,bcMobile:out.mobile,bcTel:out.tel,bcFax:out.fax,bcEmail:out.email,bcAddress:out.address,bcWebsite:out.website}).forEach(([id,v])=>set(id,v));return out;
 }
 async function ensureOcr(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('OCR 引擎下載失敗'));document.head.appendChild(s)})}
