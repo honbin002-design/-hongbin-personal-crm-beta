@@ -3,7 +3,7 @@ const {webkit,devices}=require('playwright');
 const assert=require('node:assert/strict');
 const base='http://127.0.0.1:8765';
 const master={customers:[{name:'R74測試客戶甲',address:'台南測試路',tel:'06-0000000',contact:'林測試',taxId:'12345678'},{name:'R74測試客戶乙',contact:'王測試'}],products:[{customerName:'R74測試客戶甲',name:'R74測試產品',customerPartNo:'C-PART-1',supplierPartNo:'S-PART-1',supplierName:'R74測試供應商',unit:'kg',price:150}],suppliers:[{supplierName:'R74測試供應商',name:'R74測試產品',partNo:'S-PART-1',package:'20kg',unit:'kg'}]};
-const crm={customers:[{id:101,name:'R74測試客戶甲'},{id:102,name:'R74測試客戶乙'}],projects:[{id:201,name:'R74專案測試',customerId:101,customerName:'R74測試客戶甲',stage:'進行中',progress:'送樣中',owner:'測試'}],visits:[],contacts:[{id:401,who:'已存在的追蹤',customerId:101,customerName:'R74測試客戶甲',note:'正常追蹤'}],quotes:[],todos:[],commands:[]};
+const crm={customers:[{id:101,name:'R74測試客戶甲'},{id:102,name:'R74測試客戶乙'}],projects:[{id:201,name:'R74專案測試',customerId:101,customerName:'R74測試客戶甲',stage:'進行中',progress:'送樣中',owner:'測試'}],visits:[{id:501,customerId:101,customerName:'R74測試客戶甲',date:'2026-10-16',note:'R74拜訪測試',next:'一週後追蹤'}],contacts:[{id:401,who:'已存在的追蹤',customerId:101,customerName:'R74測試客戶甲',note:'正常追蹤'}],quotes:[],todos:[],commands:[]};
 const cards=[{id:301,name:'測試聯絡人',company:'R74測試客戶甲',mobile:'0900000000',title:'測試職稱'}];
 const localFields={'hongbin_crm_master_r70':master,'hongbin_personal_crm_v3':crm,'hongbin_crm_cards_r70':cards,'hongbin_crm_project_progress_r72':{'201':{progress:'送樣中',note:'等待回覆'}}};
 function check(condition,message){assert(condition,message);console.log('PASS: '+message)}
@@ -38,6 +38,11 @@ function check(condition,message){assert(condition,message);console.log('PASS: '
  await page.goto(base+'/index.html#r74Visits',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!document.querySelector('#r74Visits #vCustomer'),null,{timeout:15000});
  check(!!await page.locator('#r74Visits #vNote').count(),'原拜訪表單位於拜訪入口');
+ check(await page.locator('#r74Visits .r74-edit-visit').count()===1,'拜訪清單提供編輯入口');
+ await page.locator('#r74Visits .r74-edit-visit').click();
+ check((await page.locator('#vNote').inputValue())==='R74拜訪測試','拜訪編輯載入正確紀錄且不跨頁');
+ await page.locator('#vCancelEdit').click();
+
  await page.goto(base+'/index.html#quotes',{waitUntil:'domcontentloaded'});
  await page.waitForTimeout(450);
  const trigger=page.locator('#quotes button').filter({hasText:'新增正式報價（完整欄位）'}).first();
@@ -66,7 +71,7 @@ function check(condition,message){assert(condition,message);console.log('PASS: '
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!document.querySelector('#r73FormalList'),null,{timeout:15000});
  check((await page.locator('#r73FormalList').innerText()).includes(quoteNo),'重新載入後報價仍在');
- const results={checks:14,pageErrors:errors};
+ const results={checks:16,pageErrors:errors};
  console.log('R74 WEBKIT MOBILE SMOKE PASS '+JSON.stringify(results));
  await browser.close();
 })().catch(e=>{console.error('R74 WEBKIT MOBILE SMOKE FAIL',e.stack||String(e));process.exitCode=1});
