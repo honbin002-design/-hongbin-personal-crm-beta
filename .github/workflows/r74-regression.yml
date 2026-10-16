@@ -1,0 +1,17 @@
+name: R74 isolated regression checks
+on:
+  push:
+    branches:
+      - r74-safety-work-20261016
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout R74 candidate
+        uses: actions/checkout@v4
+      - name: Run offline non-destructive regression suite
+        run: node tests/r74-regression.cjs
