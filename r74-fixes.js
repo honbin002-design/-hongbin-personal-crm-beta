@@ -1,0 +1,72 @@
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const norm=v=>String(v==null?'':v).trim().toLocaleLowerCase().replace(/[\s　]+/g,'');
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const read=(key,fallback)=>{try{const x=JSON.parse(localStorage.getItem(key)||'null');return x??fallback}catch(_){return fallback}};
+const MASTER='hongbin_crm_master_r70',CRM='hongbin_personal_crm_v3',CARDS='hongbin_crm_cards_r70',PROGRESS='hongbin_crm_project_progress_r72';
+function master(){return Object.assign({customers:[],products:[],suppliers:[]},read(MASTER,{}))}
+function field(label,value){return '<div class="r74-field"><b>'+esc(label)+'</b><span>'+esc(value||'—')+'</span></div>'}
+function installCss(){
+ if($('r74Style'))return;
+ const s=document.createElement('style');s.id='r74Style';s.textContent='.r74-field{display:grid;grid-template-columns:minmax(90px,33%) 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #42484d;overflow-wrap:anywhere}.r74-field b{color:#d3bca0}.r74-panel{margin:12px 0}.r74-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.r74-grid a{display:block;padding:13px;background:#262c32;border:1px solid #8e734e;border-radius:8px;text-align:center;color:#fff;text-decoration:none}.r74-list{max-height:65vh;overflow:auto}.r74-item{padding:12px 4px;border-bottom:1px solid #454b50}.r74-item b{display:block;color:#f2e5d8}.r74-item small{display:block;font-size:14px;line-height:1.5;color:#d8cfc4}.r74-summary{color:#dbd0bf;padding:7px 0}.r74-customer-note{padding:9px;color:#e6d0b4}.r74-preview{padding:9px;margin-top:9px;border:1px solid #555;border-radius:6px;background:#1a2026}#r74OcrRaw{width:100%;height:130px;white-space:pre-wrap;resize:vertical}';
+ document.head.appendChild(s)
+}
+function customerName(id){const crm=read(CRM,{});return (crm.customers||[]).find(x=>String(x.id)===String(id))?.name||''}
+function installCustomer360(){
+ if(window.__r74Customer360Wrapped||typeof window.openCustomer360!=='function')return;
+ const original=window.openCustomer360;
+ window.openCustomer360=function(id){const result=original.apply(this,arguments);showCustomerDetails(customerName(id),id);return result};
+ window.__r74Customer360Wrapped=true;
+}
+function showCustomerDetails(name,id){
+ const panel=$('customer360');if(!panel||!name)return;
+ let box=$('r74CustomerDetails');
+ if(!box){box=document.createElement('div');box.id='r74CustomerDetails';box.className='card r74-panel';const timeline=panel.querySelector('.card:nth-of-type(2)');if(timeline)panel.insertBefore(box,timeline);else panel.appendChild(box)}
+ const m=master(),c=m.customers.find(x=>norm(x.name)===norm(name))||null;
+ const cards=read(CARDS,[]).filter(x=>(x.customerId!=null&&String(x.customerId)===String(id))||norm(x.customerName||x.company)===norm(name));
+ const products=m.products.filter(x=>norm(x.customerName)===norm(name));
+ let html='<h2 class="section-title">客戶基本資料</h2>';
+ if(c)html+=field('公司',c.name)+field('統一編號',c.taxId)+field('公司地址',c.address)+field('送貨地址',c.deliveryAddress)+field('發票地址',c.invoiceAddress)+field('電話',c.tel)+field('傳真',c.fax)+field('聯繫人',c.contact)+field('手機',c.mobile);
+ else html+='<div class="r74-customer-note">此客戶未找到完整主資料；仍可檢視 CRM 與名片關聯，請勿另建重複資料。</div>';
+ html+='<h3>名片聯絡人（'+cards.length+'）</h3>';
+ const seen=new Set();cards.forEach(x=>{const key=norm(x.name)+'|'+norm(x.mobile||x.tel);if(seen.has(key))return;seen.add(key);html+='<div class="r74-item">'+field('姓名',x.name)+field('職稱',x.title)+field('手機',x.mobile)+field('電話',x.tel)+field('Email',x.email)+field('公司',x.company)+'</div>'});
+ if(!cards.length)html+='<div class="r74-summary">目前沒有與此公司對應的已儲存名片聯絡人。</div>';
+ html+='<h3>此客戶使用產品（'+products.length+'）</h3>';
+ html+=products.length?products.map(p=>'<div class="r74-item"><b>'+esc(p.name)+'</b><small>客戶品號：'+esc(p.customerPartNo||'—')+'｜供應商品號：'+esc(p.supplierPartNo||'—')+'</small><small>供應商：'+esc(p.supplierName||'—')+'｜單位：'+esc(p.unit||'—')+'｜售價：'+esc(p.price??'—')+'</small></div>').join(''):'<div class="r74-summary">尚無此客戶產品對照。</div>';
+ box.innerHTML=html;
+}
+function installCustomerSearch(){
+ const search=$('cuSearch'),box=$('customerGroupList');if(!search||!box)return;
+ const filter=()=>{const q=norm(search.value);let count=0;box.querySelectorAll(':scope > .item').forEach(item=>{const matching=!q||norm(item.textContent).includes(q);item.hidden=!matching;if(matching)count++});let status=$('r74CustomerSearchCount');if(!status){status=document.createElement('div');status.id='r74CustomerSearchCount';status.className='r74-summary';box.before(status)}status.textContent=q?'目前清單符合 '+count+' 筆（搜尋：'+search.value+'）':''};
+ if(!search.dataset.r74Bound){search.dataset.r74Bound='1';search.addEventListener('input',()=>setTimeout(filter,0));search.addEventListener('search',()=>setTimeout(filter,0));search.addEventListener('change',()=>setTimeout(filter,0))}
+ if(!box.dataset.r74Watch){box.dataset.r74Watch='1';new MutationObserver(filter).observe(box,{childList:true})}
+ filter();
+}
+function buildHub(id,title,placeholder,renderer){
+ const main=document.querySelector('main');if(!main)return;
+ let section=$(id);if(section)return;
+ section=document.createElement('section');section.className='panel';section.id=id;
+ section.innerHTML='<div class="card"><h2 class="section-title">'+esc(title)+'</h2><p class="r74-summary">直接查看既有主資料，不建立另一份資料。</p><input id="'+id+'Search" type="search" placeholder="'+esc(placeholder)+'"><div id="'+id+'Results" class="r74-list"></div></div>';
+ main.appendChild(section);
+ const input=$(id+'Search');const run=()=>renderer(norm(input.value),$(id+'Results'));input.addEventListener('input',run);run();
+}
+function installHubs(){
+ buildHub('r74Suppliers','供應商資料','搜尋供應商、供應商品號或品名',(q,box)=>{const a=master().suppliers.filter(x=>!q||norm([x.supplierName,x.name,x.partNo].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆供應商產品資料，顯示前 60 筆</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.supplierName)+'</b><small>品名：'+esc(x.name)+'｜品號：'+esc(x.partNo)+'</small><small>最小包裝單位：'+esc(x.unit||'—')+'｜包裝：'+esc(x.package||'—')+'</small></div>').join('')});
+ buildHub('r74Products','產品資料','搜尋產品、客戶品號、供應商品號',(q,box)=>{const a=master().products.filter(x=>!q||norm([x.name,x.customerName,x.customerPartNo,x.supplierPartNo,x.supplierName].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆客戶產品對照，顯示前 60 筆</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.name)+'</b><small>客戶：'+esc(x.customerName)+'｜客戶品號：'+esc(x.customerPartNo)+'</small><small>供應商：'+esc(x.supplierName||'—')+'｜供應商品號：'+esc(x.supplierPartNo||'—')+'｜售價：'+esc(x.price??'—')+'</small></div>').join('')});
+ buildHub('r74Visits','拜訪紀錄','搜尋拜訪內容或客戶',(q,box)=>{const d=read(CRM,{}),customers=d.customers||[],a=(d.visits||[]).filter(x=>!q||norm([x.note,x.next,x.customerName,customers.find(c=>String(c.id)===String(x.customerId))?.name].join(' ')).includes(q));box.innerHTML='<div class="r74-summary">共 '+a.length+' 筆拜訪紀錄。新增或編輯拜訪請至 <a href="#customers">客戶與拜訪操作</a>。</div>'+a.slice(0,60).map(x=>'<div class="r74-item"><b>'+esc(x.customerName||customers.find(c=>String(c.id)===String(x.customerId))?.name||'未關聯客戶')+'</b><small>'+esc(x.date||'未設定日期')+'｜'+esc(x.note)+'</small><small>後續：'+esc(x.next||'—')+'</small></div>').join('')});
+ const nav=document.querySelector('nav.nav');if(nav&&!$('r74SupplierNav'))[['r74Suppliers','供應商','r74SupplierNav'],['r74Products','產品','r74ProductNav'],['r74Visits','拜訪','r74VisitNav'],['businessCardScan','名片','r74CardNav'],['settings','設定','r74SettingsNav']].forEach(([id,label,nid])=>{const a=document.createElement('a');a.id=nid;a.href='#'+id;a.textContent=label;nav.appendChild(a)});
+}
+function installProjectPreviews(){
+ const box=$('projectList');if(!box)return;
+ const enhance=()=>{box.querySelectorAll('[id^="record-projects-"]').forEach(item=>{if(item.querySelector('.r74-project-toggle'))return;const id=item.id.slice('record-projects-'.length);const actions=item.querySelector('.record-actions');if(!actions)return;const b=document.createElement('button');b.type='button';b.className='secondary r74-project-toggle';b.textContent='查看詳情';b.addEventListener('click',()=>{let details=item.querySelector('.r74-preview');if(details){details.remove();return}const p=(read(CRM,{}).projects||[]).find(x=>String(x.id)===id);if(!p)return;const pr=read(PROGRESS,{}),r=pr[id]||pr[p.name]||{};details=document.createElement('div');details.className='r74-preview';details.innerHTML=field('專案',p.name)+field('客戶',p.customerName)+field('供應商',p.supplier)+field('負責人',p.owner)+field('階段',p.stage)+field('進度',r.progress||p.progress)+field('進度註記',r.note||p.progressNote)+field('追蹤日期',p.followDate);item.appendChild(details)});actions.prepend(b)})};
+ if(!box.dataset.r74Watch){box.dataset.r74Watch='1';new MutationObserver(enhance).observe(box,{childList:true,subtree:true})}enhance();
+}
+function installOcrRaw(){
+ const panel=$('businessCardScan')?.querySelector('.card');if(!panel||$('r74OcrBlock'))return;
+ const box=document.createElement('details');box.id='r74OcrBlock';box.className='r74-panel';box.innerHTML='<summary>查看本次 OCR 辨識原始文字</summary><textarea readonly id="r74OcrRaw" placeholder="執行本機辨識後，原始文字會顯示在這裡。"></textarea>';
+ panel.appendChild(box);
+ if(window.R74_LAST_OCR_RAW)$('r74OcrRaw').value=window.R74_LAST_OCR_RAW;
+}
+function boot(){installCss();installCustomer360();installCustomerSearch();installHubs();installProjectPreviews();installOcrRaw();window.addEventListener('hashchange',()=>{if(location.hash==='#customers')installCustomerSearch();if(location.hash==='#projects')installProjectPreviews()})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
+})();
