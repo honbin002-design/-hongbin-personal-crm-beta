@@ -182,6 +182,127 @@ async function restore(){
  }
  alert(source+'已還原，即將重新載入');location.reload()
 }
+
+/* Supplier and product master records stay in existing hongbin_crm_master_r70. */
+function supplierName(x){return String(x.name||x.supplierName||x.company||'').trim()}
+function supplierEntries(){return getMaster().suppliers.filter(x=>supplierName(x))}
+function productName(x){return String(x.name||x.productName||x.materialName||'').trim()}
+function productModel(x){return String(x.model||x.productNo||x.partNo||x.code||'').trim()}
+function productSupplier(x){return String(x.supplierName||x.supplier||'').trim()}
+function productCustomer(x){
+ return String(x.customerName||x.customer||customerEntries().find(t=>x.customerId!=null&&String(t.legacyId)===String(x.customerId))?.name||'').trim();
+}
+function productEntries(){return getMaster().products.filter(x=>productName(x))}
+function renderSuppliers(){
+ fillCustomerNames();const q=norm(field('supplierSearch'));
+ const list=getMaster().suppliers.map((s,i)=>({...s,__index:i})).filter(s=>supplierName(s)&&(!q||norm([supplierName(s),s.contact,s.tel,s.email].join(' ')).includes(q)));
+ $('supplierList').innerHTML=list.length?list.map(s=>'<div class="listItem"><div class="listTitle">'+esc(supplierName(s))+'</div><div class="sub">'+esc([s.contact,s.tel,s.email].filter(Boolean).join(' ｜ ')||'尚未填聯絡資訊')+'</div><button class="secondary" data-supplier="'+s.__index+'">查看／編輯</button></div>').join(''):htmlListEmpty('尚無供應商，按新增供應商建立');
+}
+function editSupplier(index){
+ editSupplierIndex=index==null?null:Number(index);
+ const s=editSupplierIndex==null?{}:getMaster().suppliers[editSupplierIndex]||{};
+ for(const [fieldName,key] of Object.entries({suName:'name',suContact:'contact',suTel:'tel',suEmail:'email',suAddress:'address',suNote:'note'}))$(fieldName).value=key==='name'?supplierName(s):s[key]||'';
+ $('supplierEditorTitle').textContent=editSupplierIndex==null?'新增供應商':'編輯供應商';
+ $('supplierEditor').hidden=false;$('supplierEditor').scrollIntoView({block:'start'});
+}
+function saveSupplier(){
+ const name=field('suName');if(!name){alert('請填寫供應商名稱');return}
+ const m=getMaster(),idx=editSupplierIndex,duplicate=m.suppliers.some((s,i)=>i!==idx&&norm(supplierName(s))===norm(name));
+ if(duplicate){alert('供應商已存在，請直接修改原資料');return}
+ const old=idx==null?{}:m.suppliers[idx]||{},next={...old,name,contact:field('suContact'),tel:field('suTel'),email:field('suEmail'),address:field('suAddress'),note:field('suNote')};
+ if(idx==null)m.suppliers.push(next);else m.suppliers[idx]=next;
+ if(!store(KEYS.master,m))return;
+ $('supplierEditor').hidden=true;renderSuppliers();fillCustomerNames();toast('供應商已儲存');
+}
+function renderProducts(){
+ fillCustomerNames();const q=norm(field('productSearch'));
+ const rows=getMaster().products.map((p,i)=>({...p,__index:i})).filter(p=>productName(p)&&(!q||norm([productName(p),productModel(p),p.spec,productSupplier(p),productCustomer(p)].join(' ')).includes(q)));
+ $('productList').innerHTML=rows.length?rows.map(p=>'<div class="listItem"><div class="listTitle">'+esc(productName(p))+' <span class="pill">'+esc(productModel(p)||'無型號')+'</span></div><div class="sub">規格：'+esc(p.spec||'—')+'　｜　供應商：'+esc(productSupplier(p)||'—')+'</div><div class="sub">使用客戶：'+esc(productCustomer(p)||'尚未指定')+'</div><button class="secondary" data-product="'+p.__index+'">查看／編輯</button></div>').join(''):htmlListEmpty('尚無符合的產品');
+}
+function editProduct(index,customer){
+ editProductIndex=index==null?null:Number(index);
+ const p=editProductIndex==null?{}:getMaster().products[editProductIndex]||{};
+ const map={pdName:productName(p),pdModel:productModel(p),pdSpec:p.spec||'',pdSupplier:productSupplier(p),pdCustomer:customer||productCustomer(p),pdNotes:p.notes||p.note||''};
+ for(const [id,val] of Object.entries(map))$(id).value=val;
+ $('productEditorTitle').textContent=editProductIndex==null?'新增產品':'編輯產品';
+ openTab('products');$('productEditor').hidden=false;$('productEditor').scrollIntoView({block:'start'});
+}
+function saveProduct(){
+ const name=field('pdName');if(!name){alert('請輸入產品名稱');return}
+ const m=getMaster(),idx=editProductIndex,customer=field('pdCustomer'),model=field('pdModel');
+ const match=m.products.some((p,i)=>i!==idx&&norm(productName(p))===norm(name)&&norm(productModel(p))===norm(model)&&norm(productCustomer(p))===norm(customer));
+ if(match){alert('相同名稱、型號與使用客戶的產品已存在，請編輯原項目');return}
+ const old=idx==null?{}:m.products[idx]||{};
+ const next={...old,name,model,spec:field('pdSpec'),supplierName:field('pdSupplier'),customerName:customer,customerId:customer?customerId(customer):null,notes:field('pdNotes')};
+ if(idx==null)m.products.push(next);else m.products[idx]=next;
+ if(!store(KEYS.master,m))return;
+ $('productEditor').hidden=true;renderProducts();fillCustomerNames();toast('產品資料已儲存');
+}
+function linkedTodoCustomer(t){
+ return String(t.customerName||t.customer||getCRM().customers.find(x=>t.customerId!=null&&String(x.id)===String(t.customerId))?.name||'').trim();
+}
+function relatedCustomer(name){
+ const key=norm(name);
+ const quotes=getQuotes().filter(q=>norm(q.fields?.qdCustomer||q.customerName||q.customer)===key);
+ const projects=getCRM().projects.filter(p=>norm(projectCustomerName(p))===key);
+ const todos=getCRM().todos.filter(t=>norm(linkedTodoCustomer(t))===key);
+ const products=getMaster().products.map((p,i)=>({...p,__index:i})).filter(p=>norm(productCustomer(p))===key);
+ return {quotes,projects,todos,products};
+}
+function showCustomer360(name){
+ const customer=customerByName(name);if(!customer)return;
+ customer360Name=customer.name;const related=relatedCustomer(name);
+ const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['使用產品',related.products.length]];
+ $('customer360Title').textContent=customer.name+'｜客戶完整資料';
+ const block=(title,items,html,empty)=>'<section class="customer360-block"><h3>'+esc(title)+'（'+items.length+'）</h3>'+(items.length?items.map(html).join(''):'<div class="muted">'+esc(empty)+'</div>')+'</section>';
+ const customerInfoHtml='<section class="customer360-block"><h3>客戶基本資料</h3><div class="customer360-entry">'+esc([customer.contact?'聯絡人：'+customer.contact:'',customer.mobile?'手機：'+customer.mobile:'',customer.tel?'電話：'+customer.tel:'',customer.address?'地址：'+customer.address:''].filter(Boolean).join(' ｜ ')||'尚未填寫聯絡資料')+'</div><button type="button" class="secondary" data-customer-edit="'+esc(name)+'">修改客戶資料</button></section>';
+ const products=block('使用產品',related.products,p=>'<div class="customer360-entry"><strong>'+esc(productName(p))+'</strong><div class="sub">型號：'+esc(productModel(p)||'—')+'　規格：'+esc(p.spec||'—')+'</div><div class="sub">供應商：'+esc(productSupplier(p)||'—')+'</div><button type="button" class="secondary" data-customer-product="'+p.__index+'">編輯產品</button></div>','尚未建立使用產品');
+ const quotes=block('報價單',related.quotes,q=>'<div class="customer360-entry"><strong>'+esc(q.fields?.qdNo||'未編號')+'</strong><div class="sub">'+esc(q.fields?.qdDate||'未設定日期')+'</div><button type="button" class="secondary" data-customer-quote="'+esc(q.id)+'">開啟報價</button></div>','尚無報價單');
+ const projects=block('專案追蹤',related.projects,p=>'<div class="customer360-entry"><strong>'+esc(p.name||'未命名專案')+'</strong><div class="sub">階段：'+esc(p.stage||'—')+'　進度：'+esc(projectProgress(p).progress||p.progress||'—')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button type="button" class="secondary" data-customer-project="'+esc(p.id)+'">查看追蹤</button></div>','尚無專案');
+ const todos=block('待辦行事曆',related.todos.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),t=>'<div class="customer360-entry"><strong>'+esc(t.text||'未命名待辦')+'</strong><div class="sub">'+esc(t.date||'未指定日期')+'　'+esc(t.time||'')+'　'+(t.done?'已完成':'待處理')+'</div><button type="button" class="secondary" data-customer-todo="'+esc(t.id)+'">查看待辦</button></div>','尚無客戶相關待辦');
+ $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+'<div class="actions"><button id="addCustomerProduct" type="button">＋ 新增該客戶使用產品</button></div>'+quotes+projects+todos;
+ $('customer360').hidden=false;$('customer360').scrollIntoView({block:'start'});
+}
+/* Input assistance: touch-friendly candidate list; users may still enter a new value. */
+function candidateValues(el){
+ const id=el.id||'',cls=el.classList,m=getMaster(),qs=getQuotes();
+ if(['qdCustomer','pCustomer','tCustomer','pdCustomer'].includes(id))return customerEntries().map(x=>x.name);
+ if(id==='pdSupplier')return supplierEntries().map(supplierName);
+ if(id==='pdName'||cls.contains('it-name'))return productEntries().map(productName).concat(qs.flatMap(q=>(q.items||[]).map(i=>i.name)));
+ if(id==='pdModel'||cls.contains('it-model'))return productEntries().map(productModel);
+ if(id==='qdDelivery')return qs.map(q=>q.fields?.qdDelivery);
+ if(id==='qdPayment')return qs.map(q=>q.fields?.qdPayment);
+ if(id==='pName')return getCRM().projects.map(p=>p.name);
+ if(id==='tText')return getCRM().todos.map(t=>t.text);
+ if(id==='cuContact')return customerEntries().map(c=>c.contact);
+ if(id==='suContact')return supplierEntries().map(s=>s.contact);
+ if(cls.contains('it-spec')||id==='pdSpec')return productEntries().map(p=>p.spec);
+ return [];
+}
+let suggestionTarget=null;
+function hideCandidates(){$('smartSuggestions').hidden=true;$('smartSuggestions').replaceChildren();suggestionTarget=null}
+function showCandidates(el){
+ const values=[...new Set(candidateValues(el).filter(Boolean).map(x=>String(x).trim()))];
+ if(!values.length){hideCandidates();return}
+ const typed=norm(el.value);
+ const results=values.filter(v=>!typed||norm(v).includes(typed)).sort((a,b)=>(norm(a).startsWith(typed)?0:1)-(norm(b).startsWith(typed)?0:1)||a.localeCompare(b,'zh-Hant')).slice(0,8);
+ if(!results.length){hideCandidates();return}
+ const rect=el.getBoundingClientRect(),box=$('smartSuggestions'),spaceBelow=innerHeight-rect.bottom;
+ box.style.left=Math.max(6,Math.min(rect.left,innerWidth-Math.max(rect.width,190)-6))+'px';
+ box.style.width=Math.min(innerWidth-12,Math.max(rect.width,210))+'px';
+ box.style.top=(spaceBelow>180?Math.min(innerHeight-240,rect.bottom+3):Math.max(4,rect.top-Math.min(240,results.length*47+8)))+'px';
+ box.replaceChildren(...results.map(v=>{const b=document.createElement('button');b.type='button';b.role='option';b.textContent=v;b.addEventListener('pointerdown',e=>e.preventDefault());b.onclick=()=>{
+    el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+    if(el.classList.contains('it-name')){const product=productEntries().find(p=>norm(productName(p))===norm(v));const card=el.closest('.items');if(card&&product){const model=card.querySelector('.it-model'),spec=card.querySelector('.it-spec');if(model&&!model.value)model.value=productModel(product);if(spec&&!spec.value)spec.value=product.spec||''}}
+    hideCandidates();el.focus()
+  };return b}));
+ box.hidden=false;suggestionTarget=el;
+}
+document.addEventListener('focusin',e=>{if(e.target.matches('input')&&!e.target.matches('[type=date],[type=time],[type=number],[type=file]'))showCandidates(e.target)});
+document.addEventListener('input',e=>{if(e.target===suggestionTarget||candidateValues(e.target).length)showCandidates(e.target)});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#smartSuggestions')&&!e.target.closest('input'))hideCandidates()});
+document.addEventListener('focusout',e=>{if(e.target===suggestionTarget)setTimeout(()=>{if(document.activeElement!==suggestionTarget)hideCandidates()},160)});
+
 // ── Events ──
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openTab(b.dataset.tab)));
 $('quoteSearch').addEventListener('input',renderQuotes);$('newQuote').onclick=()=>editQuote(null);$('quoteList').onclick=e=>{const b=e.target.closest('[data-quote]');if(b)editQuote(b.dataset.quote)};
