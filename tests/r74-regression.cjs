@@ -7,6 +7,12 @@ const files=['r69-fix.js','r73-fixes.js','r74-fixes.js'];
 files.forEach(path=>new vm.Script(fs.readFileSync(path,'utf8'),{filename:path}));
 const markup=fs.readFileSync('index.html','utf8');
 assert(markup.includes('<script src="./r74-fixes.js?v=74-candidate-3"></script>'));
+const legacyRenderExport=markup.indexOf('window.renderAll=renderAll;');
+const finalRenderWrapper=markup.indexOf('const oldRenderAll=renderAll;');
+const initialRender=markup.lastIndexOf('applyDefaultPage();');
+assert(legacyRenderExport>finalRenderWrapper&&legacyRenderExport<initialRender,'Legacy renderAll must be exported during final app initialization, never inside a save callback');
+assert(markup.includes('window.scheduleQuoteFit=scheduleQuoteFit;'),'Quote resize handler must be available to inline HTML');
+
 const pdfSource=fs.readFileSync('r69-fix.js','utf8');
 assert(pdfSource.includes('showPdfDownload(blob,name)'));
 assert(pdfSource.includes("shareError?.name==='AbortError'"));
