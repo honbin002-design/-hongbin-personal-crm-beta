@@ -88,11 +88,54 @@ function saveProject(){const name=field('pName');if(!name){alert('請輸入專�
 function renderStorage(){try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('hongbin_'));$('storageStatus').textContent='本機儲存狀態：可使用｜目前找到 '+keys.length+' 個 CRM 資料項目'}catch{$('storageStatus').textContent='無法讀取本機儲存，請勿繼續輸入資料'}}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 function backup(){const data={};try{for(const k of Object.keys(localStorage))if(k.startsWith('hongbin_'))data[k]=localStorage.getItem(k);const archive={format:'hongbin-crm-simple-localstorage',schema:1,exportedAt:new Date().toISOString(),data};downloadBlob(new Blob([JSON.stringify(archive,null,2)],{type:'application/json;charset=utf-8'}),'鴻繽CRM備份_'+localDate()+'.json');toast('已建立備份檔，請確認存入 iPhone 檔案')}catch(e){alert('備份失敗：'+e.message)}}
-async function restore(){const file=$('restoreFile').files?.[0];if(!file){alert('請先選擇 JSON 備份檔');return}if(file.size>25*1024*1024){alert('檔案過大，請先確認備份格式');return}let obj;try{obj=JSON.parse(await file.text())}catch{alert('備份檔不是有效的 JSON');return}
- if(obj?.format!=='hongbin-crm-simple-localstorage'||!obj.data||typeof obj.data!=='object'||Array.isArray(obj.data)){alert('無法辨識的備份格式，本次沒有覆蓋任何資料');return}
- const entries=Object.entries(obj.data);if(!entries.length||entries.some(([k,v])=>!k.startsWith('hongbin_')||typeof v!=='string')){alert('備份檔內容無效，沒有還原');return}if(!confirm('將還原 '+entries.length+' 個資料項目，會覆蓋相同項目的現有資料。\n確定已另存目前資料備份，而且要繼續嗎？'))return;
- const previous=entries.map(([key])=>localStorage.getItem(key));try{for(const [key,value] of entries)localStorage.setItem(key,value)}catch(e){entries.forEach(([key],i)=>{try{previous[i]===null?localStorage.removeItem(key):localStorage.setItem(key,previous[i])}catch{}});alert('還原失敗，已嘗試復原原有內容：'+e.message);return}
- alert('還原完成，即將重新載入');location.reload()}
+function validShape(key,value){
+ let obj;
+ try{obj=JSON.parse(value)}catch(e){throw new Error('資料格式錯誤：'+key+' 不是有效 JSON')}
+ const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+ const arrays=(x,names)=>names.every(k=>x[k]===undefined||Array.isArray(x[k]));
+ if(key===KEYS.crm&&(!plain(obj)||!arrays(obj,['customers','projects','todos','contacts','quotes','visits','commands'])))throw new Error('CRM 客戶／專案／待辦格式錯誤');
+ if(key===KEYS.master&&(!plain(obj)||!arrays(obj,['customers','products','suppliers'])))throw new Error('客戶主資料格式錯誤');
+ if(key===KEYS.quotes&&!Array.isArray(obj))throw new Error('正式報價格式錯誤');
+ if((key===KEYS.progress||key===KEYS.history)&&!plain(obj))throw new Error('追蹤紀錄格式錯誤');
+ if(key==='hongbin_crm_cards_r70'&&!Array.isArray(obj))throw new Error('舊版名片資料格式錯誤');
+}
+function normalizeBackup(obj){
+ const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+ let entries,source;
+ if(obj?.format==='hongbin-crm-simple-localstorage'&&obj.schema===1&&plain(obj.data)){
+   source='簡易版完整備份';
+   entries=Object.entries(obj.data);
+   if(!entries.length||entries.some(([k,v])=>!k.startsWith('hongbin_')||typeof v!=='string'))throw new Error('備份內容缺少有效 CRM 資料');
+ }else if(obj?.app==='鴻繽科技 CRM'&&['R50','R70'].includes(obj.schema)&&plain(obj.data)){
+   source='舊版 '+obj.schema+' 備份';
+   const d=obj.data;
+   if(!['customers','projects','todos','contacts','quotes','visits','commands'].some(k=>Array.isArray(d[k])))throw new Error('舊版 CRM 資料陣列遺失');
+   entries=[[KEYS.crm,JSON.stringify(d)]];
+   if(obj.schema==='R70'){
+     if(obj.masterData!==undefined){if(!plain(obj.masterData))throw new Error('舊版客戶主資料無效');entries.push([KEYS.master,JSON.stringify(obj.masterData)])}
+     if(obj.cards!==undefined){if(!Array.isArray(obj.cards))throw new Error('舊版名片資料無效');entries.push(['hongbin_crm_cards_r70',JSON.stringify(obj.cards)])}
+     if(obj.settings!==undefined){if(!plain(obj.settings))throw new Error('舊版設定資料無效');entries.push(['hongbin_personal_crm_settings_v1',JSON.stringify(obj.settings)])}
+   }
+ }else throw new Error('無法辨識此備份版本；不會覆蓋任何資料');
+ for(const [key,value] of entries)if([KEYS.crm,KEYS.master,KEYS.quotes,KEYS.progress,KEYS.history,'hongbin_crm_cards_r70'].includes(key))validShape(key,value);
+ return {source,entries};
+}
+async function restore(){
+ const file=$('restoreFile').files?.[0];if(!file){alert('請先選擇 JSON 備份檔');return}
+ if(file.size>25*1024*1024){alert('檔案過大，請先確認備份格式');return}
+ let converted;
+ try{converted=normalizeBackup(JSON.parse(await file.text()))}
+ catch(e){alert('備份檔檢查未通過：'+String(e.message||e)+'。本次沒有覆蓋任何資料。');return}
+ const {entries,source}=converted;
+ if(!confirm('辨識到「'+source+'」，共 '+entries.length+' 個資料項目。\n還原將覆蓋相同項目的既有資料。請先確認現有資料已備份，確定繼續？'))return;
+ const previous=entries.map(([key])=>localStorage.getItem(key));
+ try{for(const [key,value] of entries)localStorage.setItem(key,value)}
+ catch(e){
+   entries.forEach(([key],i)=>{try{previous[i]===null?localStorage.removeItem(key):localStorage.setItem(key,previous[i])}catch{}});
+   alert('還原失敗，已嘗試復原原有內容：'+e.message);return
+ }
+ alert(source+'已還原，即將重新載入');location.reload()
+}
 // ── Events ──
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openTab(b.dataset.tab)));
 $('quoteSearch').addEventListener('input',renderQuotes);$('newQuote').onclick=()=>editQuote(null);$('quoteList').onclick=e=>{const b=e.target.closest('[data-quote]');if(b)editQuote(b.dataset.quote)};
