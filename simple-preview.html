@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#152435"><title>鴻繽科技 CRM｜簡易版 TEST</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;font-size:16px;color:#172333;background:#edf2f6}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit;min-height:44px}button{cursor:pointer;border:0;border-radius:9px;padding:10px 15px;background:#1c527b;color:#fff;font-weight:650}button.secondary{background:#e6eef4;color:#213e57;border:1px solid #adbfcd}button.weak{background:#f7f8f9;color:#264761;border:1px solid #bac8d2}button.danger{background:#9b3333}input,select,textarea{width:100%;background:#fff;color:#172333;border:1px solid #aebdca;border-radius:7px;padding:10px;font-size:16px}textarea{min-height:85px;resize:vertical}label{display:block;margin:10px 0 4px;font-weight:600;color:#29425a}h1{font-size:23px;line-height:1.35;margin:2px 0}h2{font-size:20px;margin:0 0 14px}h3{font-size:17px;margin:18px 0 7px}.muted{color:#586a79;font-size:14px;line-height:1.6}.app{max-width:920px;margin:auto;padding:16px 13px 64px}.head{background:#fff;border-bottom:3px solid #cfaf81;padding:17px 17px 12px;border-radius:12px 12px 0 0}.test{font-size:13px;background:#fff6e7;border:1px solid #e4c589;padding:7px 10px;border-radius:6px;color:#7f4e12;display:inline-block;margin-top:9px}.nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:white;padding:10px 7px;border-bottom:1px solid #e0e6ea;position:sticky;top:0;z-index:5;box-shadow:0 4px 12px #0001}.nav button{border-radius:7px;font-size:15px;min-height:53px;padding:5px 2px;background:#e6ecf1;color:#253b50;line-height:1.2}.nav button.active{background:#1d557d;color:white}.panel{padding:16px 0;display:block}.panel[hidden],.editor[hidden],[hidden]{display:none!important}.card{background:#fff;border:1px solid #dce3e8;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px #152a3610}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:11px 0}.row>*{flex:0 0 auto}.row input,.row select{flex:1 1 180px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.wide{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0}.actions button{flex:1 1 140px}.listItem{border-bottom:1px solid #e0e8ed;padding:14px 0}.listItem:last-child{border:0}.listTitle{font-weight:700;font-size:17px}.sub{color:#566777;font-size:14px;margin:4px 0;overflow-wrap:anywhere}.note{border-left:3px solid #c5d5e1;padding:6px 12px;margin:8px 0;background:#f5f8fa}.items{border:1px solid #dbe2e8;border-radius:9px;padding:10px;margin:10px 0}.pill{display:inline-block;background:#edf2f8;color:#254f75;padding:3px 9px;border-radius:99px;font-size:13px}.calendarHead{display:flex;align-items:center;justify-content:space-between;gap:6px}.calendarHead strong{font-size:19px}.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:14px 0}.weekday{text-align:center;font-size:13px;color:#53677b;padding:7px 0}.day{min-width:0;min-height:63px;padding:4px 2px;border:1px solid #d9e2e9;border-radius:9px;background:#fff;color:#192f42;position:relative;font-weight:600}.day.chosen{outline:3px solid #ccad7e}.day.today{border:2px solid #4e789a}.day.dot:after{content:"";display:block;background:#dc8b28;width:7px;height:7px;border-radius:99px;margin:3px auto}.day.empty{background:none;border:0;min-height:44px}.day[aria-pressed="true"]{background:#e1eef7}.task.done .listTitle{text-decoration:line-through;color:#78858c}.hiddenDate{white-space:nowrap}#toast{position:fixed;bottom:17px;left:50%;transform:translateX(-50%);background:#1c3f59;color:white;padding:11px 19px;border-radius:9px;box-shadow:0 4px 20px #0005;z-index:20;display:none}.sheet{background:white;color:#141414;border:1px solid #ddd;width:100%;max-width:794px;margin:15px auto 25px;padding:24px;box-shadow:0 2px 12px #0002;font-family:"Noto Sans TC","PingFang TC",sans-serif;overflow-wrap:anywhere}.letterhead{display:block;width:100%;height:auto;max-height:120px;object-fit:contain}.sheet h2{text-align:center;font-size:22px;letter-spacing:4px}.paperMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;font-size:14px}.paperTbl{border-collapse:collapse;width:100%;table-layout:fixed;margin:12px 0}.paperTbl th,.paperTbl td{border:1px solid #444;padding:7px 5px;text-align:left;font-size:13px;overflow-wrap:anywhere}.paperTbl th{background:#eef1f4}.paperFoot{font-size:13px;white-space:pre-line;line-height:1.55}.paperTotal{text-align:right;font-size:17px;font-weight:bold}.labelLine{font-size:14px;border-bottom:1px solid #ddd;padding:5px 0}.bottomSticky{position:sticky;bottom:0;background:#fffe;padding:8px;border-top:1px solid #dce4e9}.warn{color:#873629;font-size:14px}input[type=checkbox]{width:20px;min-height:20px;height:20px;vertical-align:middle}.taskCheck{display:flex;align-items:center;gap:10px}.taskCheck span{flex:1}details summary{cursor:pointer;font-weight:650;padding:8px}
+@media(max-width:600px){.app{padding:0 0 35px}.head{border-radius:0;padding:13px}.panel{padding:12px}.card{padding:13px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.nav button{font-size:13px}.sheet{padding:10px}.paperMeta{font-size:11px}.paperTbl th,.paperTbl td{font-size:10px;padding:4px 2px}}
+@page{size:A4 portrait;margin:8mm}
+@media print{body{background:#fff!important}.head,.nav,.panel,#toast,.noPrint{display:none!important}#printRoot{display:block!important}#printRoot .sheet{width:194mm;max-width:194mm;min-height:270mm;padding:8mm;box-shadow:none;border:0;margin:0;break-after:page;page-break-after:always}#printRoot .sheet:last-child{break-after:auto;page-break-after:auto}.paperMeta{font-size:12pt}.paperTbl th,.paperTbl td{font-size:10.5pt}.paperFoot{font-size:11pt}.letterhead{max-height:33mm}}
+</style>
+</head>
+<body><div class="app">
+<header class="head"><h1>鴻繽科技 CRM</h1><div class="muted">客戶、報價、待辦行事曆、專案追蹤</div><span class="test">簡易核心版｜獨立施工 TEST｜正式版未修改</span></header>
+<nav class="nav" aria-label="主要功能">
+<button type="button" data-tab="quotes" class="active">報價單</button>
+<button type="button" data-tab="customers">客戶管理</button>
+<button type="button" data-tab="calendar">待辦日曆</button>
+<button type="button" data-tab="projects">專案追蹤</button>
+<button type="button" data-tab="backup">備份</button>
+</nav>
+<main>
+<section class="panel" id="panel-quotes">
+<div class="card"><h2>報價單</h2><div class="row"><input id="quoteSearch" type="search" placeholder="搜尋客戶、報價編號"><button id="newQuote">＋ 新增報價</button></div><div id="quoteList"></div></div>
+<div class="card editor" id="quoteEditor" hidden>
+<h2 id="quoteEditorTitle">新增報價</h2>
+<div class="grid">
+<div><label for="qdNo">報價編號</label><input id="qdNo"></div>
+<div><label for="qdDate">日期</label><input id="qdDate" type="date"></div>
+<div><label for="qdCustomer">客戶名稱</label><input id="qdCustomer" list="customerNames" placeholder="輸入或選取客戶"></div>
+<div><label for="qdContact">聯絡人</label><input id="qdContact"></div>
+<div><label for="qdTel">電話</label><input id="qdTel" inputmode="tel"></div>
+<div><label for="qdFax">傳真</label><input id="qdFax" inputmode="tel"></div>
+<div><label for="qdDelivery">交貨時間</label><input id="qdDelivery"></div>
+<div><label for="qdPayment">付款條件</label><input id="qdPayment"></div>
+<div class="wide"><label for="qdPlace">交貨地點</label><input id="qdPlace"></div>
+<div><label for="qdValid">有效期限</label><input id="qdValid"></div>
+<div><label for="qdSales">業務代表</label><input id="qdSales"></div>
+<div><label for="qdSalesTel">業務電話</label><input id="qdSalesTel" inputmode="tel"></div>
+<div class="wide"><label for="qdNotes">備註</label><textarea id="qdNotes"></textarea></div>
+</div>
+<h3>報價品項</h3><div id="quoteItems"></div>
+<button type="button" id="addQuoteItem" class="secondary">＋ 新增品項</button>
+<div class="actions"><button id="saveQuote" type="button">儲存報價</button><button id="previewQuote" class="secondary" type="button">預覽／列印</button><button id="exportPdf" class="secondary" type="button">下載 PDF</button><button id="cancelQuote" class="weak" type="button">關閉編輯</button></div>
+<div id="pdfNotice" class="muted"></div>
+</div>
+<div id="quotePreview" class="card" hidden><h2>報價預覽</h2><div class="actions"><button id="printQuote" type="button">列印／儲存 PDF</button><button id="hideQuotePreview" class="secondary" type="button">關閉預覽</button></div><div id="quotePreviewPages"></div></div>
+</section>
+<section class="panel" id="panel-customers" hidden>
+<div class="card"><h2>客戶管理</h2><div class="row"><input id="customerSearch" type="search" placeholder="搜尋公司、聯絡人、電話"><button id="newCustomer">＋ 新增客戶</button></div><div id="customerList"></div></div>
+<div class="card editor" id="customerEditor" hidden><h2 id="customerEditorTitle">客戶資料</h2><div class="grid">
+<div><label for="cuName">公司名稱</label><input id="cuName"></div><div><label for="cuTax">統一編號</label><input id="cuTax"></div>
+<div><label for="cuContact">聯絡人</label><input id="cuContact"></div><div><label for="cuMobile">手機</label><input id="cuMobile" inputmode="tel"></div>
+<div><label for="cuTel">公司電話</label><input id="cuTel" inputmode="tel"></div><div><label for="cuFax">傳真</label><input id="cuFax" inputmode="tel"></div>
+<div class="wide"><label for="cuAddress">地址</label><input id="cuAddress"></div>
+<div class="wide"><label for="cuEmail">Email</label><input id="cuEmail" type="email"></div>
+</div><div class="actions"><button id="saveCustomer">儲存客戶</button><button id="cancelCustomer" class="secondary">取消</button></div></div>
+</section>
+<section class="panel" id="panel-calendar" hidden>
+<div class="card"><h2>待辦行事曆</h2>
+<div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上個月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下個月 ›</button></div>
+<div id="calendarGrid" class="cal" role="group" aria-label="選擇待辦日期"></div>
+<h3 id="selectedDayTitle"></h3><div id="todoList"></div><button id="newTodo">＋ 新增當日待辦</button></div>
+<div class="card editor" id="todoEditor" hidden><h2>待辦事項</h2>
+<label for="tDate">日期</label><input id="tDate" type="date">
+<label for="tText">事項</label><input id="tText">
+<label for="tNotes">備註</label><textarea id="tNotes"></textarea>
+<div class="actions"><button id="saveTodo">儲存待辦</button><button id="cancelTodo" class="secondary">取消</button></div></div>
+</section>
+<section class="panel" id="panel-projects" hidden>
+<div class="card"><h2>專案追蹤管理</h2><div class="row"><input id="projectSearch" type="search" placeholder="搜尋專案或客戶"><button id="newProject">＋ 新增專案</button></div><div id="projectList"></div></div>
+<div class="card editor" id="projectEditor" hidden><h2 id="projectEditorTitle">專案資料</h2><div class="grid">
+<div class="wide"><label for="pName">專案名稱</label><input id="pName"></div>
+<div><label for="pCustomer">客戶</label><input id="pCustomer" list="customerNames"></div>
+<div><label for="pOwner">負責人</label><input id="pOwner"></div>
+<div><label for="pStage">專案階段</label><select id="pStage"><option>進行中</option><option>已成交</option><option>暫停</option><option>結案</option><option>取消</option></select></div>
+<div><label for="pProgress">目前進度</label><select id="pProgress"><option value="">未設定</option><option>初步接洽</option><option>需求確認</option><option>送樣中</option><option>客戶測試中</option><option>報價中</option><option>待客戶確認</option><option>待採購確認</option><option>成交準備</option></select></div>
+<div class="wide"><label for="pFollowDate">下次追蹤日期</label><input id="pFollowDate" type="date"></div>
+</div>
+<label for="pNote">本次追蹤紀錄（儲存後保留歷史）</label><textarea id="pNote" placeholder="例如：樣品已送達，等待測試結果"></textarea>
+<div class="actions"><button id="saveProject">儲存專案／追蹤紀錄</button><button id="cancelProject" class="secondary">取消</button></div>
+<h3>歷史追蹤紀錄</h3><div id="projectHistory"></div>
+</div>
+</section>
+<section class="panel" id="panel-backup" hidden>
+<div class="card"><h2>本機儲存與備份</h2>
+<p>資料直接儲存在這台 iPhone 的瀏覽器。請定期備份到「檔案」或 iCloud Drive，避免更換手機或清除 Safari 資料時遺失。</p>
+<div id="storageStatus" class="muted"></div>
+<div class="actions"><button id="downloadBackup">下載 CRM 備份檔</button></div>
+<h3>從備份還原</h3><p class="warn">還原會覆蓋備份中相同的資料項目。匯入前會要求確認，既有資料不會自動刪除。</p>
+<label for="restoreFile">選取備份 JSON 檔</label><input id="restoreFile" type="file" accept="application/json,.json">
+<div class="actions"><button id="restoreBackup" class="secondary">確認還原備份</button></div>
+<div class="note">舊版已儲存的 CRM 文字資料仍保留；新版不顯示的舊功能資料也會一併備份。不包含舊名片照片 IndexedDB 附件。</div>
+</div>
+</section>
+</main><datalist id="customerNames"></datalist>
+</div>
+<div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div>
+<script src="./simple-core.js?v=1" defer></script>
+</body></html>
