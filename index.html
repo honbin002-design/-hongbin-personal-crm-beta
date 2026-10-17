@@ -135,6 +135,21 @@
 #backToTop:focus-visible{outline:3px solid #cfad67;outline-offset:2px}
 @media print{#backToTop{display:none!important}}
 
+
+/* iPhone Safari print: A4 內容寬高必須包含內距，避免單頁溢出成空白第二頁。 */
+@media print{
+ @page{size:A4 portrait;margin:0}
+ html,body{width:210mm!important;margin:0!important;padding:0!important}
+ #printRoot{width:210mm!important;margin:0!important;padding:0!important}
+ #printRoot .sheet.legacy-quote{
+  box-sizing:border-box!important;width:210mm!important;max-width:210mm!important;
+  min-width:0!important;height:297mm!important;min-height:0!important;max-height:297mm!important;
+  margin:0!important;padding:5mm 9mm!important;overflow:hidden!important;
+  break-inside:avoid!important;page-break-inside:avoid!important;
+ }
+ #printRoot .sheet.legacy-quote:last-child{break-after:auto!important;page-break-after:auto!important}
+ #printRoot .sheet.legacy-quote:not(:last-child){break-after:page!important;page-break-after:always!important}
+}
 </style>
 </head>
 <body><div class="app">
