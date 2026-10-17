@@ -17,6 +17,21 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
  check(await page.locator('.nav button').count()===7,'包含供應商與產品資料在內的七個功能主選單');
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
+
+ check(await page.locator('#backToTop').isHidden(),'頁面最上方時回頂端按鈕不遮擋操作');
+ for(const tab of ['quotes','customers','calendar','projects','suppliers','products','backup']){
+   await page.locator('[data-tab="'+tab+'"]').click();
+   await page.evaluate(tab=>{const spacer=document.createElement('div');spacer.dataset.scrollTest='1';spacer.style.height='1700px';document.getElementById('panel-'+tab).appendChild(spacer)},tab);
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+   await page.waitForFunction(()=>!document.getElementById('backToTop').hidden,{timeout:5000});
+   check(await page.locator('#backToTop').isVisible(),'「'+tab+'」頁面向下滾動可見回頂端按鈕');
+   await page.locator('#backToTop').click();
+   await page.waitForFunction(()=>window.scrollY<10,{timeout:5000});
+   check(await page.evaluate(()=>scrollY<10),'「'+tab+'」頁面點擊回頂端可返回最上方');
+   await page.locator('#panel-'+tab+' [data-scroll-test]').evaluate(el=>el.remove());
+ }
+ await page.locator('[data-tab="quotes"]').click();
+
  check((await page.locator('#quoteList').innerText()).includes('QTEST-001'),'讀取既有正式報價');
  await page.locator('[data-quote="77"]').click();
  check(await page.locator('#qdCustomer').inputValue()==='測試甲公司','既有報價可開啟編輯');
@@ -57,6 +72,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await page.locator('#customer360Content').innerText()).includes('既有產品'),'已儲存客戶使用產品自動顯示');
  check((await page.locator('#customer360Content').innerText()).includes('舊ID專案'),'使用客戶 ID 的舊專案也能顯示在客戶資料');
 
+ check(await page.locator('#customerListCard').isHidden(),'查看完整資料時，其他客戶清單不再留在上方');
+ check(await page.locator('#customer360').isVisible(),'選定客戶的完整資料單獨顯示');
  check((await page.locator('#customer360Title').innerText())==='測試甲公司','客戶標題只顯示公司名稱，不會與頁面名稱擠在一起');
  check(await page.locator('#closeCustomer360').evaluate(el=>getComputedStyle(el).whiteSpace==='nowrap'&&el.getBoundingClientRect().width>=70),'iPhone 關閉按鈕維持橫向完整文字');
  const infoKeys=await page.locator('#customer360Content .customer-info-key').allTextContents();
@@ -66,6 +83,9 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#customer360Content .customer360-block').first().count()===1,'客戶完整資料保留分區');
 
  await page.locator('#closeCustomer360').click();
+ check(await page.locator('#customer360').isHidden(),'按關閉後客戶詳細資料收起');
+ check(await page.locator('#customerListCard').isVisible(),'按關閉後可回到客戶清單');
+
 
  await page.locator('button[data-tab="calendar"]').click();
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
