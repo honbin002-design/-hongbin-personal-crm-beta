@@ -72,6 +72,34 @@
 #smartSuggestions button:active{background:#dfeefa}
 @media(max-width:640px){.nav{grid-template-columns:repeat(4,minmax(0,1fr));position:relative;padding:8px}.nav button{font-size:13px;min-height:46px}.yearNav select{min-width:78px}.yearNav label{font-size:13px}}
 
+
+/* iPhone customer-detail acceptance: clear header, single-line close button, readable fields. */
+#customer360 .customer-section-title{display:block!important}
+#customer360 .customer-heading{width:100%;min-width:0}
+#customer360 .customer-heading-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#customer360 .customer-eyebrow{font-size:14px;font-weight:650;color:#46687f;letter-spacing:.02em}
+#customer360 #closeCustomer360{flex:0 0 auto;min-width:74px;width:auto;white-space:nowrap;word-break:keep-all;padding:9px 15px;line-height:1.3}
+#customer360 #customer360Title{font-size:clamp(20px,4.4vw,25px);line-height:1.4;font-weight:750;min-width:0;overflow-wrap:anywhere;word-break:normal;margin:7px 0 12px}
+#customer360 .customer360-badges{gap:7px;margin-bottom:10px}
+#customer360 .customer360-badges .pill{padding:5px 10px;font-size:13px}
+#customer360 .customer360-block{margin-top:10px;padding:12px 13px}
+#customer360 .customer360-block h3{margin-bottom:8px;padding-bottom:7px}
+#customer360 .customer360-entry{margin:6px 0;padding:9px 11px}
+#customer360 .customer360-block.is-empty{padding-bottom:10px}
+#customer360 .customer360-empty{font-size:14px;color:#657987;line-height:1.4}
+#customer360 .customer-info-list{background:#fff;border-radius:8px;padding:5px 12px;margin-bottom:10px}
+#customer360 .customer-info-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:10px;padding:7px 0;line-height:1.5}
+#customer360 .customer-info-row+.customer-info-row{border-top:1px solid #e6ecf1}
+#customer360 .customer-info-key{color:#567083;font-size:14px;font-weight:600;white-space:nowrap}
+#customer360 .customer-info-value{min-width:0;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;font-size:15px;color:#253b4e}
+#customer360 .customer-product-action{margin:10px 0 0;max-width:100%;width:auto}
+#customer360 .customer360-entry strong{overflow-wrap:anywhere}
+@media(max-width:640px){
+ #customer360 .customer360-badges{gap:5px}
+ #customer360 .customer360-block{margin-top:9px}
+ #customer360 .customer-product-action{width:100%;min-height:44px}
+}
+
 </style>
 </head>
 <body><div class="app">
@@ -115,7 +143,7 @@
 <section class="panel" id="panel-customers" hidden>
 <div class="card"><h2>客戶管理</h2><div class="row"><input id="customerSearch" type="search" placeholder="搜尋公司、聯絡人、電話"><button id="newCustomer">＋ 新增客戶</button></div><div id="customerList"></div></div>
 <div class="card" id="customer360" hidden>
-  <div class="customer-section-title"><h2 id="customer360Title">客戶完整資料</h2><button type="button" class="secondary" id="closeCustomer360">關閉</button></div>
+  <div class="customer-section-title"><div class="customer-heading"><div class="customer-heading-bar"><span class="customer-eyebrow">客戶完整資料</span><button type="button" class="secondary" id="closeCustomer360">關閉</button></div><h2 id="customer360Title">客戶名稱</h2></div></div>
   <div id="customer360Content"></div>
 </div>
 <div class="card editor" id="customerEditor" hidden><h2 id="customerEditorTitle">客戶資料</h2><div class="grid">
@@ -195,6 +223,6 @@
 </div>
 <div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div><div id="smartSuggestions" role="listbox" hidden aria-label="候選選項"></div>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./simple-core.js?v=r73-customer-links-20261017" defer></script>
+<script src="./simple-core.js?v=r73-customer-ui-20261017" defer></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-customer-links-20261017').catch(()=>{}))}</script>
 </body></html>
