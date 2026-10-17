@@ -363,5 +363,16 @@ document.addEventListener('keydown',e=>{
   if(next.matches('input[type="text"],input:not([type])')&&typeof next.select==='function')next.select();
 },true);
 
+/* 全頁共用「回頂端」按鈕，滾動才顯示；避免覆蓋 iPhone Safari 工具列。 */
+const backToTop=$('backToTop');
+function updateBackToTop(){backToTop.hidden=(window.scrollY||document.documentElement.scrollTop||0)<180}
+backToTop.onclick=()=>{
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
+};
+window.addEventListener('scroll',updateBackToTop,{passive:true});
+window.addEventListener('pageshow',updateBackToTop);
+
 fillCustomerNames();renderQuotes();openTab('quotes');
+updateBackToTop();
 })();
