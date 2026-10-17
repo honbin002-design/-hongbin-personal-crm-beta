@@ -56,10 +56,33 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
 
  await page.addScriptTag({path:require.resolve('html2canvas/dist/html2canvas.min.js')});
  await page.addScriptTag({path:require.resolve('jspdf/dist/jspdf.umd.min.js')});
+ // 模擬 iPhone 支援 Web Share Files 時，按一下下載就直接送出 PDF。
+ await page.evaluate(()=>{
+   window.__sharePdf=null;
+   Object.defineProperty(navigator,'canShare',{configurable:true,value:({files})=>files?.[0]?.type==='application/pdf'});
+   Object.defineProperty(navigator,'share',{configurable:true,value:async({files,title})=>{
+     const file=files[0],buf=new Uint8Array(await file.arrayBuffer());
+     window.__sharePdf={name:file.name,title,type:file.type,size:buf.length,
+       header:String.fromCharCode(...buf.slice(0,5)),tail:String.fromCharCode(...buf.slice(-30))};
+   }});
+ });
+ const pdfPopups=[];page.on('popup',popup=>pdfPopups.push(popup));
  await page.locator('#exportPdf').click();
- await page.locator('#pdfNotice a').waitFor({timeout:20000});
- const pdfBits=await page.evaluate(async()=>{const b=await (await fetch(document.querySelector('#pdfNotice a').href)).arrayBuffer();const bytes=new Uint8Array(b),head=String.fromCharCode(...bytes.slice(0,5)),tail=String.fromCharCode(...bytes.slice(-30));return {head,tail,size:bytes.length}});
- check(pdfBits.head==='%PDF-'&&pdfBits.tail.includes('%%EOF')&&pdfBits.size>10000,'新簡易報價單可產生真實 PDF 檔案');
+ await page.waitForFunction(()=>window.__sharePdf!==null,{timeout:20000});
+ const sharedPdf=await page.evaluate(()=>window.__sharePdf);
+ check(sharedPdf.header==='%PDF-'&&sharedPdf.tail.includes('%%EOF')&&sharedPdf.size>10000,'分享選單收到真正 PDF 二進位檔');
+ check(sharedPdf.name==='報價單_QTEST-001.pdf'&&sharedPdf.type==='application/pdf','PDF 以原報價編號命名並傳遞正確檔案類型');
+ check(await page.locator('#pdfNotice a').count()===0,'按下載 PDF 不再顯示小字開啟／下載連結');
+ check(pdfPopups.length===0,'按下載 PDF 不會開啟新分頁或新視窗');
+ check((await page.locator('#pdfNotice').innerText()).includes('分享選單'),'支援分享選單時顯示正確狀態');
+ // 不支援原生 Web Share 的瀏覽器直接下載；同樣不需要第二次點擊連結。
+ await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined})});
+ const directDownloadPromise=page.waitForEvent('download',{timeout:20000});
+ await page.locator('#exportPdf').click();
+ const directDownload=await directDownloadPromise;
+ check(directDownload.suggestedFilename()==='報價單_QTEST-001.pdf','不支援 Web Share 時直接觸發 PDF 下載');
+ check((await page.locator('#pdfNotice').innerText()).includes('已啟動 PDF 下載'),'自動下載顯示下載狀態');
+ check(await page.locator('#pdfNotice a').count()===0&&pdfPopups.length===0,'兩種下載方式都沒有第二個連結或新視窗');
 
  await page.locator('button[data-tab="customers"]').click();
  check((await page.locator('#customerList').innerText()).includes('測試甲公司'),'舊客戶可讀取');
