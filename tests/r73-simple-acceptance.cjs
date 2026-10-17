@@ -86,6 +86,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
    arr[0].items=[...arr[0].items,...Array.from({length:4},(_,i)=>({name:'額外品項'+i,model:'TEST',spec:'1kg',qty:1,price:99,moq:'1'}))];
    localStorage.setItem('hongbin_crm_formal_quotes_r73',JSON.stringify(arr));
   });
+  await printPage.emulateMedia({media:'screen'});
   await printPage.reload();
   await printPage.locator('[data-quote="77"]').click();
   await printPage.locator('#previewQuote').click();
