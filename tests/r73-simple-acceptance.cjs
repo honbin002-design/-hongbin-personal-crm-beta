@@ -56,6 +56,15 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await page.locator('#customer360Content').innerText()).includes('QTEST-001'),'既有報價自動彙整到客戶完整資料');
  check((await page.locator('#customer360Content').innerText()).includes('既有產品'),'已儲存客戶使用產品自動顯示');
  check((await page.locator('#customer360Content').innerText()).includes('舊ID專案'),'使用客戶 ID 的舊專案也能顯示在客戶資料');
+
+ check((await page.locator('#customer360Title').innerText())==='測試甲公司','客戶標題只顯示公司名稱，不會與頁面名稱擠在一起');
+ check(await page.locator('#closeCustomer360').evaluate(el=>getComputedStyle(el).whiteSpace==='nowrap'&&el.getBoundingClientRect().width>=70),'iPhone 關閉按鈕維持橫向完整文字');
+ const infoKeys=await page.locator('#customer360Content .customer-info-key').allTextContents();
+ check(infoKeys.includes('聯絡人')&&infoKeys.includes('公司電話'),'聯絡人和公司電話分列顯示，避免擠成單行');
+ check(await page.locator('#customer360Content .customer-info-row').count()>=2,'客戶聯絡資訊每項各自呈現');
+ check(await page.locator('#customer360Content .customer360-block.is-empty').count()>=1,'沒有紀錄的區塊使用精簡版面');
+ check(await page.locator('#customer360Content .customer360-block').first().count()===1,'客戶完整資料保留分區');
+
  await page.locator('#closeCustomer360').click();
 
  await page.locator('button[data-tab="calendar"]').click();
