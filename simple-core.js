@@ -96,12 +96,54 @@ function previewQuote(){
 }
 function printQuote(){if(previewQuote())window.print()}
 async function loadScript(url,isReady){if(isReady())return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(new Error('PDF 元件載入失敗，請使用列印／儲存 PDF'));document.head.appendChild(s)})}
-async function pdfQuote(){if(!previewQuote())return;const msg=$('pdfNotice');msg.textContent='正在產生 PDF，請稍候……';try{
- await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',()=>!!window.html2canvas);
- await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',()=>!!window.jspdf);
- const pdf=new window.jspdf.jsPDF({format:'a4',unit:'mm',orientation:'portrait'}),pages=[...$('printRoot').querySelectorAll('.sheet')];for(let i=0;i<pages.length;i++){const clone=pages[i].cloneNode(true);clone.style.cssText='width:794px!important;max-width:794px!important;position:fixed;left:-10000px;top:0;margin:0;';document.body.appendChild(clone);let canvas;try{canvas=await window.html2canvas(clone,{scale:2,backgroundColor:'#fff',useCORS:true})}finally{clone.remove()}if(i)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',0,0,210,297)}
- const blob=pdf.output('blob');if(lastPdfUrl)URL.revokeObjectURL(lastPdfUrl);lastPdfUrl=URL.createObjectURL(blob);msg.replaceChildren();msg.append('PDF 已產生，請點此連結： ');const link=document.createElement('a');link.href=lastPdfUrl;link.download='報價單_'+field('qdNo')+'.pdf';link.target='_blank';link.rel='noopener';link.textContent='開啟／下載 PDF';msg.appendChild(link)
-}catch(e){msg.textContent='PDF 產生失敗：'+String(e.message||e)+'。可改按「預覽／列印」使用 Safari 列印功能。'}}
+async function pdfQuote(){
+ const data=quoteData();if(!validateQuote(data))return;
+ const btn=$('exportPdf');if(btn.disabled)return;
+ const msg=$('pdfNotice');btn.disabled=true;btn.textContent='正在產生 PDF…';msg.textContent='正在產生 PDF，請稍候……';
+ try{
+  // 下載不必先開啟預覽，也不會另開 PDF 視窗。
+  $('printRoot').innerHTML=quoteSheets(data);
+  await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',()=>!!window.html2canvas);
+  await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',()=>!!window.jspdf);
+  const pdf=new window.jspdf.jsPDF({format:'a4',unit:'mm',orientation:'portrait'});
+  const pages=[...$('printRoot').querySelectorAll('.sheet')];
+  for(let i=0;i<pages.length;i++){
+   const clone=pages[i].cloneNode(true);
+   clone.style.cssText='width:794px!important;max-width:794px!important;position:fixed;left:-10000px;top:0;margin:0;';
+   document.body.appendChild(clone);
+   let canvas;
+   try{canvas=await window.html2canvas(clone,{scale:2,backgroundColor:'#fff',useCORS:true})}
+   finally{clone.remove()}
+   if(i)pdf.addPage();
+   pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',0,0,210,297);
+  }
+  const blob=pdf.output('blob');
+  const safeNo=String(data.fields.qdNo||'未編號').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').trim();
+  const filename='報價單_'+safeNo+'.pdf';
+  // iPhone Safari：優先一次叫出原生分享選單，讓使用者選「儲存到檔案」。
+  // 若瀏覽器因為 PDF 非同步生成而失去 user activation，會自動改用下載，
+  // 不顯示第二個小字連結，也不使用 target=_blank。
+  if(typeof navigator.share==='function'&&typeof File==='function'){
+   const file=new File([blob],filename,{type:'application/pdf'});
+   let canShare=true;
+   try{if(typeof navigator.canShare==='function')canShare=navigator.canShare({files:[file]})}catch{canShare=false}
+   if(canShare){
+    try{
+     await navigator.share({files:[file],title:filename});
+     msg.textContent='已交給分享選單處理，若要儲存請選「儲存到檔案」。';
+     return;
+    }catch(e){
+     if(e?.name==='AbortError'){msg.textContent='已取消 PDF 分享。';return}
+     // iPhone 部分情況可能拒絕非同步完成後的 share，改用立即下載。
+    }
+   }
+  }
+  downloadBlob(blob,filename);
+  msg.textContent='已啟動 PDF 下載，請查看 Safari 的下載項目或「檔案」App。';
+ }catch(e){
+  msg.textContent='PDF 產生失敗：'+String(e.message||e)+'。可改用「預覽／列印」儲存 PDF。';
+ }finally{btn.disabled=false;btn.textContent='下載 PDF'}
+}
 // ── Calendar ──
 function todoItems(){return getCRM().todos}
 function renderCalendar(){const year=monthDate.getFullYear(),month=monthDate.getMonth();$('calTitle').textContent=year+' 年 '+(month+1)+' 月';$('calendarYear').value=String(year);$('calendarMonth').value=String(month+1);const cal=$('calendarGrid');cal.replaceChildren();'日一二三四五六'.split('').forEach(d=>{const n=document.createElement('div');n.className='weekday';n.textContent=d;cal.appendChild(n)});const first=new Date(year,month,1).getDay(),count=new Date(year,month+1,0).getDate(),items=todoItems();
