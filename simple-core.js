@@ -251,17 +251,39 @@ function relatedCustomer(name){
 }
 function showCustomer360(name){
  const customer=customerByName(name);if(!customer)return;
- customer360Name=customer.name;const related=relatedCustomer(name);
+ customer360Name=customer.name;
+ const related=relatedCustomer(name);
  const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['使用產品',related.products.length]];
- $('customer360Title').textContent=customer.name+'｜客戶完整資料';
- const block=(title,items,html,empty)=>'<section class="customer360-block"><h3>'+esc(title)+'（'+items.length+'）</h3>'+(items.length?items.map(html).join(''):'<div class="muted">'+esc(empty)+'</div>')+'</section>';
- const customerInfoHtml='<section class="customer360-block"><h3>客戶基本資料</h3><div class="customer360-entry">'+esc([customer.contact?'聯絡人：'+customer.contact:'',customer.mobile?'手機：'+customer.mobile:'',customer.tel?'電話：'+customer.tel:'',customer.address?'地址：'+customer.address:''].filter(Boolean).join(' ｜ ')||'尚未填寫聯絡資料')+'</div><button type="button" class="secondary" data-customer-edit="'+esc(name)+'">修改客戶資料</button></section>';
- const products=block('使用產品',related.products,p=>'<div class="customer360-entry"><strong>'+esc(productName(p))+'</strong><div class="sub">型號：'+esc(productModel(p)||'—')+'　規格：'+esc(p.spec||'—')+'</div><div class="sub">供應商：'+esc(productSupplier(p)||'—')+'</div><button type="button" class="secondary" data-customer-product="'+p.__index+'">編輯產品</button></div>','尚未建立使用產品');
- const quotes=block('報價單',related.quotes,q=>'<div class="customer360-entry"><strong>'+esc(q.fields?.qdNo||'未編號')+'</strong><div class="sub">'+esc(q.fields?.qdDate||'未設定日期')+'</div><button type="button" class="secondary" data-customer-quote="'+esc(q.id)+'">開啟報價</button></div>','尚無報價單');
- const projects=block('專案追蹤',related.projects,p=>'<div class="customer360-entry"><strong>'+esc(p.name||'未命名專案')+'</strong><div class="sub">階段：'+esc(p.stage||'—')+'　進度：'+esc(projectProgress(p).progress||p.progress||'—')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button type="button" class="secondary" data-customer-project="'+esc(p.id)+'">查看追蹤</button></div>','尚無專案');
- const todos=block('待辦行事曆',related.todos.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),t=>'<div class="customer360-entry"><strong>'+esc(t.text||'未命名待辦')+'</strong><div class="sub">'+esc(t.date||'未指定日期')+'　'+esc(t.time||'')+'　'+(t.done?'已完成':'待處理')+'</div><button type="button" class="secondary" data-customer-todo="'+esc(t.id)+'">查看待辦</button></div>','尚無客戶相關待辦');
- $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+'<div class="actions"><button id="addCustomerProduct" type="button">＋ 新增該客戶使用產品</button></div>'+quotes+projects+todos;
- $('customer360').hidden=false;$('customer360').scrollIntoView({block:'start'});
+ $('customer360Title').textContent=customer.name;
+ const block=(title,items,render,empty,footer='')=>
+  '<section class="customer360-block'+(items.length?'':' is-empty')+'"><h3>'+esc(title)+'（'+items.length+'）</h3>'+
+  (items.length?items.map(render).join(''):'<div class="customer360-empty">'+esc(empty)+'</div>')+footer+'</section>';
+ const facts=[
+  ['聯絡人',customer.contact],
+  ['手機',customer.mobile],
+  ['公司電話',customer.tel],
+  ['傳真',customer.fax],
+  ['Email',customer.email],
+  ['統一編號',customer.taxId],
+  ['地址',customer.address]
+ ].filter(([,value])=>String(value||'').trim());
+ const factsHtml=facts.length?'<div class="customer-info-list">'+facts.map(([key,value])=>
+  '<div class="customer-info-row"><span class="customer-info-key">'+esc(key)+'</span><span class="customer-info-value">'+esc(value)+'</span></div>').join('')+'</div>':
+  '<div class="customer360-empty">尚未填寫聯絡資料</div>';
+ const customerInfoHtml='<section class="customer360-block"><h3>客戶基本資料</h3>'+factsHtml+
+  '<button type="button" class="secondary" data-customer-edit="'+esc(name)+'">修改客戶資料</button></section>';
+ const products=block('使用產品',related.products,p=>
+  '<div class="customer360-entry"><strong>'+esc(productName(p))+'</strong><div class="sub">型號：'+esc(productModel(p)||'—')+'　規格：'+esc(p.spec||'—')+'</div><div class="sub">供應商：'+esc(productSupplier(p)||'—')+'</div><button type="button" class="secondary" data-customer-product="'+p.__index+'">編輯產品</button></div>',
+  '尚未建立使用產品','<button id="addCustomerProduct" class="customer-product-action" type="button">＋ 新增該客戶使用產品</button>');
+ const quotes=block('報價單',related.quotes,q=>
+  '<div class="customer360-entry"><strong>'+esc(q.fields?.qdNo||'未編號')+'</strong><div class="sub">'+esc(q.fields?.qdDate||'未設定日期')+'</div><button type="button" class="secondary" data-customer-quote="'+esc(q.id)+'">開啟報價</button></div>','尚無報價單');
+ const projects=block('專案追蹤',related.projects,p=>
+  '<div class="customer360-entry"><strong>'+esc(p.name||'未命名專案')+'</strong><div class="sub">階段：'+esc(p.stage||'—')+'　進度：'+esc(projectProgress(p).progress||p.progress||'—')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button type="button" class="secondary" data-customer-project="'+esc(p.id)+'">查看追蹤</button></div>','尚無專案');
+ const todos=block('待辦行事曆',related.todos.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),t=>
+  '<div class="customer360-entry"><strong>'+esc(t.text||'未命名待辦')+'</strong><div class="sub">'+esc(t.date||'未指定日期')+'　'+esc(t.time||'')+'　'+(t.done?'已完成':'待處理')+'</div><button type="button" class="secondary" data-customer-todo="'+esc(t.id)+'">查看待辦</button></div>','尚無客戶相關待辦');
+ $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+quotes+projects+todos;
+ $('customer360').hidden=false;
+ $('customer360').scrollIntoView({block:'start'});
 }
 /* Input assistance: touch-friendly candidate list; users may still enter a new value. */
 function candidateValues(el){
