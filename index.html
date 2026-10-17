@@ -53,6 +53,20 @@
 }
 
 
+/* A4 print pagination fix: the nonprinting .app container retained 80px vertical
+   padding, pushing a full 297mm sheet beyond the first page. Hide that container
+   entirely and reserve 1mm of safe print height for Safari print rounding. */
+@media print{
+ @page{size:A4 portrait;margin:0}
+ html,body{margin:0!important;padding:0!important;width:210mm!important;height:auto!important;min-height:0!important;overflow:visible!important}
+ .app{display:none!important}
+ #printRoot{display:block!important;position:static!important;width:209mm!important;max-width:209mm!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important}
+ #printRoot .legacy-sheet-shell{display:block!important;position:relative!important;box-sizing:border-box!important;width:209mm!important;max-width:209mm!important;height:296mm!important;min-height:0!important;max-height:296mm!important;margin:0!important;padding:0!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
+ #printRoot .legacy-sheet-shell:last-child{break-after:auto!important;page-break-after:auto!important}
+ #printRoot .legacy-quote.quote-paper{margin:3mm auto 0!important}
+ #smartSuggestions,#backToTop,#toast{display:none!important}
+}
+
 /* R73 daily input polish: seven simple modules, not a new dashboard */
 .nav{grid-template-columns:repeat(7,minmax(0,1fr))}
 .customer-section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -245,6 +259,6 @@
 <div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div><div id="smartSuggestions" role="listbox" hidden aria-label="候選選項"></div>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./simple-core.js?v=r73-direct-pdf-20261017" defer></script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-direct-pdf-20261017').catch(()=>{}))}</script>
+<script src="./simple-core.js?v=r73-print-one-page-20261017" defer></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-print-one-page-20261017').catch(()=>{}))}</script>
 </body></html>
