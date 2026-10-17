@@ -1,5 +1,6 @@
 'use strict';
-const {webkit,devices}=require('playwright'),assert=require('node:assert/strict');
+const {webkit,chromium,devices}=require('playwright'),assert=require('node:assert/strict');
+const {PDFDocument}=require('pdf-lib');
 const base='http://127.0.0.1:8765/index.html';
 const fixtures={
 'hongbin_crm_master_r70':{customers:[{name:'測試甲公司',contact:'林小姐',tel:'06-0000000',address:'虛構地址'}],products:[{name:'既有產品',customerName:'測試甲公司'}],suppliers:[]},
@@ -53,6 +54,47 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
  check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth>0),'原版鴻繽公司抬頭圖片正常載入');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
+
+ // 使用真正 Chromium PDF 列印引擎計數，避免「預覽一頁、實際列印第二頁空白」。
+ const printBrowser=await chromium.launch({headless:true});
+ try{
+  const printCtx=await printBrowser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+  const printPage=await printCtx.newPage();
+  await printPage.addInitScript(data=>{for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
+  await printPage.goto(base,{waitUntil:'load'});
+  await printPage.locator('[data-quote="77"]').click();
+  await printPage.locator('#previewQuote').click();
+  await printPage.locator('#quotePreviewPages .q-letterhead-img').first().evaluate(img=>img.decode());
+  const paperPrintStyles=await printPage.evaluate(()=>{
+   const shell=document.querySelector('#printRoot .legacy-sheet-shell');return {previewPages:document.querySelectorAll('#printRoot .legacy-sheet-shell').length,shellExists:!!shell}
+  });
+  check(paperPrintStyles.previewPages===1,'只有一個報價頁面 DOM，不是重複產生頁面');
+  await printPage.emulateMedia({media:'print'});
+  const printLayout=await printPage.evaluate(()=>{
+   const app=getComputedStyle(document.querySelector('.app'));
+   const shell=document.querySelector('#printRoot .legacy-sheet-shell').getBoundingClientRect();
+   return {appHidden:app.display==='none',shellWidth:shell.width,shellHeight:shell.height};
+  });
+  check(printLayout.appHidden,'列印時隱藏整個非列印介面，沒有多餘頁首與留白');
+  check(printLayout.shellHeight<1123&&printLayout.shellWidth<794,'A4 列印容器預留安全高度，不推擠第二頁');
+  const printed=await printPage.pdf({format:'A4',preferCSSPageSize:true,printBackground:true});
+  const parsed=await PDFDocument.load(printed);
+  check(parsed.getPageCount()===1,'實際儲存／列印單筆報價只產生一頁 A4，沒有空白第二頁');
+  check(printed.length>10000,'實際列印 PDF 有有效內容');
+  await printPage.evaluate(()=>{
+   const arr=JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73'));
+   arr[0].items=[...arr[0].items,...Array.from({length:4},(_,i)=>({name:'額外品項'+i,model:'TEST',spec:'1kg',qty:1,price:99,moq:'1'}))];
+   localStorage.setItem('hongbin_crm_formal_quotes_r73',JSON.stringify(arr));
+  });
+  await printPage.reload();
+  await printPage.locator('[data-quote="77"]').click();
+  await printPage.locator('#previewQuote').click();
+  check(await printPage.locator('#printRoot .legacy-sheet-shell').count()===2,'五筆品項按既有四項一頁規則拆成兩張紙');
+  await printPage.emulateMedia({media:'print'});
+  const printed2=await printPage.pdf({format:'A4',preferCSSPageSize:true,printBackground:true});
+  check((await PDFDocument.load(printed2)).getPageCount()===2,'真正雙頁報價只列印兩頁，不額外產生第三張空白紙');
+ }finally{await printBrowser.close()}
+
 
  await page.addScriptTag({path:require.resolve('html2canvas/dist/html2canvas.min.js')});
  await page.addScriptTag({path:require.resolve('jspdf/dist/jspdf.umd.min.js')});
