@@ -126,6 +126,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
    Object.defineProperty(navigator,'canShare',{configurable:true,value:({files})=>files?.[0]?.type==='application/pdf'});
    Object.defineProperty(navigator,'share',{configurable:true,value:async({files,title})=>{
      const file=files[0],buf=new Uint8Array(await file.arrayBuffer());
+     window.__sharePdfRaw=buf;
      window.__sharePdf={name:file.name,title,type:file.type,size:buf.length,
        header:String.fromCharCode(...buf.slice(0,5)),tail:String.fromCharCode(...buf.slice(-30))};
    }});
@@ -139,6 +140,30 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#pdfNotice a').count()===0,'按下載 PDF 不再顯示小字開啟／下載連結');
  check(pdfPopups.length===0,'按下載 PDF 不會開啟新分頁或新視窗');
  check((await page.locator('#pdfNotice').innerText()).includes('分享選單'),'支援分享選單時顯示正確狀態');
+
+ // 預覽的「列印」必須提供原生 PDF 檔，不得呼叫 Safari 網頁 window.print 產生網址／日期頁尾。
+ await page.evaluate(()=>{window.__sharePdfRaw=null;window.__printCallCount=0;window.print=()=>{window.__printCallCount++}});
+ await page.locator('#printQuote').click();
+ await page.waitForFunction(()=>!!window.__sharePdfRaw,{timeout:20000});
+ const cleanOne=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
+ check((await PDFDocument.load(Uint8Array.from(cleanOne))).getPageCount()===1,'按預覽中的列印鍵，實際分享的 PDF 只有一頁');
+ check(await page.evaluate(()=>window.__printCallCount===0),'列印鍵不再呼叫 Safari 網頁列印，避免網址與日期頁尾');
+ check((await page.locator('#printNotice').innerText()).includes('「列印」'),'列印流程清楚提示從 PDF 分享選單選擇列印');
+ await page.evaluate(()=>{
+  for(let i=0;i<4;i++){
+   document.getElementById('addQuoteItem').click();
+   const items=document.querySelectorAll('#quoteItems .items');
+   items[items.length-1].querySelector('.it-name').value='第二頁測試品項'+i;
+  }
+  window.__sharePdfRaw=null;
+ });
+ await page.locator('#printQuote').click();
+ await page.waitForFunction(()=>!!window.__sharePdfRaw,{timeout:20000});
+ const cleanTwo=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
+ check((await PDFDocument.load(Uint8Array.from(cleanTwo))).getPageCount()===2,'列印鍵對五筆品項輸出正確兩頁 PDF，沒有多出空白頁');
+ check(await page.evaluate(()=>window.__printCallCount===0),'雙頁列印也不會觸發 Safari 網頁列印頁尾');
+ await page.evaluate(()=>{for(let i=0;i<4;i++)document.querySelector('#quoteItems .items:last-child .removeItem').click()});
+
  // 不支援原生 Web Share 的瀏覽器直接下載；同樣不需要第二次點擊連結。
  await page.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:undefined})});
  const directDownloadPromise=page.waitForEvent('download',{timeout:20000});
