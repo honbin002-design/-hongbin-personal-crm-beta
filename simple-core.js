@@ -94,12 +94,12 @@ function previewQuote(){
  $('quotePreviewPages').querySelectorAll('img').forEach(img=>img.addEventListener('load',fitLegacyQuotePreview,{once:true}));
  $('quotePreview').scrollIntoView({block:'start',behavior:'smooth'});return true
 }
-function printQuote(){if(previewQuote())window.print()}
+function printQuote(){if(previewQuote())return pdfQuote('print')}
 async function loadScript(url,isReady){if(isReady())return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(new Error('PDF 元件載入失敗，請使用列印／儲存 PDF'));document.head.appendChild(s)})}
-async function pdfQuote(){
+async function pdfQuote(mode='download'){
  const data=quoteData();if(!validateQuote(data))return;
- const btn=$('exportPdf');if(btn.disabled)return;
- const msg=$('pdfNotice');btn.disabled=true;btn.textContent='正在產生 PDF…';msg.textContent='正在產生 PDF，請稍候……';
+ const isPrint=mode==='print',btn=$(isPrint?'printQuote':'exportPdf'),otherBtn=$(isPrint?'exportPdf':'printQuote');if(btn.disabled||otherBtn.disabled)return;
+ const msg=$(isPrint?'printNotice':'pdfNotice');btn.disabled=true;otherBtn.disabled=true;btn.textContent=isPrint?'正在準備列印…':'正在產生 PDF…';msg.textContent=isPrint?'正在準備無網頁頁尾的 PDF，請稍候……':'正在產生 PDF，請稍候……';
  try{
   // 下載不必先開啟預覽，也不會另開 PDF 視窗。
   $('printRoot').innerHTML=quoteSheets(data);
@@ -130,7 +130,7 @@ async function pdfQuote(){
    if(canShare){
     try{
      await navigator.share({files:[file],title:filename});
-     msg.textContent='已交給分享選單處理，若要儲存請選「儲存到檔案」。';
+     msg.textContent=isPrint?'已開啟 PDF 分享選單，請選「列印」；不會加入 Safari 網址及日期頁尾。':'已交給分享選單處理，若要儲存請選「儲存到檔案」。';
      return;
     }catch(e){
      if(e?.name==='AbortError'){msg.textContent='已取消 PDF 分享。';return}
@@ -139,10 +139,10 @@ async function pdfQuote(){
    }
   }
   downloadBlob(blob,filename);
-  msg.textContent='已啟動 PDF 下載，請查看 Safari 的下載項目或「檔案」App。';
+  msg.textContent=isPrint?'已下載不含 Safari 頁尾的 PDF，請從「檔案」App 開啟後選「列印」。':'已啟動 PDF 下載，請查看 Safari 的下載項目或「檔案」App。';
  }catch(e){
-  msg.textContent='PDF 產生失敗：'+String(e.message||e)+'。可改用「預覽／列印」儲存 PDF。';
- }finally{btn.disabled=false;btn.textContent='下載 PDF'}
+  msg.textContent='PDF 產生失敗：'+String(e.message||e)+'。請稍後重試。';
+ }finally{btn.disabled=false;otherBtn.disabled=false;btn.textContent=isPrint?'列印／儲存 PDF':'下載 PDF'}
 }
 // ── Calendar ──
 function todoItems(){return getCRM().todos}
