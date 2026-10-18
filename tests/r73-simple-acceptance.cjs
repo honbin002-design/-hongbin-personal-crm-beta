@@ -55,6 +55,27 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth>0),'原版鴻繽公司抬頭圖片正常載入');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
 
+ // iOS Safari/WebKit 使用 print media 時，首張報價必須留 25mm 安全高度，
+ // 並且絕不能對最後一張設定強制換頁。
+ await page.emulateMedia({media:'print'});
+ const webkitPrint=await page.evaluate(()=>{
+   const shell=document.querySelector('#printRoot .legacy-sheet-shell');
+   const paper=document.querySelector('#printRoot .legacy-quote');
+   const shellCss=getComputedStyle(shell),paperCss=getComputedStyle(paper);
+   return {shellHeight:shell.getBoundingClientRect().height,paperHeight:paper.getBoundingClientRect().height,
+     breakAfter:shellCss.breakAfter,paperBreakAfter:paperCss.breakAfter,
+     shellCount:document.querySelectorAll('#printRoot .legacy-sheet-shell').length,
+     printRootVisible:getComputedStyle(document.getElementById('printRoot')).display!=='none',
+     appHidden:getComputedStyle(document.querySelector('.app')).display==='none'};
+ });
+ check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
+ check(webkitPrint.shellCount===1&&webkitPrint.shellHeight<1040&&webkitPrint.paperHeight<1030,
+  'Safari A4 報價紙張預留足夠列印安全高度');
+ check(webkitPrint.breakAfter==='auto'&&webkitPrint.paperBreakAfter==='auto',
+  'Safari 第一頁與最後一頁都沒有多餘的強制分頁');
+ await page.emulateMedia({media:'screen'});
+
+
  // 使用真正 Chromium PDF 列印引擎計數，避免「預覽一頁、實際列印第二頁空白」。
  const printBrowser=await chromium.launch({headless:true});
  try{
@@ -76,7 +97,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
    return {appHidden:app.display==='none',shellWidth:shell.width,shellHeight:shell.height};
   });
   check(printLayout.appHidden,'列印時隱藏整個非列印介面，沒有多餘頁首與留白');
-  check(printLayout.shellHeight<1123&&printLayout.shellWidth<794,'A4 列印容器預留安全高度，不推擠第二頁');
+  check(printLayout.shellHeight<1040&&printLayout.shellWidth<794,'A4 列印容器有足夠 Safari 安全高度，不推擠第二頁');
   const printed=await printPage.pdf({format:'A4',preferCSSPageSize:true,printBackground:true});
   const parsed=await PDFDocument.load(printed);
   check(parsed.getPageCount()===1,'實際儲存／列印單筆報價只產生一頁 A4，沒有空白第二頁');
