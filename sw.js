@@ -1,5 +1,5 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-r73-print-one-page-20261017';
+const CACHE='hongbin-crm-r73-safari-a4-safe-20261018';
 const CORE=['./','./index.html','./simple-core.js','./manifest.webmanifest','./quote-letterhead.jpg'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
