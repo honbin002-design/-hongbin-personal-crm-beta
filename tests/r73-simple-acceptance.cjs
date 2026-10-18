@@ -54,6 +54,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
  check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth>0),'原版鴻繽公司抬頭圖片正常載入');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
+ check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
 
  // iOS Safari/WebKit 使用 print media 時，首張報價必須留 25mm 安全高度，
  // 並且絕不能對最後一張設定強制換頁。
@@ -69,6 +70,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
      appHidden:getComputedStyle(document.querySelector('.app')).display==='none'};
  });
  check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
+ check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
  check(webkitPrint.shellCount===1&&webkitPrint.shellHeight<1040&&webkitPrint.paperHeight<1030,
   'Safari A4 報價紙張預留足夠列印安全高度');
  check(webkitPrint.breakAfter==='auto'&&webkitPrint.paperBreakAfter==='auto',
