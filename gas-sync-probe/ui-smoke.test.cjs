@@ -40,13 +40,15 @@ const fakeService={onSuccess:null,onFailure:null,
    if(args.__expectedGoogleAccount!==remoteAccount)throw Error('GOOGLE_ACCOUNT_SWITCHED');
    if(action==='LIST_GROUPS')result=groups;
    else if(action==='LIST_NOTES'){
-    result=notes.filter(n=>n.scope===args.scope&&(args.scope==='PRIVATE'||n.groupId===args.groupId));
+    result=notes.filter(n=>n.scope===args.scope&&
+     (args.scope==='PRIVATE'?n.ownerId===remoteAccount:n.groupId===args.groupId));
    }else if(action==='CREATE_NOTE'){
     // Simulated authoritative server: same operation ID must not append twice.
     if(committedOps.has(args.operationId))result=committedOps.get(args.operationId);
     else{
      result={articleId:'test-id-'+(++serial),title:args.title,content:args.content,
-      groupId:args.groupId||null,scope:args.scope,version:1,updatedAt:'2026-10-19T01:00:00Z'};
+      groupId:args.groupId||null,scope:args.scope,ownerId:remoteAccount,
+     version:1,updatedAt:'2026-10-19T01:00:00Z'};
      notes.push(result);committedOps.set(args.operationId,result);
     }
     if(lostAckOnce){
@@ -114,12 +116,32 @@ succeed('Version conflict retains unsaved draft',()=>{
  assert.equal(elements.noteContent.value,'不准被清掉的草稿');
  assert.match(elements.status.textContent,/另一支手機已修改/);
 });
-succeed('Account switch fails server assertion and keeps entered text',()=>{
+succeed('Account switch hides all old private notes and editor contents immediately',()=>{
  remoteAccount='bob@example.test';
  elements.saveNote.onclick();
+ assert.equal(elements.items.children.length,0);
+ assert.equal(elements.editor.hidden,true);
+ assert.equal(elements.noteContent.value,'');
+ assert.match(elements.identity.textContent,/先前的私人內容已隱藏/);
+ assert.equal(elements.newNote.disabled,true);
+});
+succeed('A new Google account cannot see another users cached or pending private notes',()=>{
+ elements.refresh.onclick(); // Google rechecks, logs in B
+ assert.match(elements.identity.textContent,/bob@example.test/);
+ assert.equal(elements.items.children.length,1);
+ assert.match(elements.items.children[0].textContent,/目前沒有授權可查看的記事/);
+ assert.equal(elements.editor.hidden,true);
+});
+succeed('Original Google account re-verification restores only its own in-page draft',()=>{
+ remoteAccount='alice@example.test';
+ elements.refresh.onclick(); // B assertion fails; hides B view
+ assert.equal(elements.items.children.length,0);
+ elements.refresh.onclick(); // Google session A verified
+ assert.match(elements.identity.textContent,/alice@example.test/);
+ assert.equal(elements.editor.hidden,false);
  assert.equal(elements.noteContent.value,'不准被清掉的草稿');
- assert.match(elements.status.textContent,/GOOGLE_ACCOUNT_SWITCHED/);
- remoteAccount='alice@example.test';elements.cancelNote.onclick();
+ assert.match(elements.status.textContent,/恢復此頁暫存草稿/);
+ elements.cancelNote.onclick();
 });
 succeed('Unsaved private draft blocks tab switch when user cancels',()=>{
  elements.newNote.onclick();
@@ -162,12 +184,16 @@ succeed('Changed draft after ambiguous ACK refuses unsafe new operation',()=>{
  assert.match(elements.status.textContent,/上一次儲存結果尚未確認/);
  elements.cancelNote.onclick();
 });
-succeed('Switching Google account blocks stale-personal-note READ',()=>{
+succeed('Switching Google account during a READ clears previously displayed notes',()=>{
+ assert.ok(elements.items.children.length>0);
  remoteAccount='bob@example.test';
  elements.refresh.onclick();
- assert.match(elements.status.textContent,/GOOGLE_ACCOUNT_SWITCHED/);
+ assert.equal(elements.items.children.length,0);
+ assert.equal(elements.newNote.disabled,true);
+ assert.equal(elements.editor.hidden,true);
  remoteAccount='alice@example.test';
  elements.refresh.onclick();
+ assert.match(elements.identity.textContent,/alice@example.test/);
  assert.match(elements.status.textContent,/同步讀取成功/);
 });
 succeed('Shared VIEWER cannot create or edit notes',()=>{
