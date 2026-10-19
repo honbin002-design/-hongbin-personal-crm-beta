@@ -68,3 +68,12 @@
 - **HOLD**：實際 HTTPS auth smoke、Firebase 管理連線、Firebase 正式 ACL 部署、群組索引/UI、真實帳號雙手機同步、舊記事遷移、正式 CRM 整合。
 - **嚴禁宣稱**：正式同步完成、Cloud Firestore 已開通真實應用權限、已發佈獨立 Auth 測試網址、已取得 Google 管理員 OAuth。
 - 每輪作業要記錄：實際分支/HEAD、異動檔、CI 結果、Auth／Firestore 的實測或未測、main 兩個 SHA 再驗、安全與免費條件。當沒有執行資格時清楚標示 HOLD，不要求使用者耗費 Work。
+
+## 2026-10-19 晚間後續施工｜安全共用群組索引 Gate
+
+- 不變更 `main`，在隔離分支的 `firestore.rules` 新增 `users/{uid}/groupIndex/{groupId}`：個人可讀的**純索引指標**（`uid`, `groupId`, `createdAt`），沒有共用記事、群組名稱或成員名單。
+- 索引由 Google Auth 的同 UID 建立；群組創辦人可與建立群組使用同一 Firestore 原子批次。已授權成員可為自己建立索引，不可偽造、改動他人的索引；已失去權限的人即使保留舊索引也無法讀取群組內容。
+- `firestore.group-directory.test.mjs` 新增 **22 項真正 Firestore Emulator 規則測試**，驗證登入隔離、偽造索引、全域群組列舉拒絕、成員降權／撤銷及舊索引清除。
+- `package.json` 的 `test:rules` 納入新套件；現在合計 **69 項官方 Emulator 規則測試**（原 47＋新增 22）。
+- Commit `38e85f4c7fdddce25ccd38c613b2c2640a8ffa2d` 已由 GitHub commit-status 讀回 `firebase-sync-probe/rules-emulator = success`。此結果為**隔離官方規則模擬器 PASS**，不代表 Firestore 雲端部署、實際帳號登入或兩支手機同步。
+- 本輪 GitHub Pages 正式 CRM 仍維持原本來源；不能在同一個現有 Pages 站點隨意改部署來源以發佈測試頁，避免覆蓋 main 上線服務。獨立 HTTPS 測試網域及 Firebase 後台管理授權仍是下個安全 Gate；**未建立任何額外付費服務或外部站台**。
