@@ -1,6 +1,7 @@
 // End-to-end client-service calls through REAL Firebase Firestore Emulator.
 // All accounts, groups and invites are synthetic; zero live network access.
 import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
 import {initializeTestEnvironment,assertSucceeds,assertFails} from '@firebase/rules-unit-testing';
 import * as sdk from 'firebase/firestore';
 import {groupService,normalizedEmail} from './firebase-group-service.mjs';
@@ -26,7 +27,7 @@ async function check(name,fn){console.log('BEGIN',name);await fn();n++;console.l
 try{
  await check('Email normalized; malformed paths rejected',async()=>{
   if(normalizedEmail(' BOB@EXAMPLE.TEST ')!=='bob@example.test')throw Error('NORMALIZE');
-  await assertFails(Promise.resolve().then(()=>normalizedEmail('../bad')));
+  await assert.rejects(Promise.resolve().then(()=>normalizedEmail('../bad')), /INVALID_EMAIL/);
  });
  await check('Group creator and index commit as one batch',async()=>{
   const g=await alice.createGroup('合作群組');
@@ -91,8 +92,8 @@ try{
   await assertFails(stranger.revokeInvite('carol@example.test',carolInvite.id));
  });
  await check('Service blocks unsupported role and malformed invite',async()=>{
-  await assertFails(alice.sendInvite(gid,'x@example.test','SUPER_ADMIN'));
-  await assertFails(carol.acceptInvite({id:'bad/invite'}));
+  await assert.rejects(alice.sendInvite(gid,'x@example.test','SUPER_ADMIN'), /INVALID_ROLE/);
+  await assert.rejects(carol.acceptInvite({id:'bad/invite'}), /INVALID_INVITE/);
  });
  console.log('FIREBASE_GROUP_WORKFLOW_EMULATOR_PASS',n);
 }finally{await env.cleanup()}
