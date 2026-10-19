@@ -28,6 +28,8 @@ jobs:
         run: node gas-sync-probe/event-service.test.cjs
       - name: Run durable nonce replay and pruning tests
         run: node gas-sync-probe/nonce-registry.test.cjs
+      - name: Run iPhone offline outbox and legacy preview tests
+        run: node gas-sync-probe/offline-outbox.test.cjs
       - name: Confirm NO live deployment
         run: |
           echo 'LIVE_GOOGLE_LOGIN: NOT_TESTED'
