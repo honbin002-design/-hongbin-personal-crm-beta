@@ -94,3 +94,21 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 - `package.json` 的 `test:rules` 納入新套件；現在合計 **69 項官方 Emulator 規則測試**（原 47＋新增 22）。
 - Commit `38e85f4c7fdddce25ccd38c613b2c2640a8ffa2d` 已由 GitHub commit-status 讀回 `firebase-sync-probe/rules-emulator = success`。此結果為**隔離官方規則模擬器 PASS**，不代表 Firestore 雲端部署、實際帳號登入或兩支手機同步。
 - 本輪 GitHub Pages 正式 CRM 仍維持原本來源；不能在同一個現有 Pages 站點隨意改部署來源以發佈測試頁，避免覆蓋 main 上線服務。獨立 HTTPS 測試網域及 Firebase 後台管理授權仍是下個安全 Gate；**未建立任何額外付費服務或外部站台**。
+
+## 2026-10-20｜隔離共用群組／Email 邀請候選及真官方 Emulator CI PASS
+
+**本次實際施工於 `probe/gas-no-work-20261019`，正式 `main` 零變更。**
+
+- `firebase-group-service.mjs`：Firestore Web SDK 可注入操作層，提供建立群組與本人 UID 索引、只讀本人群組清單、發送 Email 地址邀請、查看自己的收件邀請、同一 writeBatch 接受邀請／建立成員、接受後建立索引、斷線 ACK 遺失後的已接受邀請恢復、變更／撤銷成員。若成員被撤銷，恢復索引前須通過真實群組讀取的後端授權。
+- `firestore.rules` 新增 `groups/{groupId}/sentInvites/{invitationId}` 管理員寄件索引，建立時以 `getAfter()` 驗證對應的原始收件邀請，並由單一 writeBatch 寫入；只允許有效 ADMIN 讀取寄件索引。管理員可依已知邀請 ID 讀取所屬群組邀請的即時狀態，**不允許遍歷他人全部收件匣**。撤銷後索引不會刪除，可保留管理紀錄；不是實際寄信。
+- `firebase-groups-test.html`：繁體中文、手機友善的獨立群組與邀請操作介面；具有登入、群組建立及列表、接受邀請、重新開頁讀回管理員寄件清單、撤銷待接受邀請、成員權限調整／撤銷。帳號切換及權限撤銷／降級時立即失效或隱藏舊畫面，文字採 `textContent` 避免 HTML 插入。
+- **真實連線保護未鬆動**：`firebase-web-config.mjs` 的 `firestoreReadyForRealData=false`。介面於旗標為 false 時不初始化、讀取或寫入真實 Firestore。仍維持上一輪 Firebase 專案的 deny-all 規則；沒有雲端部署，也沒有讀取或上傳舊 R73 隨手記。
+- `firestore.group-workflow.test.mjs`（21）、`firestore.outbound.test.mjs`（14）新增共 **35 項 Firebase 官方 Emulator** 實際規則引擎測試，結合先前 69 項，**目前總計 104 項**。
+- 同時以 `web-group-preflight.test.mjs` 執行候選 UI 模組語法、未啟用旗標、無舊資料匯入、安全清除及操作範圍的靜態檢查。這些靜態測試不是 iPhone 真機測試。
+- 曾發現測試斷言將「邀請已被撤銷」的應用層 `INVITATION_NOT_PENDING` 當作 Firestore `PERMISSION_DENIED`，及一項 UI 回歸斷言未配合安全清除邏輯的重構；均已修正，不保留 FAIL 作為最新狀態。
+- **實際 CI 證據**：提交 `eefaa8226a82cc36c17dc684416cac123553cc11`；GitHub Actions job `rules-emulator` 顯示 `completed/success`，commit status `firebase-sync-probe/rules-emulator=success`。此 PASS 表示 Node 靜態檢查＋官方 Firestore Emulator 全部跑完，**不等於**線上 Google 登入或真實跨手機同步。
+- 該提交回讀後 `main` 的 `index.html` blob SHA `909d05477b2b33e9238798529283cad395750c0b` 與 `simple-core.js` SHA `4c7d58ba03a1a5ed53c797060b9d2572cfc0776c` 保持不變。隔離分支對 `main` 的新增變更皆為新目錄與測試 workflow，沒有變更既有 CRM 原始碼。
+
+**不得誤報完成：** 目前沒有可執行的免費隔離 HTTPS 測試網域、真正 iPhone Safari Google Auth 驗收、已部署的 Firebase Security Rules、跨 Google 帳號／跨手機同步、記事私人及共用 CRUD、文章版本衝突與離線草稿完整 UI、Email 通知實際寄送、舊本機記事遷移或正式 CRM 整合。群組與邀請 UI 是已施工並通過靜態檢查的隔離候選，還不是可對外使用的正式成品。
+
+**下一步依原範圍**：先確認安全且長期免費的獨立 HTTPS Auth 測試入口及 Firebase 授權網域，再在官方 Google 登入實機 PASS 後，完成 Firebase 私人／共用記事 CRUD 的隔離前端、版本衝突與離線草稿；真實 Security Rules 部署與正式 CRM 整合需符合既定批准 Gate，絕不能自行改動 main／Spark 計費。
