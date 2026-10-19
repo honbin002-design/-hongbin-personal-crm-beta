@@ -124,8 +124,8 @@ function goBackView(){
  if(editorFromRecord){finishRecordEdit();return}
  const prior=recordTrail.pop();
  if(prior?.mode==='detail'){showRecord(prior.kind,prior.key,false);return}
- if(prior?.mode==='customer'){openTab('customers');showCustomer360(prior.name);updateFloatingBack();return}
- if(prior?.mode==='list'){openTab(prior.tab);window.scrollTo({top:prior.scroll||0,behavior:'instant'});return}
+ if(prior?.mode==='customer'){const remaining=recordTrail.slice();openTab('customers');recordTrail=remaining;showCustomer360(prior.name);updateFloatingBack();return}
+ if(prior?.mode==='list'){const remaining=recordTrail.slice();openTab(prior.tab);recordTrail=remaining;window.scrollTo({top:prior.scroll||0,behavior:'instant'});updateFloatingBack();return}
  if(currentTab==='customers'&&!$('customer360').hidden){openTab('customers');return}
  if(recordView){openTab(RECORD_TABS[recordView.kind]);return}
  updateFloatingBack();
@@ -544,6 +544,7 @@ function saveSupplier(){
 }
 function formatErpPrice(v){return Number(v).toLocaleString('zh-TW',{maximumFractionDigits:2})}
 function renderProducts(){
+ const expanded=new Set([...$('productList').querySelectorAll('.supplierGroup[open] > summary')].map(s=>s.textContent));
  fillCustomerNames();const q=norm(field('productSearch')),m=getMaster(),prices=Array.isArray(m.customerPrices)?m.customerPrices:[];
  const priceLookup=new Map(),supplierNames=new Set(m.suppliers.map(s=>norm(supplierName(s))));
  for(const price of prices){const key=norm(price.supplierShortName)+'|'+norm(price.supplierPartNo);
@@ -557,7 +558,7 @@ function renderProducts(){
  });
  const sorted=[...groups.entries()].sort((a,b)=>a[0]==='待核對（舊產品）'?1:b[0]==='待核對（舊產品）'?-1:a[0].localeCompare(b[0],'zh-Hant'));
  $('productList').innerHTML=sorted.length?sorted.map(([supplier,items])=>
-  '<details class="supplierGroup" '+(q||sorted.length<=2?'open':'')+'><summary>'+esc(supplier)+'（'+items.length+' 款產品）</summary>'+
+  '<details class="supplierGroup" '+(q||sorted.length<=2||expanded.has(supplier+'（'+items.length+' 款產品）')?'open':'')+'><summary>'+esc(supplier)+'（'+items.length+' 款產品）</summary>'+
   items.map(({p,i,pricing})=>'<div class="listItem"><div class="listTitle">'+esc(productName(p))+
    ' <span class="pill">'+esc(productModel(p)||'無型號')+'</span></div>'+
    '<div class="sub">單位：'+esc(p.unit||'—')+'　｜　包裝／規格：'+esc(p.spec||'—')+'</div>'+
