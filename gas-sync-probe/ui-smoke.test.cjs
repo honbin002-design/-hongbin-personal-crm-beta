@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const html=fs.readFileSync(__dirname+'/Index.html','utf8');
 const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,'embedded UI program exists');
-let pass=0,serial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false,lostDeleteAckOnce=false;
+let pass=0,serial=0,randomSerial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false,lostDeleteAckOnce=false;
 const committedOps=new Map();
 let notes=[],calls=[],groups=[];
 class Element{
@@ -76,7 +76,7 @@ const fakeService={onSuccess:null,onFailure:null,
   }catch(e){this.onFailure(e)}
  }
 };
-const crypto={getRandomValues:arr=>{for(let i=0;i<arr.length;i++)arr[i]=(serial+i*13)&255;return arr}};
+const crypto={getRandomValues:arr=>{const seed=++randomSerial;for(let i=0;i<arr.length;i++)arr[i]=(seed+i*13)&255;return arr}};
 const window={google:{script:{run:fakeService}},crypto,confirm:()=>true};
 vm.runInNewContext(match[1],{window,document,google:window.google,Date,Uint8Array},{timeout:4000});
 succeed('Verified Google session appears',()=>assert.match(elements.identity.textContent,/alice@example\.test/));
