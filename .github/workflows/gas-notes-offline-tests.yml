@@ -49,6 +49,15 @@ jobs:
         run: node gas-sync-probe/ui-smoke.test.cjs
       - name: Block cross-account release until genuine Google OAuth and deployment proof
         run: node gas-sync-probe/multi-account-gate.test.cjs
+      - name: Assemble deployable but CLOSED Google Script source bundles
+        run: node gas-sync-probe/build-bundles.cjs "$RUNNER_TEMP/honbin-gas-package"
+      - name: Retain isolated GAS source bundles without credentials
+        uses: actions/upload-artifact@v4
+        with:
+          name: honbin-gas-sync-test-bundles
+          path: ${{ runner.temp }}/honbin-gas-package/
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish real Node.js regression result as GitHub commit status
         if: always()
         env:
