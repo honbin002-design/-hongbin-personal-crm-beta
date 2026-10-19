@@ -163,7 +163,27 @@ const STAGES=['進行中','已成交','暫停','結案','取消'],PROGRESS=['','
 function projectProgress(p){const prog=getProgress();return prog[p.id]||prog[p.name]||{}}
 function projectCustomerName(p){return p.customerName||getCRM().customers.find(c=>p.customerId!=null&&String(c.id)===String(p.customerId))?.name||''}
 function renderProjects(){const q=norm(field('projectSearch'));const list=getCRM().projects.filter(p=>!q||norm([p.name,projectCustomerName(p),p.stage,p.owner].join(' ')).includes(q));$('projectList').innerHTML=list.length?list.map(p=>{const pr=projectProgress(p);return '<div class="listItem"><div class="listTitle">'+esc(p.name||'未命名專案')+'</div><div class="sub">'+esc(projectCustomerName(p)||'未指定客戶')+'　｜　'+esc(p.stage||'未設定')+'　｜　'+esc(pr.progress||p.progress||'未設定進度')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button class="secondary" data-project="'+esc(p.id)+'" type="button">查看／追蹤</button></div>'}).join(''):htmlListEmpty('尚無符合的專案')}
-function renderHistory(id){const list=getHist()[id]||[];const original=getCRM().projects.find(p=>String(p.id)===String(id));const legacy=original?projectProgress(original):{};const oldNote=legacy?.note?'<div class="note"><strong>既有進度註記（舊版資料）</strong><div>'+esc(legacy.note)+'</div></div>':'';$('projectHistory').innerHTML=oldNote+(list.length?list.slice().reverse().map(h=>'<div class="note"><strong>'+esc(h.date)+'</strong><div>'+esc(h.note)+'</div><div class="sub">階段：'+esc(h.stage)+'｜進度：'+esc(h.progress||'未設定')+'</div></div>').join(''):oldNote?'':htmlListEmpty('尚無追蹤紀錄'))}
+// 歷史原始時間保持不變；顯示時統一為台灣日期及 24 小時制。舊日期文字保留可讀性。
+function readableHistoryTime(value){
+ const raw=String(value??'').trim();if(!raw)return '未記錄時間';
+ if(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.test(raw)&&!/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)){
+  return raw.replaceAll('-','/').replace('T',' ');
+ }
+ let date;
+ if(/^\d{10}$/.test(raw))date=new Date(Number(raw)*1000);
+ else if(/^\d{13}$/.test(raw))date=new Date(Number(raw));
+ else if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw))date=new Date(raw);
+ else return raw;
+ if(Number.isNaN(date.getTime()))return raw;
+ try{
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+   timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',
+   hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).formatToParts(date).map(p=>[p.type,p.value]));
+  return parts.year+'/'+parts.month+'/'+parts.day+' '+parts.hour+':'+parts.minute;
+ }catch{return raw}
+}
+function renderHistory(id){const list=getHist()[id]||[];const original=getCRM().projects.find(p=>String(p.id)===String(id));const legacy=original?projectProgress(original):{};const oldNote=legacy?.note?'<div class="note"><strong>既有進度註記（舊版資料）</strong><div>'+esc(legacy.note)+'</div></div>':'';$('projectHistory').innerHTML=oldNote+(list.length?list.slice().reverse().map(h=>'<div class="note"><strong>'+esc(readableHistoryTime(h.date))+'</strong><div>'+esc(h.note)+'</div><div class="sub">階段：'+esc(h.stage)+'｜進度：'+esc(h.progress||'未設定')+'</div></div>').join(''):oldNote?'':htmlListEmpty('尚無追蹤紀錄'))}
 function editProject(id){const p=id==null?null:getCRM().projects.find(x=>String(x.id)===String(id));editProjectId=p?.id??null;const pr=p?projectProgress(p):{};$('pName').value=p?.name||'';$('pCustomer').value=p?projectCustomerName(p):'';$('pOwner').value=p?.owner||'';$('pFollowDate').value=p?.followDate||'';for(const node of $('pStage').querySelectorAll('option[data-legacy]'))node.remove();for(const node of $('pProgress').querySelectorAll('option[data-legacy]'))node.remove();const stage=p?.stage||'進行中';if(!STAGES.includes(stage)){const old=document.createElement('option');old.dataset.legacy='1';old.value=stage;old.textContent='舊階段：'+stage;$('pStage').appendChild(old)}$('pStage').value=stage;const progress=pr.progress||p?.progress||'';if(!PROGRESS.includes(progress)){const opt=document.createElement('option');opt.dataset.legacy='1';opt.value=progress;opt.textContent='舊進度：'+progress;$('pProgress').appendChild(opt)}$('pProgress').value=progress;$('pNote').value='';$('projectEditorTitle').textContent=p?'專案追蹤':'新增專案';renderHistory(p?.id??'new');$('projectEditor').hidden=false;$('projectEditor').scrollIntoView({behavior:'smooth',block:'start'})}
 function saveProject(){const name=field('pName');if(!name){alert('請輸入專案名稱');return}const crm=getCRM(),i=crm.projects.findIndex(p=>editProjectId!=null&&String(p.id)===String(editProjectId)),old=i>=0?crm.projects[i]:null;const nameOf=field('pCustomer'),pr=field('pProgress'),stage=field('pStage'),note=field('pNote'),id=old?.id??uniqueId();
  const next={...(old||{}),id,name,customerId:customerId(nameOf),customerName:nameOf,owner:field('pOwner'),followDate:field('pFollowDate'),stage};
