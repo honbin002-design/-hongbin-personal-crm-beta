@@ -245,6 +245,82 @@ async function restore(){
  alert(source+'已還原，即將重新載入');location.reload()
 }
 
+
+/* R73 one-time private import. Do NOT bundle customer/price data in the public source. */
+let erpPending=null;
+function validateErpData(x){
+ if(!x||x.format!=='hongbin-crm-erp-master-import'||x.schema!==1||x.source?.fileId!=='13dQzpVerN4XhCiYItoQWZU7GDFO6AVhI')
+  throw Error('檔案不是本次指定的 ERP 主資料匯入格式');
+ for(const [k,max] of [['customers',10000],['suppliers',1000],['products',20000],['customerPrices',30000]]){
+  if(!Array.isArray(x[k])||!x[k].length||x[k].length>max)throw Error(k+' 筆數不合理');
+ }
+ const customers=new Set(),suppliers=new Set(),products=new Set(),prices=new Set();
+ for(const v of x.customers){
+  if(!v||typeof v.name!=='string'||!v.name.trim()||customers.has(norm(v.name)))throw Error('客戶名稱重複或空白');
+  customers.add(norm(v.name));
+ }
+ for(const v of x.suppliers){
+  if(!v||typeof v.name!=='string'||!v.name.trim()||!v.shortName||suppliers.has(norm(v.shortName)))throw Error('供應商名稱或簡稱重複');
+  suppliers.add(norm(v.shortName));
+ }
+ for(const v of x.products){
+  if(!v||!v.model||!v.supplierShortName||!suppliers.has(norm(v.supplierShortName)))throw Error('產品供應商關聯不完整');
+  const key=norm(v.supplierShortName)+'|'+norm(v.model);
+  if(products.has(key))throw Error('供應商品號重複');
+  products.add(key);
+ }
+ for(const v of x.customerPrices){
+  if(!v||!customers.has(norm(v.customerName))||!products.has(norm(v.supplierShortName)+'|'+norm(v.supplierPartNo))||
+   !Number.isFinite(Number(v.price))||Number(v.price)<=0)throw Error('客戶售價關聯或價格不正確');
+  const key=[v.customerName,v.supplierShortName,v.supplierPartNo,v.customerPartNo].map(norm).join('|');
+  if(prices.has(key))throw Error('客戶售價資料重複');
+  prices.add(key);
+ }
+ return {customers:x.customers.length,suppliers:x.suppliers.length,products:x.products.length,prices:x.customerPrices.length};
+}
+async function previewErpData(){
+ const chosen=$('erpImportFile').files[0],status=$('erpImportStatus');erpPending=null;$('erpApplyImport').disabled=true;
+ if(!chosen){status.textContent='請選擇匯入 JSON 檔';return}
+ if(chosen.size>10000000){status.textContent='檔案超過安全匯入大小（10MB）';return}
+ try{
+  const x=JSON.parse(await chosen.text()),counts=validateErpData(x),current=getMaster();
+  erpPending=x;$('erpApplyImport').disabled=false;
+  status.textContent='尚未修改任何資料｜預覽\n客戶：'+counts.customers+' 筆\n供應商：'+counts.suppliers+
+   ' 筆\n供應商產品：'+counts.products+' 款\n客戶售價：'+counts.prices+
+   ' 筆\n來源待核對衝突：'+(x.report?.sourceConflicts?.length||0)+' 項\n現有客戶：'+current.customers.length+
+   ' 筆（來源外客戶保留）\n現有產品：'+current.products.length+
+   ' 款（來源外舊產品會標示待核對）\n「需確認供應商」的紀錄不會匯入。\n請先下載並保存 CRM 備份，再勾選確認。';
+ }catch(e){status.textContent='驗證失敗：'+String(e.message||e)}
+}
+function applyErpData(){
+ if(!erpPending){alert('請先預覽有效的匯入資料');return}
+ if(!$('erpBackupConfirmed').checked){alert('請先下載保存 CRM 備份，再勾選確認');return}
+ let counts;try{counts=validateErpData(erpPending)}catch(e){alert(e.message);return}
+ if(!confirm('確定更新這台 iPhone 的 ERP 供應商、產品、客戶及價格？\n其他客戶、報價、專案及待辦會保留；請確認備份已保存。'))return;
+ const current=getMaster(),old=localStorage.getItem(KEYS.master);
+ const customers=new Map(current.customers.filter(c=>c?.name).map(c=>[norm(c.name),{...c}]));
+ for(const c of erpPending.customers)customers.set(norm(c.name),{...(customers.get(norm(c.name))||{}),...c,source:'ERP_R2_R23'});
+ const keys=new Set(erpPending.products.map(p=>norm(p.supplierShortName)+'|'+norm(p.model)));
+ const legacy=current.products.filter(p=>p.source!=='ERP_R2_R23'&&!keys.has(norm(p.supplierShortName||productSupplier(p))+'|'+norm(productModel(p))))
+  .map(p=>({...p,source:'legacy-not-verified'}));
+ const next={...current,customers:[...customers.values()],suppliers:erpPending.suppliers.map(x=>({...x})),
+  products:[...erpPending.products.map(x=>({...x})),...legacy],
+  customerPrices:erpPending.customerPrices.map(x=>({...x})),
+  erpMasterImport:{fileId:erpPending.source.fileId,fileName:erpPending.source.fileName,counts,importedAt:new Date().toISOString(),unverifiedLegacyProducts:legacy.length}};
+ const snapshot='hongbin_crm_erp_master_before_import_v1';
+ try{
+  if(localStorage.getItem(snapshot)===null)localStorage.setItem(snapshot,old||JSON.stringify(current));
+  localStorage.setItem(KEYS.master,JSON.stringify(next));
+ }catch(e){
+  try{old===null?localStorage.removeItem(KEYS.master):localStorage.setItem(KEYS.master,old)}catch{}
+  $('erpImportStatus').textContent='匯入失敗，原始主資料保持不變：'+String(e.message||e);return;
+ }
+ $('erpImportStatus').textContent='本機匯入完成：'+counts.suppliers+' 間供應商、'+counts.products+
+  ' 款產品、'+counts.customers+' 筆來源客戶、'+counts.prices+' 筆客戶售價；保留 '+legacy.length+
+  ' 款待核對舊產品。原報價、專案和待辦未修改。';
+ erpPending=null;$('erpApplyImport').disabled=true;fillCustomerNames();toast('ERP 主資料已匯入這台 iPhone');
+}
+
 /* Supplier and product master records stay in existing hongbin_crm_master_r70. */
 function supplierName(x){return String(x.name||x.supplierName||x.company||'').trim()}
 function supplierEntries(){return getMaster().suppliers.filter(x=>supplierName(x))}
@@ -256,9 +332,17 @@ function productCustomer(x){
 }
 function productEntries(){return getMaster().products.filter(x=>productName(x))}
 function renderSuppliers(){
- fillCustomerNames();const q=norm(field('supplierSearch'));
- const list=getMaster().suppliers.map((s,i)=>({...s,__index:i})).filter(s=>supplierName(s)&&(!q||norm([supplierName(s),s.contact,s.tel,s.email].join(' ')).includes(q)));
- $('supplierList').innerHTML=list.length?list.map(s=>'<div class="listItem"><div class="listTitle">'+esc(supplierName(s))+'</div><div class="sub">'+esc([s.contact,s.tel,s.email].filter(Boolean).join(' ｜ ')||'尚未填聯絡資訊')+'</div><button class="secondary" data-supplier="'+s.__index+'">查看／編輯</button></div>').join(''):htmlListEmpty('尚無供應商，按新增供應商建立');
+ fillCustomerNames();const q=norm(field('supplierSearch')),m=getMaster();
+ const list=m.suppliers.map((s,i)=>({...s,__index:i})).filter(s=>supplierName(s)&&(!q||norm([supplierName(s),s.shortName,s.contact,s.tel,s.email].join(' ')).includes(q)));
+ $('supplierList').innerHTML=list.length?list.map(s=>{
+  const count=m.products.filter(p=>norm(productSupplier(p))===norm(supplierName(s))).length;
+  return '<div class="listItem"><div class="listTitle">'+esc(supplierName(s))+'</div>'+
+   (s.shortName?'<div class="sub">簡稱：'+esc(s.shortName)+'</div>':'')+
+   '<div class="sub">'+esc([s.contact,s.tel,s.email].filter(Boolean).join(' ｜ ')||'來源檔未提供聯絡資訊')+'</div>'+
+   '<div class="sub">旗下產品：'+count+' 款</div>'+
+   '<button type="button" class="secondary" data-supplier="'+s.__index+'">查看／編輯</button> '+
+   '<button type="button" class="secondary supplier-products-link" data-supplier-browse="'+s.__index+'">查看旗下產品</button></div>';
+ }).join(''):htmlListEmpty('尚無供應商，按新增供應商建立');
 }
 function editSupplier(index){
  editSupplierIndex=index==null?null:Number(index);
@@ -276,10 +360,33 @@ function saveSupplier(){
  if(!store(KEYS.master,m))return;
  $('supplierEditor').hidden=true;renderSuppliers();fillCustomerNames();toast('供應商已儲存');
 }
+function formatErpPrice(v){return Number(v).toLocaleString('zh-TW',{maximumFractionDigits:2})}
 function renderProducts(){
- fillCustomerNames();const q=norm(field('productSearch'));
- const rows=getMaster().products.map((p,i)=>({...p,__index:i})).filter(p=>productName(p)&&(!q||norm([productName(p),productModel(p),p.spec,productSupplier(p),productCustomer(p)].join(' ')).includes(q)));
- $('productList').innerHTML=rows.length?rows.map(p=>'<div class="listItem"><div class="listTitle">'+esc(productName(p))+' <span class="pill">'+esc(productModel(p)||'無型號')+'</span></div><div class="sub">規格：'+esc(p.spec||'—')+'　｜　供應商：'+esc(productSupplier(p)||'—')+'</div><div class="sub">使用客戶：'+esc(productCustomer(p)||'尚未指定')+'</div><button class="secondary" data-product="'+p.__index+'">查看／編輯</button></div>').join(''):htmlListEmpty('尚無符合的產品');
+ fillCustomerNames();const q=norm(field('productSearch')),m=getMaster(),prices=Array.isArray(m.customerPrices)?m.customerPrices:[];
+ const priceLookup=new Map(),supplierNames=new Set(m.suppliers.map(s=>norm(supplierName(s))));
+ for(const price of prices){const key=norm(price.supplierShortName)+'|'+norm(price.supplierPartNo);
+  if(!priceLookup.has(key))priceLookup.set(key,[]);priceLookup.get(key).push(price)}
+ const groups=new Map();
+ m.products.forEach((p,i)=>{
+  const supplier=productSupplier(p),pricing=priceLookup.get(norm(p.supplierShortName||supplier)+'|'+norm(productModel(p)))||[];
+  if(!productName(p)||q&&!norm([productName(p),productModel(p),p.spec,supplier,p.supplierShortName,productCustomer(p),...pricing.map(x=>x.customerName)].join(' ')).includes(q))return;
+  const group=supplierNames.has(norm(supplier))?supplier:'待核對（舊產品）';
+  if(!groups.has(group))groups.set(group,[]);groups.get(group).push({p,i,pricing});
+ });
+ const sorted=[...groups.entries()].sort((a,b)=>a[0]==='待核對（舊產品）'?1:b[0]==='待核對（舊產品）'?-1:a[0].localeCompare(b[0],'zh-Hant'));
+ $('productList').innerHTML=sorted.length?sorted.map(([supplier,items])=>
+  '<details class="supplierGroup" '+(q?'open':'')+'><summary>'+esc(supplier)+'（'+items.length+' 款產品）</summary>'+
+  items.map(({p,i,pricing})=>'<div class="listItem"><div class="listTitle">'+esc(productName(p))+
+   ' <span class="pill">'+esc(productModel(p)||'無型號')+'</span></div>'+
+   '<div class="sub">單位：'+esc(p.unit||'—')+'　｜　包裝／規格：'+esc(p.spec||'—')+'</div>'+
+   (p.fromConfirmedCustomerMapping?'<div class="sub">由已確認客戶品項對照補全</div>':'')+
+   (p.source==='legacy-not-verified'?'<div class="warn">舊產品，資料待核對</div>':'')+
+   (pricing.length?'<details class="priceList"><summary>客戶售價（'+pricing.length+' 筆）</summary>'+
+    pricing.map(x=>'<div class="priceLine">'+esc(x.customerName)+'　｜　客戶品號：'+esc(x.customerPartNo||'—')+
+     '　｜　售價：NT$ '+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div>').join('')+'</details>':
+     productCustomer(p)?'<div class="sub">使用客戶：'+esc(productCustomer(p))+'</div>':'')+
+   '<button type="button" class="secondary" data-product="'+i+'">查看／編輯</button></div>').join('')+
+  '</details>').join(''):htmlListEmpty('尚無符合的產品');
 }
 function editProduct(index,customer){
  editProductIndex=index==null?null:Number(index);
@@ -309,13 +416,14 @@ function relatedCustomer(name){
  const projects=getCRM().projects.filter(p=>norm(projectCustomerName(p))===key);
  const todos=getCRM().todos.filter(t=>norm(linkedTodoCustomer(t))===key);
  const products=getMaster().products.map((p,i)=>({...p,__index:i})).filter(p=>norm(productCustomer(p))===key);
- return {quotes,projects,todos,products};
+ const customerPrices=(Array.isArray(getMaster().customerPrices)?getMaster().customerPrices:[]).filter(p=>norm(p.customerName)===key);
+ return {quotes,projects,todos,products,customerPrices};
 }
 function showCustomer360(name){
  const customer=customerByName(name);if(!customer)return;
  customer360Name=customer.name;
  const related=relatedCustomer(name);
- const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['使用產品',related.products.length]];
+ const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['使用產品',related.products.length+related.customerPrices.length]];
  $('customer360Title').textContent=customer.name;
  const block=(title,items,render,empty,footer='')=>
   '<section class="customer360-block'+(items.length?'':' is-empty')+'"><h3>'+esc(title)+'（'+items.length+'）</h3>'+
@@ -337,13 +445,18 @@ function showCustomer360(name){
  const products=block('使用產品',related.products,p=>
   '<div class="customer360-entry"><strong>'+esc(productName(p))+'</strong><div class="sub">型號：'+esc(productModel(p)||'—')+'　規格：'+esc(p.spec||'—')+'</div><div class="sub">供應商：'+esc(productSupplier(p)||'—')+'</div><button type="button" class="secondary" data-customer-product="'+p.__index+'">編輯產品</button></div>',
   '尚未建立使用產品','<button id="addCustomerProduct" class="customer-product-action" type="button">＋ 新增該客戶使用產品</button>');
+ const customerPriceList=block('ERP 客戶使用產品及售價',related.customerPrices,x=>
+  '<div class="customer360-entry"><strong>'+esc(x.productName||x.supplierPartNo)+'</strong>'+
+  '<div class="sub">供應商：'+esc(x.supplierName||x.supplierShortName)+'　｜　供應商品號：'+esc(x.supplierPartNo)+'</div>'+
+  '<div class="sub">客戶品號：'+esc(x.customerPartNo||'—')+'　｜　售價：NT$ '+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div></div>',
+  '此客戶沒有已確認售價');
  const quotes=block('報價單',related.quotes,q=>
   '<div class="customer360-entry"><strong>'+esc(q.fields?.qdNo||'未編號')+'</strong><div class="sub">'+esc(q.fields?.qdDate||'未設定日期')+'</div><button type="button" class="secondary" data-customer-quote="'+esc(q.id)+'">開啟報價</button></div>','尚無報價單');
  const projects=block('專案追蹤',related.projects,p=>
   '<div class="customer360-entry"><strong>'+esc(p.name||'未命名專案')+'</strong><div class="sub">階段：'+esc(p.stage||'—')+'　進度：'+esc(projectProgress(p).progress||p.progress||'—')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button type="button" class="secondary" data-customer-project="'+esc(p.id)+'">查看追蹤</button></div>','尚無專案');
  const todos=block('待辦行事曆',related.todos.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),t=>
   '<div class="customer360-entry"><strong>'+esc(t.text||'未命名待辦')+'</strong><div class="sub">'+esc(t.date||'未指定日期')+'　'+esc(t.time||'')+'　'+(t.done?'已完成':'待處理')+'</div><button type="button" class="secondary" data-customer-todo="'+esc(t.id)+'">查看待辦</button></div>','尚無客戶相關待辦');
- $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+quotes+projects+todos;
+ $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+customerPriceList+quotes+projects+todos;
  $('customerListCard').hidden=true;
  $('customer360').hidden=false;
  $('customer360').scrollIntoView({block:'start'});
@@ -405,9 +518,13 @@ $('calendarSwipeArea').addEventListener('touchstart',e=>{if(e.touches.length===1
 $('calendarSwipeArea').addEventListener('touchend',e=>{if(!swipeStart||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-swipeStart.x,dy=e.changedTouches[0].clientY-swipeStart.y;swipeStart=null;if(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.3)shiftMonth(dx<0?1:-1)},{passive:true});
 $('prevMonth').onclick=()=>shiftMonth(-1);$('nextMonth').onclick=()=>shiftMonth(1);$('newTodo').onclick=()=>editTodo(null);$('todoList').onchange=e=>{if(e.target.matches('[data-complete]'))toggleTodo(e.target.dataset.complete,e.target.checked)};$('todoList').onclick=e=>{const b=e.target.closest('[data-todo]');if(b)editTodo(b.dataset.todo)};$('saveTodo').onclick=saveTodo;$('cancelTodo').onclick=()=>$('todoEditor').hidden=true;
 $('projectSearch').addEventListener('input',renderProjects);$('newProject').onclick=()=>editProject(null);$('projectList').onclick=e=>{const b=e.target.closest('[data-project]');if(b)editProject(b.dataset.project)};$('saveProject').onclick=saveProject;$('cancelProject').onclick=()=>$('projectEditor').hidden=true;
-$('supplierSearch').oninput=renderSuppliers;$('newSupplier').onclick=()=>editSupplier(null);$('supplierList').onclick=e=>{const b=e.target.closest('[data-supplier]');if(b)editSupplier(b.dataset.supplier)};$('saveSupplier').onclick=saveSupplier;$('cancelSupplier').onclick=()=>$('supplierEditor').hidden=true;
+$('supplierSearch').oninput=renderSuppliers;$('newSupplier').onclick=()=>editSupplier(null);$('supplierList').onclick=e=>{const b=e.target.closest('[data-supplier-browse]');if(b){
+ const item=getMaster().suppliers[Number(b.dataset.supplierBrowse)];if(item){$('productSearch').value=supplierName(item);openTab('products')}return}
+ const edit=e.target.closest('[data-supplier]');if(edit)editSupplier(edit.dataset.supplier)};$('saveSupplier').onclick=saveSupplier;$('cancelSupplier').onclick=()=>$('supplierEditor').hidden=true;
 $('productSearch').oninput=renderProducts;$('newProduct').onclick=()=>editProduct(null);$('productList').onclick=e=>{const b=e.target.closest('[data-product]');if(b)editProduct(b.dataset.product)};$('saveProduct').onclick=saveProduct;$('cancelProduct').onclick=()=>$('productEditor').hidden=true;
 $('downloadBackup').onclick=backup;$('restoreBackup').onclick=restore;
+$('erpImportFile').onchange=()=>{erpPending=null;$('erpApplyImport').disabled=true;$('erpBackupConfirmed').checked=false;$('erpImportStatus').textContent='已選擇匯入檔，請按預覽';};
+$('erpPreviewImport').onclick=previewErpData;$('erpApplyImport').onclick=applyErpData;
 window.addEventListener('beforeunload',()=>{if(lastPdfUrl)URL.revokeObjectURL(lastPdfUrl)});
 
 window.addEventListener('resize',fitLegacyQuotePreview);
