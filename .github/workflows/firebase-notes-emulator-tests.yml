@@ -1,0 +1,54 @@
+name: Firebase Notes Real Firestore Emulator Gate - no Work
+on:
+  push:
+    branches:
+      - probe/gas-no-work-20261019
+    paths:
+      - 'firebase-sync-probe/**'
+      - '.github/workflows/firebase-notes-emulator-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  rules-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: firebase-sync-probe
+    steps:
+      - name: Checkout isolated test branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Setup Java for real Firestore emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Google Firebase emulator and test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run real Firebase Firestore rules engine
+        run: npx firebase emulators:exec --only firestore --project demo-honbin-crm-rules-isolated --non-interactive "npm run test:rules"
+      - name: Report real emulator result in GitHub commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULT: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          if [[ "$JOB_RESULT" == "success" ]]; then state=success; else state=failure; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            --field state="$state" \
+            --field context='firebase-sync-probe/rules-emulator' \
+            --field description="Real Firestore emulator: $JOB_RESULT; no live deployment" >/dev/null
+          echo "FIRESTORE_EMULATOR_RESULT=$state"
+      - name: Confirm NO production or billing changes
+        run: |
+          echo 'FIREBASE_PRODUCTION_PROJECT_CREATED: NO'
+          echo 'FIREBASE_LIVE_DEPLOYMENT: NOT_ATTEMPTED'
+          echo 'FIREBASE_BILLING_UPGRADE: NO'
+          echo 'CRM_MAIN_MODIFICATIONS: NONE'
