@@ -18,7 +18,9 @@ class Element{
  focus(){}
 }
 const ids=['identity','groupId','groupSection','items','personal','team','status','refresh',
- 'newNote','editor','editorTitle','noteTitle','noteContent','deleteNote','saveNote','cancelNote'];
+ 'newNote','editor','editorTitle','noteTitle','noteContent','deleteNote','saveNote','cancelNote',
+ 'newGroup','manageGroup','groupCreate','newGroupName','saveGroup','cancelGroup',
+ 'groupMembers','memberEmail','memberRole','addMember','closeMembers','memberList'];
 const elements=Object.fromEntries(ids.map(id=>[id,new Element(id)]));
 // Mirror initial HTML attributes; this fake DOM is not a real HTML parser.
 elements.personal.className='active';
