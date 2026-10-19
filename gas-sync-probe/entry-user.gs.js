@@ -12,13 +12,13 @@ function doGet() {
 function gasNoteCall(action,params) {
   var account=Session.getActiveUser().getEmail();
   if(typeof account!=='string'||!account.trim())throw Error('GOOGLE_IDENTITY_UNAVAILABLE');
-  if(!HONBIN_NOTE_ACTIONS.includes(action))throw Error('UNSUPPORTED_ACTION');
+  if(!GASBoundary_.HONBIN_NOTE_ACTIONS.includes(action))throw Error('UNSUPPORTED_ACTION');
   var props=PropertiesService.getScriptProperties();
   var endpoint=props.getProperty('HONBIN_NOTES_BACKEND_URL');
   var secret=props.getProperty('HONBIN_NOTES_INTERNAL_SECRET');
   if(!endpoint||!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint))
     throw Error('BACKEND_URL_NOT_CONFIGURED');
-  var signer=createServerSideSigner({
+  var signer=GASBoundary_.createServerSideSigner({
     identity:function(){return account;},
     secret:secret,
     hmac:gasHmacSha256Base64Url_,
