@@ -68,3 +68,20 @@
 - **累計 114 項離線測試**（先前 90＋新增 24）；不是 Google 真實登入、Apps Script 線上部署或跨 iPhone 真實同步的 PASS。
 - GitHub Actions 新增 `build-bundles.test.cjs` 與 `bundle-runtime.test.cjs`，但目前只有工作流程設定回讀證據，沒有這次新版 CI 執行的實際狀態。
 - 真正的 Google Apps Script OAuth／部署執行能力仍 **BLOCKED**。不得改用 Work、要求使用者操作 Codespaces／Terminal／Script、提供 Token，也不得因無法部署就偷偷將正式 CRM 改成其他方案。
+
+## 2026-10-19｜進一步安全審查、資料遺失修正與部署權限 Gate
+
+### 已完成原型修正（仍是離線驗證）
+- `offline-outbox.cjs`：修正非同步上傳完成時可能覆寫同時新增的待送草稿，以及同一操作重複觸發兩次網路傳送。既有離線 12 項仍 PASS；新增 `offline-race.test.cjs` 2 項 PASS。
+- `entry-user.gs.js` / `entry-data.gs.js`：都加入 `HONBIN_NOTES_TEST_GATE=ISOLATED_TEST_APPROVED` 明確啟用檢查；未設定一律拒絕同步請求，避免未驗證部署意外開始處理資料。使用者端／資料端新增 2 項整合測試 PASS。
+- `legacy-import.cjs`：舊記事一律先預覽，明確同意前不產生匯入操作；SHA256 確定性作業 ID 用於後端冪等，避免重複匯入，並拒絕舊記事 ID 重複及不符合格式的資料；新增 `legacy-import.test.cjs` 12 項 PASS。此段**尚未接上實際 CRM localStorage 或 Google 雲端**。
+- 此輪新增 16 項模擬檢查，累計 **130 項離線測試**（前輪 114 + 同步競態 2 + 未啟用安全閘 2 + 舊記事 12）。其中涉及 HMAC / SHA256 的本地測試協調器使用模擬加密函式，GitHub CI 程式使用真正 Node `crypto`；**最新 CI 成功狀態尚未取得證據**。
+- `.github/workflows/gas-notes-offline-tests.yml` 已納入 10 組自動回歸測試；沒有憑證操作與任何部署指令。
+
+### 確認的跨帳號部署限制
+Google 官方清單文件：`https://developers.google.com/apps-script/manifest/web-app-api-executable?hl=zh-tw`
+- `webapp.access=MYSELF` 意味著**只有部署者能進入該 Web App**。目前 Script A 與 B 都以 MYSELF 打包，故**現有程式包絕對不能宣稱支援兩個不同 Google 帳號的共用記事**。
+- 若 Script A 將來要有不同 Google 帳號使用，必須先驗證 `access=ANYONE`（要求登入）及 `executeAs=USER_ACCESSING` 在實際帳號下能取得可信且非空的 email。
+- Script B（資料擁有者）仍為 MYSELF 時，Script A 對 Script B 的 `UrlFetchApp.fetch()` 是否有合格的伺服器間授權必須**實測**；目前**沒有證據表明 MYSELF 可以在另一使用者身分的 URLFetch 呼叫中成功執行**。
+- 若改成匿名可連線的 B，則產生公開端點與用量濫用風險；雖有 HMAC 模型，**未實測前不得自動放寬到 ANYONE_ANONYMOUS**，也不得把原始 Google Sheets 分享給所有成員。
+- OAuth 部署工具仍缺安全授權；使用者已明確不接受 Codespaces、終端機、貼 Script、手動部署。堅持無 Work、既有 CRM main 保持不變。
