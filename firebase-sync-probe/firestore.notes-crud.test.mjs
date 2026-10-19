@@ -88,6 +88,16 @@ try{
  await check('Deleted private note cannot be accidentally re-edited',()=>assert.rejects(
   alice.update({...P,noteId:personal,expectedVersion:3,title:'復活',content:'否'}),
   /NOTE_VERSION_CONFLICT/));
+ await check('Firestore rules forbid forging private tombstone resurrection',()=>assertFails(
+  sdk.updateDoc(sdk.doc(a,'users','alice-n','notes',personal),{
+   deleted:false,version:4,title:'規則拒絕復原'
+  })
+ ));
+ await check('Firestore rules forbid rewriting deleted private note with next version',()=>assertFails(
+  sdk.updateDoc(sdk.doc(a,'users','alice-n','notes',personal),{
+   content:'不允許改寫墓碑',version:4
+  })
+ ));
  await check('Owner creates group for synthetic shared note',()=>assertSucceeds(
   sdk.setDoc(sdk.doc(a,'groups',G),{
    ownerUid:'alice-n',name:'共同測試',createdAt:sdk.Timestamp.now()
@@ -138,6 +148,16 @@ try{
   assert.equal(result.version,3);
   assert.equal((await alice.list(S)).length,0);
  });
+ await check('Firestore rules prohibit EDITOR reviving deleted shared note',()=>assertFails(
+  sdk.updateDoc(sdk.doc(b,'groups',G,'notes',shared),{
+   deleted:false,version:4
+  })
+ ));
+ await check('Firestore rules prohibit group ADMIN reviving deleted note',()=>assertFails(
+  sdk.updateDoc(sdk.doc(a,'groups',G,'notes',shared),{
+   deleted:false,version:4
+  })
+ ));
  await check('Switching Google account invalidates stale private service',async()=>{
   current='bob-n';
   await assert.rejects(alice.list(P),/GOOGLE_ACCOUNT_CHANGED/);
