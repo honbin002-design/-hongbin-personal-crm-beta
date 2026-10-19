@@ -133,6 +133,12 @@
 #customer360 #closeCustomer360{flex-shrink:0;white-space:nowrap}
 
 
+/* 隨手記：iPhone 快速書寫，列表預覽與詳細全文皆保留換行。 */
+.quick-note-content{min-height:240px;line-height:1.65;font-size:16px}
+.quick-note-excerpt{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quick-note-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;font-size:16px}
+#recordDetailDelete{background:#9b3333;color:#fff}
+#recordDetailDelete[hidden]{display:none!important}
 /* 唯讀詳細資料使用單獨區域，編輯表單不在清單最下方展開。 */
 .record-detail{padding:16px 0;display:block}
 .record-detail[hidden]{display:none!important}
@@ -238,6 +244,7 @@
 <button type="button" data-tab="projects">專案追蹤</button>
 <button type="button" data-tab="suppliers">供應商</button>
 <button type="button" data-tab="products">產品資料</button>
+<button type="button" data-tab="notes">隨手記</button>
 <button type="button" data-tab="backup">備份</button>
 </nav>
 <main>
@@ -246,7 +253,8 @@
   <div class="detail-top"><span class="muted">資料檢視 · 唯讀</span><button id="recordDetailBack" type="button" class="secondary">返回上一層</button></div>
   <h2 id="recordDetailTitle"></h2>
   <div id="recordDetailBody"></div>
-  <div class="actions"><button id="recordDetailEdit" type="button">編輯這筆資料</button></div>
+  <div class="actions"><button id="recordDetailEdit" type="button">編輯這筆資料</button>
+  <button id="recordDetailDelete" type="button" class="danger" hidden>刪除這則隨手記</button></div>
  </div>
 </section>
 <section class="panel" id="panel-quotes">
@@ -344,6 +352,25 @@
 <div class="wide"><label for="pdNotes">使用說明／備註</label><textarea id="pdNotes"></textarea></div>
 </div><div class="actions"><button id="saveProduct" type="button">儲存產品</button><button id="cancelProduct" type="button" class="secondary">取消</button></div>
 </div></section>
+<section class="panel" id="panel-notes" hidden>
+  <div class="card" id="noteListCard">
+    <h2>隨手記</h2>
+    <p class="muted">快速記下想法、電話重點或臨時事項。資料只存在這台 iPhone 的 CRM，並包含在 CRM 備份檔中。</p>
+    <div class="row"><input id="noteSearch" type="search" placeholder="搜尋標題或內文" aria-label="搜尋隨手記">
+      <button id="newNote" type="button">＋ 新增隨手記</button></div>
+    <div id="noteList"></div>
+  </div>
+  <div class="card editor" id="noteEditor" hidden>
+    <h2 id="noteEditorTitle">新增隨手記</h2>
+    <label for="noteTitle">標題（可不填）</label>
+    <input id="noteTitle" type="text" maxlength="120" placeholder="例如：客戶電話重點">
+    <label for="noteContent">記錄內容</label>
+    <textarea id="noteContent" class="quick-note-content" placeholder="把想記的事情寫在這裡…" required></textarea>
+    <div class="muted">儲存後才會寫入資料；取消不會覆蓋原筆記。</div>
+    <div class="actions"><button id="saveNote" type="button">儲存隨手記</button>
+      <button id="cancelNote" type="button" class="secondary">取消</button></div>
+  </div>
+</section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
 <p>資料直接儲存在這台 iPhone 的瀏覽器。請定期備份到「檔案」或 iCloud Drive，避免更換手機或清除 Safari 資料時遺失。</p>
@@ -362,12 +389,12 @@
 <div class="erp-import-actions"><button id="erpApplyImport" type="button" disabled>確認匯入 ERP 主資料</button></div>
 <div class="crm-reset">
 <h3>清除本機 CRM 資料（重新匯入前使用）</h3>
-<p class="warn">此操作只針對本 CRM 的已知本機文字資料，不會清除整個 Safari 或其他 GitHub Pages 專案。無法單靠 ERP 匯入檔恢復報價單、專案、待辦及追蹤紀錄。舊名片圖片的 IndexedDB 附件不在這次清除範圍內。</p>
+<p class="warn">此操作只針對本 CRM 的已知本機文字資料，不會清除整個 Safari 或其他 GitHub Pages 專案。無法單靠 ERP 匯入檔恢復報價單、專案、待辦、隨手記及追蹤紀錄。舊名片圖片的 IndexedDB 附件不在這次清除範圍內。</p>
 <label for="resetScope">選擇要清除的範圍</label>
 <select id="resetScope">
 <option value="">請先選擇清除範圍</option>
 <option value="master">只清除主資料：供應商、產品、客戶主檔及售價</option>
-<option value="all">清除全部 CRM 文字資料：含報價、專案、待辦</option>
+<option value="all">清除全部 CRM 文字資料：含報價、專案、待辦、隨手記</option>
 </select>
 <div id="resetPreview" class="erp-import-note" role="status" aria-live="polite">尚未選擇清除範圍，不會刪除任何資料。</div>
 <label class="erp-confirm-label"><input id="resetBackupConfirmed" type="checkbox"><span>我已將「下載 CRM 備份檔」產生的備份確實保存到 iPhone「檔案」App，了解清除後無法單靠 ERP 匯入檔恢復歷史紀錄。</span></label>
@@ -384,6 +411,6 @@
 <button type="button" id="floatingGoBack" aria-label="回上頁" title="回上頁" hidden><span aria-hidden="true">‹</span> 回上頁</button>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./simple-core.js?v=r73-readonly-details-back-v2-20261019" defer></script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-readonly-details-back-v2-20261019').catch(()=>{}))}</script>
+<script src="./simple-core.js?v=r73-quick-notes-20261019" defer></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-quick-notes-20261019').catch(()=>{}))}</script>
 </body></html>
