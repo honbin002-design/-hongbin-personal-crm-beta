@@ -50,7 +50,7 @@ check('Viewer cannot save or soft delete by UI',()=>{
 });
 check('Cloud note calls include optimistic expectedVersion and fixed new ID',()=>{
  assert.match(script,/expectedVersion:active\.version/);
- assert.match(script,/pendingCreateId\|\|\(pendingCreateId=notes\.newId\(target\)\)/);
+ assert.match(script,/if\(!active&&!pendingCreateId\)pendingCreateId=notes\.newId\(target\)/);
  assert.match(client,/runTransaction\(db,async tx=>/);
 });
 check('UI never interprets note text as HTML',()=>{
