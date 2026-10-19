@@ -2,10 +2,17 @@
 const assert=require('node:assert/strict');
 const {createSheetsEventAdapter,HONBIN_EVENTS_HEADER}=require('./sheets-adapter.cjs');
 const {createEventService}=require('./event-service.cjs');
-let passed=0,locked=false,denyLock=false,brokenHeader=false,writeError=false,uid=0,actor='alice@example.test';
+let passed=0,locked=false,denyLock=false,brokenHeader=false,writeError=false,failExpand=false,maxRows=2,uid=0,actor='alice@example.test';
 const rows=[HONBIN_EVENTS_HEADER.slice()];
 const tab={
  getLastRow(){return rows.length},
+ getMaxRows(){return maxRows},
+ insertRowsAfter(index,howMany){
+  if(failExpand)throw Error('SIMULATED_EXPANSION_FAILURE');
+  assert.equal(index,maxRows);
+  assert.ok(howMany>=1);
+  maxRows+=howMany;
+ },
  getRange(row,col,height,width){
    assert.equal(col,1);assert.equal(width,HONBIN_EVENTS_HEADER.length);
    return {
@@ -18,6 +25,7 @@ const tab={
       if(writeError)throw Error('SIMULATED_SHEETS_OUTAGE');
       assert.equal(values.length,1);assert.equal(values[0].length,width);
       if(row!==rows.length+1)throw Error('BAD_APPEND_ROW');
+      if(row>maxRows)throw Error('SHEETS_GRID_OUT_OF_RANGE');
       rows.push(JSON.parse(JSON.stringify(values[0])));
     }
    };
@@ -94,5 +102,25 @@ test('Corrupted JSON row fails closed without private leak',()=>{
 });
 test('Read replay survives new instance',()=>{
  b=createEventService(opts());assert.equal(as(A,()=>b.getHistory(as(A,()=>a.listNotes())[0].articleId)).length,2);
+});
+test('Events tab automatically expands beyond initial grid size',()=>{
+ assert.ok(maxRows>2);
+ assert.equal(rows.length,3);
+});
+test('Expansion failure does not create a partial note or acknowledge success',()=>{
+ const before=rows.length,old=maxRows;maxRows=rows.length;failExpand=true;
+ const note=as(A,()=>a.listNotes())[0];
+ try{throws('SIMULATED_EXPANSION_FAILURE',()=>as(A,()=>a.updateNote({
+  operationId:'expansionFail01',articleId:note.articleId,
+  expectedVersion:2,title:'blocked',content:'not saved'
+ })))}finally{failExpand=false;maxRows=old}
+ assert.equal(rows.length,before);
+ assert.equal(as(A,()=>a.getNote(note.articleId)).version,2);
+});
+test('Expansion failure retry safely commits one new event',()=>{
+ const note=as(A,()=>a.listNotes())[0],before=rows.length;
+ const updated=as(A,()=>a.updateNote({operationId:'expansionFail01',
+  articleId:note.articleId,expectedVersion:2,title:'saved',content:'after expansion'}));
+ assert.equal(updated.version,3);assert.equal(rows.length,before+1);
 });
 console.log('GAS SHEETS ADAPTER UNIT PASS',passed);
