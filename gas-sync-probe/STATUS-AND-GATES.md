@@ -144,3 +144,14 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - 初次 UI CI 曾 FAIL，原因為測試模擬 DOM 沒有反映 HTML 原始 `class="active"`，已修正測試夾具後真正重跑並取得 success；不得保留舊失敗作為最終狀態。
 - 這些結果**仍不是**實際 Apps Script OAuth／部署、真實 iPhone Safari 或兩台手機跨帳號同步的驗收；仍需獨立實測、使用者批准後才能接入正式 CRM main。
 - Google Sheets 私人測試表仍為公司帳號獨有，另一個個人 Google 帳號實際讀取及 metadata 均回應 403；不分享原始 Sheets、不將檔案 ID 寫進公開程式碼。
+
+## 2026-10-19｜網路回覆中斷後的重複記事／刪除風險修正
+
+- **實際問題：** 使用者按「儲存」時，Google 可能已成功寫入，但 Safari／網路沒有收到 ACK；若每次重按都產生新的 `operationId`，後端的冪等設計無法阻止同一筆記事重複新增。
+- `Index.html` 已補 `pendingSave`：同一筆內容、同一動作、同一帳號及版本在不確定結果下安全重試時，沿用最初的操作 ID；使用者若在 ACK 不明時修改內容，系統先阻擋新操作並提示核對雲端，保留未送出的草稿。成功後清除待送狀態。
+- 同理補 `pendingDelete`：刪除後 ACK 遺失，重按時沿用原刪除 `operationId`，且提示「可能已刪除、須核對」，**不得再誤報「資料未更動」**。
+- 同時修正實際使用者介面問題：從共用記事切換回私人記事時，自動重新讀取清單，不再出現空白列表須手動按更新。
+- `ui-smoke.test.cjs` 已涵蓋「新增成功但 ACK 遺失」、「未確認前修改內容不得用新 ID 送出」、「刪除成功但 ACK 遺失」。先前測試模擬器的假隨機值產生器會重複產生 ID，已改成每次產生新 ID；重試仍沿用原本 ID。
+- 最新 GitHub 提交 `09771e60dc5824e1ce21352b8541007e97bbb240` 的 `gas-sync-probe/node-regression` 實際狀態為 `success`；**14 組 Node.js 自動回歸測試 PASS**，其中手機操作模擬涵蓋 **15 項**情境。
+- 安全提醒：先前 `account-scoped-outbox.cjs` 對帳號 Email 的 SHA256 分區**不是加密**，不能當成共用 iPhone 同源 localStorage 上私人文字的機密防護；目前該模組**沒有接入 CRM／Apps Script 畫面**。尚未有加密或安全金鑰保存方案時，禁止在跨帳號環境以這種分區方式持久化私人記事本文。
+- 部署與上線依然 HOLD：官方 `MYSELF` 不支援跨不同 Google 使用者共同操作，且目前缺少安全的 Apps Script 建立／部署 OAuth 授權。真正 Google Script 部署、兩支 iPhone 不同帳號驗收均未完成。正式 `main` 與 R73 已 PASS 功能完全不更動。
