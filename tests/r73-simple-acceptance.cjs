@@ -388,6 +388,60 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#restoreBackup').click();
  check(await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'))===intact,'拒絕資料結構錯誤的備份，不覆蓋現有資料');
 
+
+ // Private ERP import uses ONLY synthetic fixtures in GitHub tests. Real customer prices remain local to the user's iPhone.
+ const erpFixture={
+  format:'hongbin-crm-erp-master-import',schema:1,
+  source:{fileId:'13dQzpVerN4XhCiYItoQWZU7GDFO6AVhI',fileName:'synthetic-test.xlsm'},
+  customers:[{name:'舊版R70客戶',contact:'虛構更新聯絡人'},{name:'另一筆虛構客戶'}],
+  suppliers:[{name:'虛構供應商有限公司',shortName:'虛構供應商'}],
+  products:[{name:'虛構膠材',model:'P-001',supplierName:'虛構供應商有限公司',supplierShortName:'虛構供應商',spec:'25KG',unit:'KG',source:'ERP_R2_R23'}],
+  customerPrices:[{customerName:'舊版R70客戶',supplierName:'虛構供應商有限公司',supplierShortName:'虛構供應商',supplierPartNo:'P-001',customerPartNo:'H-001',productName:'虛構膠材',price:1234.5,unit:'KG'}],
+  report:{sourceConflicts:[]}
+ };
+ await page.locator('#erpImportFile').setInputFiles({name:'invalid-file.json',mimeType:'application/json',buffer:Buffer.from('{"format":"unknown"}')});
+ await page.locator('#erpPreviewImport').click();
+ check((await page.locator('#erpImportStatus').innerText()).includes('驗證失敗')&&await page.locator('#erpApplyImport').isDisabled(),
+  '拒絕來源不明的匯入檔，禁止直接寫入主資料');
+ const beforeErp=await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'));
+ await page.locator('#erpImportFile').setInputFiles({name:'erp-synthetic.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(erpFixture))});
+ await page.locator('#erpPreviewImport').click();
+ check((await page.locator('#erpImportStatus').innerText()).includes('供應商：1 筆')&&await page.locator('#erpApplyImport').isEnabled(),
+  '匯入檔通過格式及關聯驗證後顯示預覽筆數');
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'))===beforeErp,
+  '預覽動作不會覆寫既有客戶、供應商及產品資料');
+ await page.locator('#erpApplyImport').click();
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'))===beforeErp,
+  '沒有確認備份時不可匯入');
+ await page.locator('#erpBackupConfirmed').check();
+ await page.locator('#erpApplyImport').click();
+ check(await page.evaluate(()=>{
+  const m=JSON.parse(localStorage.getItem('hongbin_crm_master_r70'));
+  return m.suppliers.length===1&&m.suppliers[0].name==='虛構供應商有限公司'&&
+    m.products.some(p=>p.model==='P-001')&&m.customerPrices.length===1&&m.customerPrices[0].price===1234.5;
+ }), '確認後在本機建立供應商、產品及每客戶獨立售價');
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_erp_master_before_import_v1')===beforeErp),
+  '第一次匯入前自動保留本機原主資料檢查點');
+ check(await page.evaluate(()=>Array.isArray(JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73')))),
+  'ERP 主資料匯入不修改已驗收的報價陣列');
+ await page.locator('[data-tab="suppliers"]').click();
+ check((await page.locator('#supplierList').innerText()).includes('虛構供應商有限公司')&&
+  (await page.locator('#supplierList').innerText()).includes('旗下產品：1 款'),
+  '供應商管理以 ERP 名稱為主並顯示旗下產品數');
+ await page.locator('#supplierList [data-supplier-browse]').first().click();
+ check((await page.locator('#productList details.supplierGroup > summary').first().innerText()).includes('虛構供應商有限公司')&&
+  (await page.locator('#productList').innerText()).includes('虛構膠材'),
+  '產品資料以供應商為第一層並展開其子產品');
+ await page.locator('#productList .priceList summary').first().click();
+ check((await page.locator('#productList').innerText()).includes('1,234.5')&&
+  (await page.locator('#productList').innerText()).includes('舊版R70客戶'),
+  '供應商產品下顯示對應客戶的獨立售價');
+ await page.locator('[data-tab="customers"]').click();
+ await page.locator('[data-customer="舊版R70客戶"]').click();
+ check((await page.locator('#customer360Content').innerText()).includes('ERP 客戶使用產品及售價')&&
+  (await page.locator('#customer360Content').innerText()).includes('1,234.5'),
+  '客戶完整資料可反向查看 ERP 品號及價格，仍保留既有客戶');
+
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R73 SIMPLE ACCEPTANCE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
 })().catch(async e=>{console.error('R73 SIMPLE ACCEPTANCE WEBKIT FAIL',e.stack||String(e));try{await browser?.close()}catch{}process.exitCode=1});
