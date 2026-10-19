@@ -300,6 +300,30 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const histItems=await page.locator('#projectHistory .note').count();
  check(histItems>=2&&(await page.locator('#projectHistory').innerText()).includes('暫停'),'專案階段異動即使沒有輸入備註，仍追加歷史');
 
+ // 日期顯示要以台灣時間呈現，不改既有 ISO 追蹤記錄的儲存值。
+ check(await page.evaluate(()=>
+  readableHistoryTime('2026-10-19T01:15:23.123Z')==='2026/10/19 09:15'&&
+  readableHistoryTime('2026-10-19 08:30')==='2026/10/19 08:30'&&
+  readableHistoryTime('舊版未記錄日期')==='舊版未記錄日期'&&
+  readableHistoryTime('')==='未記錄時間'
+ ),'歷史 ISO 時間換算台灣時間，舊版日期可閱讀，未記錄者不顯示無效時間');
+ await page.evaluate(()=>{
+  const key='hongbin_crm_simple_project_history_r74',hist=JSON.parse(localStorage.getItem(key));
+  const entries=Object.values(hist).find(a=>Array.isArray(a)&&a.some(x=>x.note==='第一筆追蹤紀錄'));
+  if(!entries)throw new Error('歷史測試紀錄不存在');
+  entries.find(x=>x.note==='第一筆追蹤紀錄').date='2026-10-19T01:15:23.123Z';
+  localStorage.setItem(key,JSON.stringify(hist));
+ });
+ await page.locator('#projectList [data-project]').first().click();
+ check((await page.locator('#projectHistory').innerText()).includes('2026/10/19 09:15')&&
+  !(await page.locator('#projectHistory').innerText()).includes('2026-10-19T01:15:23.123Z'),
+  '歷史追蹤紀錄顯示為清楚的台灣本地日期時間，不直接露出 ISO UTC 字串');
+ check(await page.evaluate(()=>{
+  const hist=JSON.parse(localStorage.getItem('hongbin_crm_simple_project_history_r74'));
+  return Object.values(hist).some(a=>Array.isArray(a)&&a.some(x=>x.date==='2026-10-19T01:15:23.123Z'));
+ }),'只格式化顯示，原始追蹤時間與歷史紀錄內容不被修改');
+
+
  await page.locator('button[data-tab="suppliers"]').click();
  await page.locator('#newSupplier').click();
  await page.locator('#suName').fill('R73測試供應商');
