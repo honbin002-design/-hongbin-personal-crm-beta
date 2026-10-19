@@ -54,7 +54,9 @@ function createAccountScopedOutbox({readKey,writeKey,verifiedAccount,send,newId,
     // Revalidate Google session before EACH network mutation, not merely when queued.
     const active=validate(await verifiedAccount());
     if(active!==account)throw Error('GOOGLE_ACCOUNT_SWITCHED');
-    return send(action,args);
+    // Script A independently rechecks this against Google Session at send time.
+    // It strips the assertion before signing; this value is not an identity proof.
+    return send(action,{...args,__expectedGoogleAccount:account});
    },
    newId,clock
   });
