@@ -96,7 +96,12 @@ function createEventService({identity,storage,withLock,clock=()=>new Date().toIS
   function setMember({operationId,groupId,memberId,role,status='ACTIVE'}={}){
     return commit('SET_MEMBER','MEMBER',String(groupId),operationId,[String(groupId),memberId,role,status],(s,a)=>{
       const gid=String(groupId);requireAdmin(s,gid,a);
-      if(typeof memberId!=='string'||!memberId.trim())fail('INVALID_MEMBER');
+      // Members must be real-looking Google account emails, never arbitrary IDs.
+      // This is format validation only; membership still requires real Google
+      // identity at every request before granting data access.
+      if(typeof memberId!=='string'||memberId.length>254||
+         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberId.trim()))
+         fail('INVALID_MEMBER');
       const m=memberId.trim().toLowerCase();
       if(status!=='ACTIVE'&&status!=='REVOKED')fail('INVALID_STATUS');
       if(status==='ACTIVE'&&!['ADMIN','EDITOR','VIEWER'].includes(role))fail('INVALID_ROLE');
