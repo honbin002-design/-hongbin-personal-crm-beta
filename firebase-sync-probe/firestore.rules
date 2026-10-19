@@ -89,7 +89,10 @@ service cloud.firestore {
         && data.createdAt is timestamp && data.updatedAt is timestamp;
     }
     function safeNoteUpdate() {
-      return basicNote(request.resource.data)
+      // Deleted notes are tombstones: never resurrect or rewrite their
+      // former content through a forged version increment.
+      return resource.data.deleted == false
+        && basicNote(request.resource.data)
         && request.resource.data.version == resource.data.version + 1
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.groupId == resource.data.groupId
