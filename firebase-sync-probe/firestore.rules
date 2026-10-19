@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Independent Google-first alternative ONLY. NEVER deploy unreviewed rules.
+    function googleUser() {
+      return request.auth != null
+        && request.auth.uid is string
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function groupPath(groupId) {
+      return /databases/$(database)/documents/groups/$(groupId);
+    }
+    function memberPath(groupId, uid) {
+      return /databases/$(database)/documents/groups/$(groupId)/members/$(uid);
+    }
+    function groupOwner(groupId) {
+      return googleUser() && exists(groupPath(groupId))
+        && get(groupPath(groupId)).data.ownerUid == request.auth.uid;
+    }
+    function activeMember(groupId) {
+      return googleUser() && exists(memberPath(groupId, request.auth.uid))
+        && get(memberPath(groupId, request.auth.uid)).data.status == 'ACTIVE';
+    }
+    function canViewGroup(groupId) {
+      return groupOwner(groupId) || activeMember(groupId);
+    }
+    function canEditGroup(groupId) {
+      return groupOwner(groupId)
+        || (activeMember(groupId)
+          && get(memberPath(groupId, request.auth.uid)).data.role in ['ADMIN', 'EDITOR']);
+    }
+    function canAdminGroup(groupId) {
+      return groupOwner(groupId)
+        || (activeMember(groupId)
+          && get(memberPath(groupId, request.auth.uid)).data.role == 'ADMIN');
+    }
+    function basicNote(data) {
+      return data.keys().hasOnly([
+          'ownerUid', 'groupId', 'title', 'content', 'createdAt',
+          'updatedAt', 'version', 'deleted'
+        ])
+        && data.keys().hasAll([
+          'ownerUid', 'groupId', 'title', 'content', 'createdAt',
+          'updatedAt', 'version', 'deleted'
+        ])
+        && data.ownerUid is string && data.title is string
+        && data.title.size() <= 120
+        && data.content is string && data.content.size() > 0
+        && data.content.size() <= 30000
+        && data.version is int && data.version >= 1
+        && data.deleted is bool
+        && data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+    function safeNoteUpdate() {
+      return basicNote(request.resource.data)
+        && request.resource.data.version == resource.data.version + 1
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['title', 'content', 'updatedAt', 'version', 'deleted']);
+    }
+
+    // Firebase Auth UID, not caller-provided email, is the durable identity.
+    match /users/{ownerUid}/notes/{noteId} {
+      allow get, list: if googleUser() && request.auth.uid == ownerUid;
+      allow create: if googleUser() && request.auth.uid == ownerUid
+        && basicNote(request.resource.data)
+        && request.resource.data.ownerUid == ownerUid
+        && request.resource.data.groupId == null
+        && request.resource.data.version == 1
+        && request.resource.data.deleted == false;
+      allow update: if googleUser() && request.auth.uid == ownerUid
+        && safeNoteUpdate();
+      allow delete: if googleUser() && request.auth.uid == ownerUid;
+    }
+
+    match /groups/{groupId} {
+      allow get: if canViewGroup(groupId);
+      // Group discovery needs a separately designed, permission-checked index.
+      allow list: if false;
+      allow create: if googleUser()
+        && request.resource.data.keys().hasOnly(['ownerUid','name','createdAt'])
+        && request.resource.data.keys().hasAll(['ownerUid','name','createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.createdAt is timestamp;
+      allow update: if groupOwner(groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if canAdminGroup(groupId)
+          || (googleUser() && memberUid == request.auth.uid);
+        allow list: if canAdminGroup(groupId);
+        // The immutable group owner is implicitly ADMIN and cannot be revoked.
+        allow create: if canAdminGroup(groupId)
+          && memberUid != get(groupPath(groupId)).data.ownerUid
+          && request.resource.data.keys().hasOnly(['uid','role','status'])
+          && request.resource.data.keys().hasAll(['uid','role','status'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
+          && request.resource.data.status == 'ACTIVE';
+        allow update: if canAdminGroup(groupId)
+          && memberUid != get(groupPath(groupId)).data.ownerUid
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['role','status'])
+          && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
+          && request.resource.data.status in ['ACTIVE','REVOKED'];
+        allow delete: if false;
+      }
+
+      match /notes/{noteId} {
+        allow get, list: if canViewGroup(groupId);
+        allow create: if canEditGroup(groupId)
+          && basicNote(request.resource.data)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.groupId == groupId
+          && request.resource.data.version == 1
+          && request.resource.data.deleted == false;
+        allow update: if canEditGroup(groupId) && safeNoteUpdate();
+        allow delete: if canAdminGroup(groupId);
+      }
+    }
+    // No wildcard allowance: every other path must fail closed.
+  }
+}
