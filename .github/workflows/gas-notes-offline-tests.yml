@@ -30,6 +30,8 @@ jobs:
         run: node gas-sync-probe/nonce-registry.test.cjs
       - name: Run iPhone offline outbox and legacy preview tests
         run: node gas-sync-probe/offline-outbox.test.cjs
+      - name: Prevent data loss during two simultaneous iPhone note syncs
+        run: node gas-sync-probe/offline-race.test.cjs
       - name: Build both closed-access Google Apps Script packages and scan for risks
         run: node gas-sync-probe/build-bundles.test.cjs
       - name: Run synthetic A-to-B signed request and storage integration with real crypto
