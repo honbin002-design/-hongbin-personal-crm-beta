@@ -174,7 +174,11 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['role','status'])
           && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
-          && request.resource.data.status in ['ACTIVE','REVOKED'])
+          && request.resource.data.status in ['ACTIVE','REVOKED']
+          // Revoked membership may only be restored through a brand-new
+          // verified-email invitation, never by admin flipping the status.
+          && (resource.data.status == 'ACTIVE'
+              || request.resource.data.status == 'REVOKED'))
           || (memberUid != get(groupPath(groupId)).data.ownerUid
             && resource.data.status == 'REVOKED'
             && request.resource.data.diff(resource.data).affectedKeys()
