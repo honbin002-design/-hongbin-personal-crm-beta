@@ -8,7 +8,7 @@
  * Only whitelisted operations may cross the boundary.
  */
 const HONBIN_NOTE_ACTIONS=Object.freeze([
- 'CREATE_GROUP','SET_MEMBER','LIST_MEMBERS','CREATE_NOTE','UPDATE_NOTE',
+ 'CREATE_GROUP','SET_MEMBER','LIST_MEMBERS','LIST_GROUPS','CREATE_NOTE','UPDATE_NOTE',
  'DELETE_NOTE','LIST_NOTES','GET_NOTE','GET_HISTORY'
 ]);
 function safeEqual(x,y){
@@ -71,6 +71,7 @@ function createAuthorizedDispatcher({verify,serviceForActor}){
   CREATE_GROUP:(s,p)=>s.createGroup(p),
   SET_MEMBER:(s,p)=>s.setMember(p),
   LIST_MEMBERS:(s,p)=>s.listMembers(p.groupId),
+  LIST_GROUPS:(s,p)=>s.listGroups(),
   CREATE_NOTE:(s,p)=>s.createNote(p),
   UPDATE_NOTE:(s,p)=>s.updateNote(p),
   DELETE_NOTE:(s,p)=>s.deleteNote(p),
