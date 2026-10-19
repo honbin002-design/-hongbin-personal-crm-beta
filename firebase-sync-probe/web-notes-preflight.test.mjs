@@ -41,6 +41,12 @@ check('PRIVATE and SHARED modes are visibly distinct',()=>{
  assert.match(html,/id="privateMode"/);assert.match(html,/id="sharedMode"/);
  assert.match(script,/mode==='SHARED'/);
 });
+check('VIEWER cannot edit or restore a former EDITOR offline draft',()=>{
+ assert.match(script,/\$\('title'\)\.readOnly=!mayWrite/);
+ assert.match(script,/\$\('content'\)\.readOnly=!mayWrite/);
+ assert.match(script,/const v=canEdit\?drafts\.get\(key\(\)\):null/);
+ assert.match(script,/if\(selectedGroup\.role==='VIEWER'\)/);
+});
 check('Shared empty group does not write to unknown group',()=>{
  assert.match(script,/if\(mode==='SHARED'&&!selectedGroup\)/);
 });
