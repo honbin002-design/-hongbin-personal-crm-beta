@@ -91,9 +91,9 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   if(!window.google||!google.script||!google.script.run){
    status('尚未部署，不能讀寫雲端記事。');return;
   }
+  // All calls, including reads and group selection, are account-bound.
   var payload=Object.assign({},params||{});
-  var changes=['CREATE_GROUP','SET_MEMBER','CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE'];
-  if(changes.includes(action))payload.__expectedGoogleAccount=account;
+  payload.__expectedGoogleAccount=account;
   google.script.run.withSuccessHandler(onSuccess)
    .withFailureHandler(onFail).gasNoteCall(action,payload);
  };
