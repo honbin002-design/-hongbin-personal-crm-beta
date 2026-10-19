@@ -55,10 +55,12 @@ try{
  const lock={tryLock:()=>{if(locked||nonceLockBusy)return false;locked=true;return true},
   releaseLock:()=>{locked=false}};
  const dataProps={
+  HONBIN_NOTES_TEST_GATE:'ISOLATED_TEST_APPROVED',
   HONBIN_NOTES_INTERNAL_SECRET:secret,
   HONBIN_NOTES_SPREADSHEET_ID:'synthetic-sheet-id'
  };
  const userProps={
+  HONBIN_NOTES_TEST_GATE:'ISOLATED_TEST_APPROVED',
   HONBIN_NOTES_INTERNAL_SECRET:secret,
   HONBIN_NOTES_BACKEND_URL:'https://script.google.com/macros/s/TEST_SCRIPT_ID_EXAMPLE12345/exec'
  };
