@@ -56,14 +56,14 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <button id="cancelNote" class="secondary" type="button">取消</button>
 <button id="deleteNote" class="secondary" type="button" hidden>刪除記事</button>
 </div>
-<p class="sub" id="draftWarning">尚未儲存至 Google 的文字，只保留在目前編輯畫面。</p>
+<p class="sub" id="draftWarning">尚未儲存至 Google 的文字，只保留在目前編輯畫面；離開前會提醒。</p>
 </section>
 <div id="items"></div>
 </section></main>
 <script>
 (function(){
  'use strict';
- var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null;
+ var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='';
  var byId=function(id){return document.getElementById(id)};
  var status=function(message){byId('status').textContent=message};
  var groupRole=function(){
@@ -97,7 +97,18 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   google.script.run.withSuccessHandler(onSuccess)
    .withFailureHandler(onFail).gasNoteCall(action,payload);
  };
+ var isDirty=function(){
+  if(byId('editor').hidden)return false;
+  return byId('noteTitle').value!==(editing?String(editing.title||''):'')||
+   byId('noteContent').value!==(editing?String(editing.content||''):'');
+ };
+ var leaveEditor=function(){
+  if(isDirty()&&!window.confirm('這則記事尚未儲存。確定放棄這次修改嗎？'))return false;
+  closeEditor();return true;
+ };
  var choose=function(s){
+  if(running){status('請等待目前操作完成。');return}
+  if(!leaveEditor())return;
   scope=s;
   byId('personal').className=s==='PRIVATE'?'active':'secondary';
   byId('team').className=s==='SHARED'?'active':'secondary';
@@ -125,6 +136,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
     option.textContent=String(g.name||'未命名群組')+'（'+String(g.role||'成員')+'）';
     select.appendChild(option);
    });
+   activeGroup=select.value;
    status('已取得 '+groups.length+' 個授權群組。');
    byId('newNote').disabled=!account||!canWrite();
    refresh();
@@ -220,10 +232,15 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  byId('personal').onclick=function(){choose('PRIVATE')};
  byId('team').onclick=function(){choose('SHARED')};
  byId('refresh').onclick=refresh;
- byId('groupId').onchange=function(){byId('newNote').disabled=!account||!canWrite();refresh()};
+ byId('groupId').onchange=function(){
+  if(!leaveEditor()){byId('groupId').value=activeGroup;return}
+  activeGroup=byId('groupId').value;
+  byId('newNote').disabled=!account||!canWrite();
+  refresh();
+ };
  byId('newNote').onclick=function(){openEditor(null)};
  byId('saveNote').onclick=saveNote;
- byId('cancelNote').onclick=closeEditor;
+ byId('cancelNote').onclick=leaveEditor;
  byId('deleteNote').onclick=deleteNote;
  if(window.google&&google.script&&google.script.run){
   google.script.run.withSuccessHandler(function(info){
