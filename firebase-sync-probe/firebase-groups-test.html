@@ -50,7 +50,7 @@ label{display:block;font-weight:600;margin:10px 0 6px}
    <select id="inviteRole"><option value="VIEWER">檢視者（唯讀）</option><option value="EDITOR">編輯者</option><option value="ADMIN">管理員</option></select>
    <div class="actions"><button type="submit">建立邀請</button></div>
   </form>
-  <p class="note">此版只在當次畫面保留已發出邀請的識別資料，以便撤銷。重新整理後尚無管理員寄件清單；不得宣稱完整邀請管理已完成。系統目前不會自動寄送 Email。</p>
+  <p class="note">邀請紀錄儲存在只有群組管理員能存取的索引，重新整理後仍可查詢與撤銷待接受邀請。系統目前不會自動寄送 Email，受邀者須用自己的 Google 帳號查看邀請。</p>
   <div id="sentList"></div>
   <h2>管理成員</h2>
   <div class="actions"><button id="refreshMembers" type="button" class="secondary">讀取成員</button></div>
@@ -74,9 +74,9 @@ const $=id=>document.getElementById(id);
 const msg=text=>$('status').textContent=text;
 const el=(tag,text)=>{const e=document.createElement(tag);e.textContent=String(text??'');return e};
 let auth=null,db=null,sdk=null,svc=null,selected=null,account='',generation=0,busy=false;
-let issued=[];
+// Outbound invitation history is server-backed, never shared across user sessions.
 function wipe(){
- selected=null;svc=null;issued=[];
+ selected=null;svc=null;
  $('workspace').hidden=true;$('selected').hidden=true;$('admin').hidden=true;
  for(const id of ['groupList','inboxList','sentList','memberList'])$(id).replaceChildren();
  for(const id of ['groupForm','inviteForm'])$(id).reset();
@@ -107,7 +107,7 @@ async function operation(work,{refresh=false}={}){
   if(epoch!==generation)return;
   msg(statusError(error));
   if(error?.code==='permission-denied'){
-   selected=null;issued=[];$('selected').hidden=true;$('admin').hidden=true;
+   selected=null;$('selected').hidden=true;$('admin').hidden=true;
    $('selectedName').textContent='群組';$('selectedRole').textContent='';
    for(const id of ['groupList','inboxList','memberList','sentList'])$(id).replaceChildren();
   }
@@ -130,7 +130,7 @@ async function reload(){
  if(selected){
   const current=groups.find(item=>item.id===selected.id);
   if(!current){
-    selected=null;issued=[];$('selected').hidden=true;$('admin').hidden=true;
+    selected=null;$('selected').hidden=true;$('admin').hidden=true;
     $('memberList').replaceChildren();$('sentList').replaceChildren();
     $('selectedName').textContent='群組';$('selectedRole').textContent='';
   }else{
@@ -138,7 +138,7 @@ async function reload(){
     $('selectedRole').textContent='目前權限：'+current.role;
     $('admin').hidden=current.role!=='ADMIN';
     if(current.role!=='ADMIN'){
-      issued=[];$('memberList').replaceChildren();$('sentList').replaceChildren();
+      $('memberList').replaceChildren();$('sentList').replaceChildren();
     }
   }
  }
@@ -155,9 +155,9 @@ async function chooseGroup(group){
  $('selectedName').textContent=group.name;
  $('selectedRole').textContent='目前權限：'+group.role;
  $('admin').hidden=group.role!=='ADMIN';
- $('memberList').replaceChildren();renderSent();
+ $('memberList').replaceChildren();$('sentList').replaceChildren();
  if(group.role==='ADMIN')await operation(async()=>{
-   await renderMembers();return '已載入共用群組管理。';
+   await renderSent();await renderMembers();return '已載入共用群組管理。';
  });
  else msg('已開啟群組。VIEWER 不可變更內容，EDITOR 不能管理成員。');
 }
@@ -180,15 +180,18 @@ async function inbox(){
   box.append(item);
  }
 }
-function renderSent(){
+async function renderSent(){
  const box=$('sentList');box.replaceChildren();
- const current=issued.filter(r=>r.groupId===selected?.id);
- if(!current.length)box.append(el('p','本次工作階段尚未建立邀請。'));
+ if(!selected||selected.role!=='ADMIN')return;
+ const gid=selected.id;
+ const current=await svc.listSentInvites(gid);
+ if(selected?.id!==gid||selected.role!=='ADMIN')return;
+ if(!current.length)box.append(el('p','目前沒有發出邀請。'));
  for(const inv of current){
   const item=listItem(inv.recipientEmail,'權限：'+inv.role+'｜邀請 ID：'+inv.id);
   if(inv.status==='PENDING')item.append(uiButton('撤銷此邀請',()=>operation(async()=>{
    await svc.revokeInvite(inv.recipientEmail,inv.id);
-   inv.status='REVOKED';renderSent();return '邀請已撤銷。';
+   await renderSent();return '邀請已撤銷。';
   }),'danger'));
   box.append(item);
  }
@@ -227,7 +230,7 @@ $('inviteForm').addEventListener('submit',event=>{
  event.preventDefault();if(!selected||selected.role!=='ADMIN')return;
  operation(async()=>{
   const invite=await svc.sendInvite(selected.id,$('inviteEmail').value,$('inviteRole').value);
-  issued.push(invite);renderSent();$('inviteEmail').value='';
+  await renderSent();$('inviteEmail').value='';
   return '已建立邀請紀錄，但系統沒有寄送 Email，受邀者需使用自己帳號登入查看。';
  });
 });
