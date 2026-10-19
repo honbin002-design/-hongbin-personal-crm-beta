@@ -112,3 +112,27 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 **不得誤報完成：** 目前沒有可執行的免費隔離 HTTPS 測試網域、真正 iPhone Safari Google Auth 驗收、已部署的 Firebase Security Rules、跨 Google 帳號／跨手機同步、記事私人及共用 CRUD、文章版本衝突與離線草稿完整 UI、Email 通知實際寄送、舊本機記事遷移或正式 CRM 整合。群組與邀請 UI 是已施工並通過靜態檢查的隔離候選，還不是可對外使用的正式成品。
 
 **下一步依原範圍**：先確認安全且長期免費的獨立 HTTPS Auth 測試入口及 Firebase 授權網域，再在官方 Google 登入實機 PASS 後，完成 Firebase 私人／共用記事 CRUD 的隔離前端、版本衝突與離線草稿；真實 Security Rules 部署與正式 CRM 整合需符合既定批准 Gate，絕不能自行改動 main／Spark 計費。
+
+## 2026-10-20｜私人＋共用記事 CRUD／版本衝突／iPhone 候選施工 Checkpoint
+
+### 已施工（仍是隔離版）
+
+1. `firebase-sync-probe/firebase-note-service.mjs`：全新注入式 Firebase Web SDK 資料層，不會自行初始化網路；以 Google 已驗證 UID 及即時 `currentUid()` 防跨帳號待送寫入。私人路徑 `users/{uid}/notes/{noteId}`、共用路徑 `groups/{groupId}/notes/{noteId}`，沿用原本真實 Firestore Security Rules。
+2. 私人／共用記事 `create/list/search/update/softDelete`；新記事由手機預先固定隨機 note ID、ACK 遺失後沿用相同 ID，初版內容吻合且尚未修改時允許安全確認，不會建立第二筆。所有修改透過 Firestore `runTransaction` 先讀取，檢查 `expectedVersion`，只允許後續版本 +1；逾期編輯拋出 `NOTE_VERSION_CONFLICT`（附遠端版本供介面提示），絕不覆蓋遠端。
+3. `firestore.rules` 的 `safeNoteUpdate()` 新增 `resource.data.deleted == false`，禁止已標記刪除的記事利用手動版本更新恢復／重寫。**此處為軟刪除，不是立即清除資料或端對端加密**：歷史明文仍在 Firestore，並不宣稱已抹除所有快取。
+4. `firebase-sync-probe/firebase-notes-test.html`：獨立繁體中文 iPhone 候選畫面，含 Google 帳號驗證、私人／共用切換、已授權共用群組、搜尋、建立、編輯、軟刪除、版本衝突提醒與保留當前輸入、帳號切換清空可見敏感內容、降權／撤銷後隱藏先前記事；資料一律以 `textContent` 顯示。
+5. **仍有的明確限制**：候選畫面的草稿只在該 Safari 頁面記憶體內按帳號／範圍暫存，關閉頁面可能遺失；尚未提供真正持久離線草稿、即時 `onSnapshot` 同步、衝突的人工合併 UI 或兩支 iPhone 真機 PASS。UI 具備手動重新讀取及版本衝突保護，不宣稱秒級即時同步。
+6. **絕對保護仍在**：`firebase-web-config.mjs` 的 `firestoreReadyForRealData = false` 完全不動，候選頁未通過 `===true` 時不初始化任何真實 Firestore。舊 `hongbin_crm_quick_notes_r73` 沒有讀／寫／匯入；`main` 未修改；沒有 Firebase deployment、Cloud Functions、Blaze、Billing 或新測試伺服器。
+
+### 驗收證據及數量
+
+- 既有 104 項真實官方 Firestore Emulator 規則及客戶端流程測試保持原樣。
+- `firestore.notes-crud.test.mjs` 新增 **32 項**真實 Firestore Emulator 測試：兩個不同 Google UID 私人隔離、兩個同 UID 手機的過期版本衝突、固定 ID 防重複、群組 OWNER/EDITOR/VIEWER 能力、撤銷權限、軟刪除及被刪除記事後端禁止復活等。總計 **136 項官方 Emulator 測試**（104＋32）。
+- `web-notes-preflight.test.mjs` 新增獨立的 Safari 候選 HTML／程式語法／安全閘／帳號／草稿／不讀舊資料的靜態測試（不計入 136 項官方 Emulator 測試）；再補上群組索引撤銷時清空舊內容的檢查。
+- 已回讀程式提交 `58ea2f3a640db4794770c58877baebe0f932ad7b` 的 GitHub Actions `rules-emulator` 為 `completed/success` 且 commit-status 為 `firebase-sync-probe/rules-emulator=success`，包含當時 136 項官方 Emulator 與記事 UI 靜態檢查；後續多加的撤銷可見內容修正需要以最新提交的 CI 結果再核對，不可把較早 PASS 冒稱最新提交已通過。
+
+### 接續工作與封版安全界線
+
+- 首要待決 Gate：**建立無付費、獨立 HTTPS 網站測試入口**，核對 Firebase Google 授權網域及 iPhone Safari Popup 實際登入；目前未有安全可執行 URL，也沒有 Firebase 管理工具授權可部署。
+- 隔離分支可繼續原定功能內的離線草稿持久化（需每帳號隔離）、版本衝突 UX、限額與權限負向測試。不得因施工進度自動整合正式 CRM 或讓 Firebase 真實規則從 deny-all 改為開放。
+- 真正跨手機、跨 Google 帳號私人與共用同步、撤銷、離線與上限行為必須待真實測試與使用者驗收。既有 main 的客戶、報價、行事曆與 R73 本機記事未經額外同意一律不能更動或遷移。
