@@ -182,10 +182,7 @@ service cloud.firestore {
       allow create: if googleUser()
         && recipientEmail is string
         && recipientEmail.size() <= 254
-        && recipientEmail.matches('^[^@ ]+@[^@ ]+[.][^@ ]+
-  }
-}
-)
+        && recipientEmail.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
         && request.resource.data.keys().hasOnly([
           'groupId','recipientEmail','role','status','invitedBy'])
         && request.resource.data.keys().hasAll([
