@@ -147,6 +147,16 @@ async function loadGroups(){
  const epoch=generation;
  const result=await groups.listGroups();
  if(epoch!==generation)return;
+ // Losing membership must hide the previously rendered shared article
+ // even when the next group index refresh returns an empty list (no 403).
+ if(selectedGroup&&!result.some(group=>group.id===selectedGroup.id)){
+  remember();
+  active=null;pendingCreateId=null;
+  $('title').value='';$('content').value='';
+  $('delete').hidden=true;$('conflict').hidden=true;
+  $('editTitle').textContent='新增記事';
+  $('list').replaceChildren();
+ }
  groupOptions=result;
  const select=$('groupSelect');select.replaceChildren();
  for(const group of result){
