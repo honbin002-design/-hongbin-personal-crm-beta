@@ -102,3 +102,22 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - `MYSELF` Web App 仍僅供部署者。A→B 使用 `UrlFetchApp` 觸及 B 的 `MYSELF` 私人部署，跨不同 Google 帳號**尚無成功依據**，應視為架構性 BLOCKER；不能靠原型 PASS 宣告多手機同步。
 - 無 Google Apps Script API OAuth 自動部署授權，使用者不接受工程手動操作，必須維持 HOLD。
 - 舊 R73 `hongbin_crm_quick_notes_r73`、ERP 資料及正式 CRM `main` 均不接線、不轉移、不修改。
+
+## 2026-10-19｜真實 Google Sheets 私人測試工作表與部署 Readback Gate
+
+- 已透過現有已連線的**公司 Google Drive**帳號直接建立一份全新的原生 Google Sheets 測試檔，**沒有使用 Work 模式、Codespaces、Terminal 或使用者手動操作**。
+- 建立並回讀 `Events`（11 個欄位）與 `UsedNonces`（2 個欄位），精確符合 `sheets-adapter.cjs`、`nonce-registry.cjs` 原型所需標頭；時間區設為 `Asia/Taipei`。
+- 已實際呼叫 Google Sheets API，寫入**完全虛構**的記事事件與 nonce，讀回內容和欄位完整一致，最後將兩筆合成資料清除，第二次回讀確定兩個分頁都**只剩標題列**。
+- Google Drive 權限 Readback 顯示 `shared=false`，只有公司帳號擁有者（owner），**沒有其他人權限，也沒有建立公開連結**。
+- **刻意不在公開 GitHub 程式碼或本文件放入 Google Sheet 檔案 ID**。此實際試算表的 ID 留在本次操作歷史，可在已連線的公司帳號查找；未來真正部署時必須由私密 Script Properties 配置。
+- 這個成果是 **LIVE GOOGLE SHEETS CREATE / WRITE / READ / CLEANUP PASS**，**不代表** Apps Script 已成功存取此表，也不代表 Google 帳號同步通過。
+- Google 官方文件明示 Google Apps Script 部署實際授權包含 `entryPoints[].webApp.entryPointConfig.access` 與 `executeAs`，以 Google `projects.deployments.get` 回傳才算部署 Readback 證據。CLASP upstream issue `google/clasp#1115` 指出 `clasp deploy` 不能理所當然地視為已套用 manifest 網頁存取權限。
+- 新增 `deployment-readback.cjs` 與 `deployment-readback.test.cjs`，12 項合成部署回讀檢查已離線 PASS：只接受 MYSELF 封閉測試權限、正確的 USER_ACCESSING／USER_DEPLOYING 執行者與兩個不同的部署 ID；任何公開／匿名權限、未知設定或錯誤身分一律拒絕。**真正部署 API 回讀尚未取得。**
+- 前輪 **152 項**離線測試，加上本輪 12 項，共 **164 項離線測試**；另有 **1 次真實 Google Sheets 獨立讀寫＋清理驗證 PASS**，不把它冒充 Apps Script 身分／共用驗收。
+- GitHub Actions 已納入 **13 組**Node 自動回歸測試，但因目前的 GitHub 介面無法取得該次完整 workflow run，**13 組 CI 的執行成功狀態尚未經日誌驗證**。
+
+### 保持 HOLD 的項目
+- Script API 的 Google OAuth 私密授權及自動化部署；不得索取使用者密碼／Token，不得要求使用者自己寫 Script 或操作終端機。
+- 目前 Script A、B 的 `MYSELF` 封閉存取**不支援跨帳號共用**。未經真實 A→B 存取與身分驗證前不得提升公開權限。
+- 兩支不同 iPhone／不同 Google 帳號的私人隔離、角色／撤銷與同步驗收；**沒有實際 PASS**。
+- 正式 CRM `main`、原本 `hongbin_crm_quick_notes_r73` 和所有 ERP／報價資料保持原狀；本測試試算表不含正式資料。
