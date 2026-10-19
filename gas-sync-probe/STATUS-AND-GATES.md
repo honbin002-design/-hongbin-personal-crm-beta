@@ -132,3 +132,15 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - `.github/workflows/gas-notes-offline-tests.yml` 保持對獨立分支 `probe/gas-no-work-20261019` 的 13 組 Node 測試；新增提交狀態回報步驟，使用 GitHub Actions 的臨時 `github.token` 並限定 `contents:read` 和 `statuses:write`，只寫回 `gas-sync-probe/node-regression` 這個 commit status context。
 - **實際 Node.js CI 已回報 PASS。** GitHub 回讀提交 `ff22866553365655a1f63e1367c4f35fa6bf7148` 的 `gas-sync-probe/node-regression` 狀態為 `success`；這表示該提交的 GitHub Actions 13 組 Node.js 測試已跑完並由 workflow 回報成功。先前的 statuses 空值為執行尚未完成時的暫時狀態。此項可列為 **NODE CI PASS**，但不是 Google Apps Script 真實部署。
 - 這個改動沒有使用 Google OAuth、Google Apps Script API 部署憑證、Work 模式，也沒有修改正式 CRM main 或原本記事。
+
+## 2026-10-19｜手機記事 CRUD 與真正 Node CI PASS
+
+- `Index.html` 已在獨立 Google Apps Script 測試頁新增手機記事新增／編輯／刪除（非正式 CRM）。只對 Google Session 驗證過的帳號開放，發出寫入時加上 `__expectedGoogleAccount` 並要求後端再核對。
+- 共用記事只允許 ADMIN / EDITOR 編輯，VIEWER 僅可查看；刪除共用記事只允許 ADMIN，私人記事只允許本人。後端仍是最終權限 Authority。
+- 新增與編輯時帶入安全產生的 operationId、expectedVersion；回傳 VERSION_CONFLICT 時保留文字，不自動覆蓋對方更新。
+- 未儲存草稿在切換私人／共用分頁、切換群組或按取消時會先確認；選擇留下就保留文字。未串接獨立離線 outbox，因此斷線時目前仍不宣稱草稿已經永久儲存，UI 會明確提示。
+- `ui-smoke.test.cjs` 用模擬 DOM＋假 Google 服務實測 12 項互動，包括驗證登入、記事新增、編輯、刪除、HTML 安全顯示、衝突保留草稿、帳號切換、角色權限及離開提醒。
+- GitHub Actions 測試已擴充至 **14 組 Node.js 回歸套件**，GitHub 提交 `5ac9ba0a928931e86095e185db84ce857c8292dd` 的 `gas-sync-probe/node-regression` **實際回報 success**，可列為 **NODE CI PASS**。
+- 初次 UI CI 曾 FAIL，原因為測試模擬 DOM 沒有反映 HTML 原始 `class="active"`，已修正測試夾具後真正重跑並取得 success；不得保留舊失敗作為最終狀態。
+- 這些結果**仍不是**實際 Apps Script OAuth／部署、真實 iPhone Safari 或兩台手機跨帳號同步的驗收；仍需獨立實測、使用者批准後才能接入正式 CRM main。
+- Google Sheets 私人測試表仍為公司帳號獨有，另一個個人 Google 帳號實際讀取及 metadata 均回應 403；不分享原始 Sheets、不將檔案 ID 寫進公開程式碼。
