@@ -48,6 +48,13 @@ try{
   bobInvite=await alice.sendInvite(gid,'BOB@example.test','VIEWER');
   if(bobInvite.recipientEmail!=='bob@example.test')throw Error('WRONG_EMAIL');
  });
+ await check('ADMIN sees durable outbox from a new service instance',async()=>{
+  const restarted=groupService({...a,sdk});
+  const sent=await restarted.listSentInvites(gid);
+  if(sent.length!==1||sent[0].id!==bobInvite.id||sent[0].status!=='PENDING')
+    throw Error('OUTBOX_NOT_DURABLE');
+ });
+ await check('Outsider cannot list group outbox',()=>assertFails(stranger.listSentInvites(gid)));
  await check('Only recipient inbox discovers invitation',async()=>{
   const invites=await bob.listInbox();
   if(invites.length!==1||invites[0].status!=='PENDING')throw Error('MISSING_INVITE');
@@ -60,6 +67,10 @@ try{
  await check('Recipient lists joined group with VIEWER role',async()=>{
   const groups=await bob.listGroups();
   if(groups.length!==1||groups[0].id!==gid||groups[0].role!=='VIEWER')throw Error('MEMBER_LIST');
+ });
+ await check('ADMIN outbox reads current ACCEPTED status',async()=>{
+  const sent=await alice.listSentInvites(gid);
+  if(sent[0]?.status!=='ACCEPTED')throw Error('STALE_OUTBOX_STATUS');
  });
  await check('Accepted invite retry is safe and finds existing index',async()=>{
   const again=await bob.acceptInvite({id:bobInvite.id});
@@ -87,6 +98,10 @@ try{
  await check('Admin revokes pending email invite by receipt',async()=>{
   await alice.revokeInvite('carol@example.test',carolInvite.id);
   await assert.rejects(carol.acceptInvite({id:carolInvite.id}), /INVITATION_NOT_PENDING/);
+ });
+ await check('Admin outbox reads latest REVOKED status',async()=>{
+  const sent=await alice.listSentInvites(gid);
+  if(sent.find(x=>x.id===carolInvite.id)?.status!=='REVOKED')throw Error('REVOKE_NOT_VISIBLE');
  });
  await check('Non-admin cannot revoke admin invitation',async()=>{
   await assertFails(stranger.revokeInvite('carol@example.test',carolInvite.id));
