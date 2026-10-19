@@ -1,6 +1,6 @@
 # 鴻繽科技 CRM｜Google Apps Script 雙模式同步記事｜隔離驗證交接
 
-狀態：**OFFLINE PROTOTYPE / LIVE GOOGLE HOLD**（2026-10-19）
+狀態：**CLOSED-ACCESS GAS SOURCE PACKAGE READY / LIVE GOOGLE HOLD**（2026-10-19）
 此分支不包含任何正式 CRM、ERP、客戶、報價、舊隨手記或實際 Google 使用者資料。
 正式 `main` / R73 的八個既有功能不在本階段修改範圍。
 
@@ -44,7 +44,8 @@
 | Google 線上使用者身分／跨帳號 | NOT TESTED；不可將偽造角色測試當真人授權證據 |
 | Google Sheets 儲存介面、A-B 簽章、Nonce 與鎖 | CODE PROTOTYPE + OFFLINE UNIT PASS；LIVE NOT TESTED |
 | 自動建立／部署 GAS 實證 | BLOCKED（無安全授權途徑） |
-| iPhone 離線待送／重試 | CODE PROTOTYPE + OFFLINE UNIT PASS；未接入 CRM |\n| iPhone 真機同步與離線驗收 | NOT TESTED |
+| iPhone 離線待送／重試 | CODE PROTOTYPE + OFFLINE UNIT PASS；未接入 CRM |
+| iPhone 真機同步與離線驗收 | NOT TESTED |
 | 正式 CRM 雙模式同步記事 | HOLD |
 
 ## 此階段不能跨越的 Gate
@@ -55,3 +56,15 @@
 - Google Apps Script 及 Google Sheets 尚未產生正式／測試可用部署，因此正式 CRM 完全不接線。
 
 不得將 UNIT PASS、GitHub workflow 綠勾或官方 API 文件誤報為已部署、可真正跨手機同步。
+
+## 2026-10-19 14:21 後｜Apps Script 原始碼包進度（仍未部署）
+
+- `entry-user.gs.js`：使用者端模板；由後端的 `Session.getActiveUser().getEmail()` 判定身分，取得空值即拒絕。沒有接受瀏覽器自行傳入的可信 actor。
+- `entry-data.gs.js`：資料端模板；以簽章、期限、nonce、角色及版本閘門處理請求。服務內部持有 Google Sheets 連線權限，不直接分享原始工作表。
+- `Index.html`：繁體中文、iPhone 友善的唯讀測試頁，將 PRIVATE／SHARED 分開，使用 `textContent` 避免記事 HTML 注入。
+- `build-bundles.cjs`：建立兩個獨立的 `Code.gs` + `appsscript.json` 程式包，編譯無需 OAuth 憑證，也不執行部署。
+- **預設封閉**：使用者端與資料端 Manifest 均預設 `MYSELF`。未完成實際 Google 帳號及簽章測試之前，不開放資料端匿名存取，也不整合正式 CRM。
+- **新增 24 項離線驗證**：打包／安全預設 12、合成使用者 A→簽章→資料端 B→模擬 Sheets 整合 12。均在本次對話的隔離 JavaScript 協調器執行通過，其中簽章以**模擬加密函式**測試傳輸邏輯；GitHub Actions 已加入使用真實 Node.js crypto 的測試命令，尚未取得該次工作流程 PASS 證據。
+- **累計 114 項離線測試**（先前 90＋新增 24）；不是 Google 真實登入、Apps Script 線上部署或跨 iPhone 真實同步的 PASS。
+- GitHub Actions 新增 `build-bundles.test.cjs` 與 `bundle-runtime.test.cjs`，但目前只有工作流程設定回讀證據，沒有這次新版 CI 執行的實際狀態。
+- 真正的 Google Apps Script OAuth／部署執行能力仍 **BLOCKED**。不得改用 Work、要求使用者操作 Codespaces／Terminal／Script、提供 Token，也不得因無法部署就偷偷將正式 CRM 改成其他方案。
