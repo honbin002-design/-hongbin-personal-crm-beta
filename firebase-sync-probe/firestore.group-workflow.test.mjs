@@ -86,7 +86,7 @@ try{
  });
  await check('Admin revokes pending email invite by receipt',async()=>{
   await alice.revokeInvite('carol@example.test',carolInvite.id);
-  await assertFails(carol.acceptInvite({id:carolInvite.id}));
+  await assert.rejects(carol.acceptInvite({id:carolInvite.id}), /INVITATION_NOT_PENDING/);
  });
  await check('Non-admin cannot revoke admin invitation',async()=>{
   await assertFails(stranger.revokeInvite('carol@example.test',carolInvite.id));
