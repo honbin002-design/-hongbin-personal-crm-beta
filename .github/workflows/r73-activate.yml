@@ -27,7 +27,7 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM｜R73 簡易版</title>' in html
-          assert html.count('src="./simple-core.js?v=r73-private-erp-import-20261019"') == 1
+          assert html.count('src="./simple-core.js?v=r73-erp-only-customer-products-20261019"') == 1
           assert '<script src="./r73-fixes.js' not in html
           assert '<script src="./r70-complete.js' not in html
           assert 'navigator.serviceWorker.register' in html
@@ -38,7 +38,7 @@ jobs:
           assert 'function renderCalendar(' in js
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
-          assert 'hongbin-crm-r73-private-erp-import-20261019' in sw
+          assert 'hongbin-crm-r73-erp-only-customer-products-20261019' in sw
           assert 'simple-core.js' in sw
           assert 'withR73(' not in sw
           print('R73 simplified release safety checks PASS')
