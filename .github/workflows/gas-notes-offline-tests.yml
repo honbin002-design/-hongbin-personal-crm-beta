@@ -45,6 +45,8 @@ jobs:
         run: node gas-sync-probe/group-list.test.cjs
       - name: Deny unsafe actual Apps Script deployment access on readback
         run: node gas-sync-probe/deployment-readback.test.cjs
+      - name: Test iPhone sync notes create edit delete and conflict UI behavior
+        run: node gas-sync-probe/ui-smoke.test.cjs
       - name: Publish real Node.js regression result as GitHub commit status
         if: always()
         env:
