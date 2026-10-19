@@ -29,7 +29,7 @@ const privateData={
 const groupId='test-group',groupPath='groups/'+groupId;
 const sharedId='shared-note',sharedPath=groupPath+'/notes/'+sharedId;
 async function run(name,fn){
- await fn();passed++;console.log('PASS',name);
+ console.log('BEGIN',name);await fn();passed++;console.log('PASS',name);
 }
 try{
  await run('Anonymous Google note read denied',()=>assertFails(getDoc(doc(guest,'users/alice-uid/notes/first-note'))));
