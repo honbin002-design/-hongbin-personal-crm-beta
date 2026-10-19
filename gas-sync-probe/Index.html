@@ -42,7 +42,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <select id="groupId" aria-label="已加入的共用群組"><option value="">載入已加入的群組中……</option></select></div>
 <p id="status" role="status" aria-live="polite">尚未連接 Google 服務。</p>
 <div class="actions">
-<button id="refresh" type="button">重新讀取</button>
+<button id="refresh" type="button">重新讀取／重新驗證帳號</button>
 <button id="newNote" type="button" disabled>新增記事</button>
 </div>
 <section id="editor" class="panel" hidden aria-label="新增或編輯記事">
@@ -63,7 +63,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <script>
 (function(){
  'use strict';
- var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='',pendingSave=null,pendingDelete=null;
+ var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='',pendingSave=null,pendingDelete=null,accountEpoch=0,suspendedDraft=null;
  var byId=function(id){return document.getElementById(id)};
  var status=function(message){byId('status').textContent=message};
  var groupRole=function(){
@@ -86,16 +86,79 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   for(var i=0;i<bytes.length;i++)out+=bytes[i].toString(16).padStart(2,'0');
   return 'operation_'+out;
  };
+ var isIdentityError=function(code){
+  return ['GOOGLE_ACCOUNT_SWITCHED','GOOGLE_IDENTITY_UNAVAILABLE',
+    'UNVERIFIED_IDENTITY','EXPECTED_ACCOUNT_REQUIRED'].some(function(x){return code.includes(x)});
+ };
+ var hidePrivateView=function(){
+  // Never keep previous Google user's notes or editor visible after mismatch.
+  if(account&&!byId('editor').hidden&&(isDirty()||pendingSave||pendingDelete)){
+   suspendedDraft={owner:account,scope:scope,groupId:byId('groupId').value,
+    note:editing,title:byId('noteTitle').value,content:byId('noteContent').value,
+    pendingSave:pendingSave,pendingDelete:pendingDelete};
+  }
+  accountEpoch++;account='';notes=[];groups=[];activeGroup='';
+  byId('items').replaceChildren();byId('groupId').replaceChildren();
+  byId('editor').hidden=true;editing=null;pendingSave=null;pendingDelete=null;
+  byId('noteTitle').value='';byId('noteContent').value='';
+  byId('newNote').disabled=true;byId('saveNote').disabled=false;
+  byId('deleteNote').disabled=false;byId('refresh').disabled=false;
+  byId('identity').textContent='Google 帳號已變更或驗證失敗；先前的私人內容已隱藏。';
+  running=false;
+  status('已隱藏舊帳號記事。請按「重新讀取／重新驗證帳號」。未儲存草稿暫時保留在此頁，關閉頁面後不保證保留。');
+ };
+ var restoreDraftAfterRead=function(){
+  if(!suspendedDraft||suspendedDraft.owner!==account||suspendedDraft.scope!==scope)return;
+  if(scope==='SHARED'&&(suspendedDraft.groupId!==byId('groupId').value||!canWrite()))return;
+  if(!canWrite())return;
+  var draft=suspendedDraft;
+  suspendedDraft=null;openEditor(draft.note);
+  byId('noteTitle').value=draft.title;
+  byId('noteContent').value=draft.content;
+  pendingSave=draft.pendingSave;pendingDelete=draft.pendingDelete;
+  status('已用原 Google 帳號恢復此頁暫存草稿；尚未儲存至雲端，請先核對內容。');
+ };
+ var verifyIdentity=function(){
+  if(!window.google||!google.script||!google.script.run){
+   status('尚未部署，不能使用雲端同步。');return;
+  }
+  var epoch=accountEpoch;
+  byId('identity').textContent='正在重新確認 Google 登入身分……';
+  google.script.run.withSuccessHandler(function(info){
+   if(epoch!==accountEpoch)return;
+   var who=info&&typeof info.account==='string'?info.account.trim().toLowerCase():'';
+   if(!who){hidePrivateView();return}
+   if(account&&who!==account){hidePrivateView();return}
+   account=who;
+   byId('identity').textContent='目前 Google 帳號：'+account;
+   byId('newNote').disabled=false;
+   if(suspendedDraft&&suspendedDraft.owner===account){
+    scope=suspendedDraft.scope;
+    byId('personal').className=scope==='PRIVATE'?'active':'secondary';
+    byId('team').className=scope==='SHARED'?'active':'secondary';
+    byId('groupSection').hidden=scope==='PRIVATE';
+    if(scope==='SHARED')loadGroups(suspendedDraft.groupId);
+    else refresh();
+   }else refresh();
+  }).withFailureHandler(function(){if(epoch===accountEpoch)hidePrivateView()}).gasWhoAmI();
+ };
  var remote=function(action,params,onSuccess,onFail){
   if(!account){status('Google 帳號尚未驗證，禁止同步。');return}
   if(!window.google||!google.script||!google.script.run){
    status('尚未部署，不能讀寫雲端記事。');return;
   }
-  // All calls, including reads and group selection, are account-bound.
+  var requestedAccount=account,epoch=accountEpoch;
   var payload=Object.assign({},params||{});
-  payload.__expectedGoogleAccount=account;
-  google.script.run.withSuccessHandler(onSuccess)
-   .withFailureHandler(onFail).gasNoteCall(action,payload);
+  payload.__expectedGoogleAccount=requestedAccount;
+  google.script.run.withSuccessHandler(function(value){
+   if(epoch!==accountEpoch||account!==requestedAccount)return;
+   onSuccess(value);
+  }).withFailureHandler(function(err){
+   if(epoch!==accountEpoch)return;
+   var code=String(err&&err.message||'REMOTE_REQUEST_FAILED');
+   if(isIdentityError(code)){hidePrivateView();return}
+   onFail(err);
+  }).gasNoteCall(action,payload);
  };
  var isDirty=function(){
   if(byId('editor').hidden)return false;
@@ -119,7 +182,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   if(s==='SHARED')loadGroups();
   else if(account)refresh();
  };
- var loadGroups=function(){
+ var loadGroups=function(preferredGroupId){
   var select=byId('groupId');select.replaceChildren();
   if(!window.google||!google.script||!google.script.run){
    status('尚未部署至 Google Apps Script 測試環境');return
@@ -137,6 +200,8 @@ label{display:block;font-weight:600;margin:10px 0 5px}
     option.textContent=String(g.name||'未命名群組')+'（'+String(g.role||'成員')+'）';
     select.appendChild(option);
    });
+   if(preferredGroupId&&groups.some(function(g){return String(g.groupId)===String(preferredGroupId)}))
+    select.value=String(preferredGroupId);
    activeGroup=select.value;
    status('已取得 '+groups.length+' 個授權群組。');
    byId('newNote').disabled=!account||!canWrite();
@@ -171,6 +236,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
    }
    root.appendChild(article);
   });
+  restoreDraftAfterRead();
  };
  var openEditor=function(note){
   if(!account||!canWrite()){status('目前帳號沒有修改權限。');return}
@@ -236,7 +302,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  var refresh=function(){
   if(running)return;
   if(!window.google||!google.script||!google.script.run){status('尚未部署到 Google Apps Script 測試環境');return}
-  if(!account){status('請先完成 Google 帳號身分驗證。');return}
+  if(!account){verifyIdentity();return}
   var req={scope:scope};
   if(scope==='SHARED'){req.groupId=byId('groupId').value.trim();if(!req.groupId){status('請先選擇共用群組');return}}
   running=true;byId('refresh').disabled=true;status('正在透過 Google 驗證權限並讀取……');
@@ -260,17 +326,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  byId('saveNote').onclick=saveNote;
  byId('cancelNote').onclick=leaveEditor;
  byId('deleteNote').onclick=deleteNote;
- if(window.google&&google.script&&google.script.run){
-  google.script.run.withSuccessHandler(function(info){
-   account=info&&typeof info.account==='string'?info.account.trim().toLowerCase():'';
-   if(!account){byId('identity').textContent='Google 身分無法確認，已停用同步。';return}
-   byId('identity').textContent='目前 Google 帳號：'+account;
-   byId('newNote').disabled=false;refresh();
-  }).withFailureHandler(function(){
-   byId('identity').textContent='目前 Google 帳號：無法驗證（同步已停用）';
-  }).gasWhoAmI();
- }else{
-  byId('identity').textContent='尚未部署；這是隔離測試介面。';
- }
+ if(window.google&&google.script&&google.script.run)verifyIdentity();
+ else byId('identity').textContent='尚未部署；這是隔離測試介面。';
 })();
 </script></body></html>
