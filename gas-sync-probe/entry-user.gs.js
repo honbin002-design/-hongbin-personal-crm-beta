@@ -10,6 +10,8 @@ function doGet() {
     .setTitle('鴻繽科技 CRM｜獨立同步記事測試');
 }
 function gasNoteCall(action,params) {
+  var gate=PropertiesService.getScriptProperties().getProperty('HONBIN_NOTES_TEST_GATE');
+  if(gate!=='ISOLATED_TEST_APPROVED')throw Error('SYNC_TEST_NOT_ENABLED');
   var account=Session.getActiveUser().getEmail();
   if(typeof account!=='string'||!account.trim())throw Error('GOOGLE_IDENTITY_UNAVAILABLE');
   if(!GASBoundary_.HONBIN_NOTE_ACTIONS.includes(action))throw Error('UNSUPPORTED_ACTION');
