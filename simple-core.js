@@ -375,7 +375,7 @@ function renderProducts(){
  });
  const sorted=[...groups.entries()].sort((a,b)=>a[0]==='待核對（舊產品）'?1:b[0]==='待核對（舊產品）'?-1:a[0].localeCompare(b[0],'zh-Hant'));
  $('productList').innerHTML=sorted.length?sorted.map(([supplier,items])=>
-  '<details class="supplierGroup" '+(q?'open':'')+'><summary>'+esc(supplier)+'（'+items.length+' 款產品）</summary>'+
+  '<details class="supplierGroup" '+(q||sorted.length<=2?'open':'')+'><summary>'+esc(supplier)+'（'+items.length+' 款產品）</summary>'+
   items.map(({p,i,pricing})=>'<div class="listItem"><div class="listTitle">'+esc(productName(p))+
    ' <span class="pill">'+esc(productModel(p)||'無型號')+'</span></div>'+
    '<div class="sub">單位：'+esc(p.unit||'—')+'　｜　包裝／規格：'+esc(p.spec||'—')+'</div>'+
