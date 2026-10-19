@@ -85,3 +85,20 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - Script B（資料擁有者）仍為 MYSELF 時，Script A 對 Script B 的 `UrlFetchApp.fetch()` 是否有合格的伺服器間授權必須**實測**；目前**沒有證據表明 MYSELF 可以在另一使用者身分的 URLFetch 呼叫中成功執行**。
 - 若改成匿名可連線的 B，則產生公開端點與用量濫用風險；雖有 HMAC 模型，**未實測前不得自動放寬到 ANYONE_ANONYMOUS**，也不得把原始 Google Sheets 分享給所有成員。
 - OAuth 部署工具仍缺安全授權；使用者已明確不接受 Codespaces、終端機、貼 Script、手動部署。堅持無 Work、既有 CRM main 保持不變。
+
+## 2026-10-19｜帳號切換與共用群組易用性
+
+- **問題修正：** iPhone 同一瀏覽器可能登入不同 Google 帳號。原型的離線待送功能若共用儲存區，A 帳號的私人草稿可能由 B 帳號錯誤上傳。
+- `account-scoped-outbox.cjs`：每個**曾經受 Google Session 驗證**的帳號使用不同的本機佇列儲存分區。重新登入另一帳號時拒絕讀取或上傳原帳號待送資料；原草稿保留，原帳號重新登入後可恢復。
+- `entry-user.gs.js`：所有 CREATE/UPDATE/DELETE 記事及群組管理寫入必須附帶 `__expectedGoogleAccount`，由伺服器再次與真正的 `Session.getActiveUser().getEmail()` 比較；不一致就拒絕，不採信瀏覽器聲稱的 actor。此欄位比對後從簽章資料移除。
+- `gasWhoAmI()`：獨立的伺服器端登入帳號查詢，不含任何 OAuth Token。此方法仍需要 Google Session 真實環境驗證。
+- `event-service.cjs` / `signed-boundary.cjs`：新增 `LIST_GROUPS` 後端權限操作，只回傳本人具有效成員身分的群組名稱、群組識別碼與角色，撤銷後不再返回該群組。
+- `Index.html`：使用群組下拉選單代替手動輸入群組 ID，並顯示已驗證的 Google 帳號；仍是獨立、唯讀的 iPhone 測試畫面，沒有接入正式 CRM。
+- **新增 22 項離線測試**：帳號隔離 12、已授權共用群組選擇 8、跨帳號寫入端到端補充 2，分別為 12、8、2 項。
+- 上一輪累計 130 項，本輪新增 **22 項**，合計 **152 項隔離模擬測試**（部分 SHA256/HMAC 在本地協調器使用模擬函式；GitHub Actions 對應測試使用 Node `crypto`，最新工作流程結果尚未透過 CI 日誌驗證）。
+- GitHub 工作流程已包含 **12 組**回歸測試；它不執行 Google OAuth、Apps Script 部署或變更正式 CRM。
+
+### 阻礙仍然存在
+- `MYSELF` Web App 仍僅供部署者。A→B 使用 `UrlFetchApp` 觸及 B 的 `MYSELF` 私人部署，跨不同 Google 帳號**尚無成功依據**，應視為架構性 BLOCKER；不能靠原型 PASS 宣告多手機同步。
+- 無 Google Apps Script API OAuth 自動部署授權，使用者不接受工程手動操作，必須維持 HOLD。
+- 舊 R73 `hongbin_crm_quick_notes_r73`、ERP 資料及正式 CRM `main` 均不接線、不轉移、不修改。
