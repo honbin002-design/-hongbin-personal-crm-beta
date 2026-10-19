@@ -65,9 +65,28 @@ export function groupService({db,sdk,identity}) {
    const recipientEmail=normalizedEmail(email);
    if(!ROLES.includes(role))throw Error('INVALID_ROLE');
    const ref=doc(collection(db,'inboxes',recipientEmail,'invites'));
-   await setDoc(ref,{groupId,recipientEmail,role,status:'PENDING',invitedBy:uid});
-   // Keep the exact ID in the UI for revocation; no private inbox scan by admins.
+   const b=writeBatch(db);
+   b.set(ref,{groupId,recipientEmail,role,status:'PENDING',invitedBy:uid});
+   b.set(doc(db,'groups',groupId,'sentInvites',ref.id),{
+     groupId,recipientEmail,role,invitedBy:uid,createdAt:Timestamp.now()
+   });
+   await b.commit();
    return {id:ref.id,recipientEmail,groupId,role,status:'PENDING'};
+ }
+ async function listSentInvites(groupId) {
+   path(groupId);
+   const result=await getDocs(collection(db,'groups',groupId,'sentInvites'));
+   const output=[];
+   for(const entry of result.docs){
+     const meta=entry.data();
+     const current=await getDoc(inbox(meta.recipientEmail,entry.id));
+     if(!current.exists())continue;
+     // Do not trust a stale index's status: read the live invitation.
+     const actual=current.data();
+     if(actual.groupId!==groupId||actual.recipientEmail!==meta.recipientEmail)continue;
+     output.push({id:entry.id,...actual});
+   }
+   return output;
  }
  async function listInbox() {
    const result=await getDocs(collection(db,'inboxes',mail,'invites'));
@@ -126,6 +145,6 @@ export function groupService({db,sdk,identity}) {
    if(change==='REVOKED')await updateDoc(member(groupId,memberUid),{status:'REVOKED'});
    else await updateDoc(member(groupId,memberUid),{role:change});
  }
- return Object.freeze({createGroup,listGroups,myRole,sendInvite,listInbox,
+ return Object.freeze({createGroup,listGroups,myRole,sendInvite,listSentInvites,listInbox,
    acceptInvite,revokeInvite,ensureIndex,listMembers,changeMember});
 }
