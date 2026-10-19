@@ -36,23 +36,37 @@ function createOfflineOutbox({load,save,send,newId,clock=()=>new Date().toISOStr
   rows.push(item);persist(rows);return clone(item);
  }
  function getQueue(){return all()}
- async function retryOne(operationId){
+ // A delayed response must never overwrite drafts added while network was in flight.
+ const inFlight=new Map();
+ function patch(operationId,edit){
   const list=all(),idx=list.findIndex(x=>x.operationId===operationId);
-  if(idx<0)throw Error('UNKNOWN_OUTBOX_ID');
-  const item=list[idx];
-  if(item.status==='SYNCED')return clone(item);
-  if(item.status==='CONFLICT')throw Error('USER_RESOLUTION_REQUIRED');
-  if(!['PENDING','FAILED','SYNCING'].includes(item.status))throw Error('UNKNOWN_OUTBOX_STATUS');
-  item.status='SYNCING';item.attempts=(item.attempts||0)+1;item.lastError=null;persist(list);
-  try{
-   const result=await send(item.action,{...clone(item.args),operationId:item.operationId});
-   if(!result||typeof result!=='object')throw Error('REMOTE_ACK_MISSING');
-   item.result=clone(result);item.status='SYNCED';item.lastError=null;
-  }catch(e){
-   item.status=e?.message==='VERSION_CONFLICT'?'CONFLICT':'FAILED';
-   item.lastError=String(e?.message||'SYNC_FAILED').slice(0,200);
-  }
-  persist(list);return clone(item);
+  if(idx<0)throw Error('OUTBOX_OPERATION_DISAPPEARED');
+  const updated=edit(list[idx]);list[idx]=updated;persist(list);return clone(updated);
+ }
+ function retryOne(operationId){
+  if(inFlight.has(operationId))return inFlight.get(operationId);
+  const task=(async()=>{
+   const list=all(),idx=list.findIndex(x=>x.operationId===operationId);
+   if(idx<0)throw Error('UNKNOWN_OUTBOX_ID');
+   const item=list[idx];
+   if(item.status==='SYNCED')return clone(item);
+   if(item.status==='CONFLICT')throw Error('USER_RESOLUTION_REQUIRED');
+   if(!['PENDING','FAILED','SYNCING'].includes(item.status))throw Error('UNKNOWN_OUTBOX_STATUS');
+   patch(operationId,current=>({...current,status:'SYNCING',attempts:(current.attempts||0)+1,lastError:null}));
+   let outcome;
+   try{
+    const result=await send(item.action,{...clone(item.args),operationId:item.operationId});
+    if(!result||typeof result!=='object')throw Error('REMOTE_ACK_MISSING');
+    outcome={result:clone(result),status:'SYNCED',lastError:null};
+   }catch(e){
+    outcome={status:e?.message==='VERSION_CONFLICT'?'CONFLICT':'FAILED',
+     lastError:String(e?.message||'SYNC_FAILED').slice(0,200)};
+   }
+   return patch(operationId,current=>({...current,...outcome}));
+  })();
+  inFlight.set(operationId,task);
+  void task.then(()=>inFlight.delete(operationId),()=>inFlight.delete(operationId));
+  return task;
  }
  async function flush(){
   const ids=all().filter(x=>['PENDING','FAILED','SYNCING'].includes(x.status))
