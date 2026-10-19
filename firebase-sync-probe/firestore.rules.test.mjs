@@ -59,12 +59,24 @@ try{
   ()=>assertFails(getDoc(doc(mallory,groupPath))));
  await run('Unrestricted group enumeration is forbidden',
   ()=>assertFails(getDocs(collection(alice,'groups'))));
- await run('Group owner may add editor Bob',
-  ()=>assertSucceeds(setDoc(doc(alice,groupPath+'/members/bob-uid'),{
-    uid:'bob-uid',role:'EDITOR',status:'ACTIVE'})));
- await run('Group owner may add viewer Carol',
-  ()=>assertSucceeds(setDoc(doc(alice,groupPath+'/members/carol-uid'),{
-    uid:'carol-uid',role:'VIEWER',status:'ACTIVE'})));
+ await run('Even group owner cannot bypass verified invitation for editor Bob',async()=>{
+  const target=groupPath+'/members/bob-uid';
+  const member={uid:'bob-uid',role:'EDITOR',status:'ACTIVE'};
+  await assertFails(setDoc(doc(alice,target),member));
+  // Seed a fixture ONLY in isolated emulator; real joining is tested
+  // separately with verified email and a single atomic invitation batch.
+  await env.withSecurityRulesDisabled(async ctx=>{
+    await setDoc(doc(ctx.firestore(),target),member);
+  });
+ });
+ await run('Even group owner cannot bypass verified invitation for viewer Carol',async()=>{
+  const target=groupPath+'/members/carol-uid';
+  const member={uid:'carol-uid',role:'VIEWER',status:'ACTIVE'};
+  await assertFails(setDoc(doc(alice,target),member));
+  await env.withSecurityRulesDisabled(async ctx=>{
+    await setDoc(doc(ctx.firestore(),target),member);
+  });
+ });
  await run('Outsider cannot self-promote to group ADMIN',
   ()=>assertFails(setDoc(doc(mallory,groupPath+'/members/mallory-uid'),{
     uid:'mallory-uid',role:'ADMIN',status:'ACTIVE'})));
