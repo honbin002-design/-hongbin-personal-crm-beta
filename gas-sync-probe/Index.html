@@ -63,7 +63,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <script>
 (function(){
  'use strict';
- var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='',pendingSave=null;
+ var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='',pendingSave=null,pendingDelete=null;
  var byId=function(id){return document.getElementById(id)};
  var status=function(message){byId('status').textContent=message};
  var groupRole=function(){
@@ -173,7 +173,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  };
  var openEditor=function(note){
   if(!account||!canWrite()){status('目前帳號沒有修改權限。');return}
-  editing=note||null;pendingSave=null;
+  editing=note||null;pendingSave=null;pendingDelete=null;
   byId('editorTitle').textContent=note?'編輯記事':'新增記事';
   byId('noteTitle').value=note?String(note.title||''):'';
   byId('noteContent').value=note?String(note.content||''):'';
@@ -181,7 +181,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   byId('editor').hidden=false;
   byId('noteTitle').focus();
  };
- var closeEditor=function(){byId('editor').hidden=true;editing=null;pendingSave=null};
+ var closeEditor=function(){byId('editor').hidden=true;editing=null;pendingSave=null;pendingDelete=null};
  var saveNote=function(){
   if(running||!account||!canWrite())return;
   var title=byId('noteTitle').value.trim(),content=byId('noteContent').value;
@@ -216,13 +216,20 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  var deleteNote=function(){
   if(running||!account||!editing||!canDelete())return;
   if(!window.confirm('確定要刪除這則記事嗎？刪除後會保留異動紀錄。'))return;
-  var params={operationId:secureId(),articleId:String(editing.articleId),expectedVersion:Number(editing.version)};
-  running=true;status('正在刪除……');
+  var fingerprint=JSON.stringify([account,String(editing.articleId),Number(editing.version)]);
+  if(pendingDelete&&pendingDelete.fingerprint!==fingerprint){
+   status('先前刪除結果尚未確認，請重新讀取核對。');return;
+  }
+  if(!pendingDelete)pendingDelete={fingerprint:fingerprint,operationId:secureId()};
+  var params={operationId:pendingDelete.operationId,
+   articleId:String(editing.articleId),expectedVersion:Number(editing.version)};
+  running=true;byId('deleteNote').disabled=true;status('正在刪除……');
   remote('DELETE_NOTE',params,function(){
-   running=false;closeEditor();refresh();
+   running=false;byId('deleteNote').disabled=false;closeEditor();refresh();
   },function(err){
-   running=false;
-   status('刪除失敗，資料未更動：'+String(err&&err.message||'REMOTE_REQUEST_FAILED'));
+   running=false;byId('deleteNote').disabled=false;
+   status('刪除確認未完成：可能已經刪除。再次按刪除會安全重試同一操作，或先重新讀取核對。'+
+    String(err&&err.message||'REMOTE_REQUEST_FAILED'));
   });
  };
  var refresh=function(){
