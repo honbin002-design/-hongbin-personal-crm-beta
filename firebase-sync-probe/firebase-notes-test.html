@@ -132,7 +132,8 @@ async function loadDraft(){
   draftMessage('無法讀取本機草稿，請檢查 Safari 儲存權限。');}
 }
 function restore(){
- const v=drafts.get(key());
+ const canEdit=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
+ const v=canEdit?drafts.get(key()):null;
  active=v?.active||null;pendingCreateId=v?.pendingCreateId||null;editorDirty=Boolean(v);
  $('title').value=v?.title||'';$('content').value=v?.content||'';
  $('editTitle').textContent=active?'編輯記事（版本 '+active.version+'）':'新增記事';
@@ -159,6 +160,8 @@ function buttons(){
  $('logout').disabled=!ready||busy||!auth?.currentUser;
  for(const el of $('workspace').querySelectorAll('button,input,textarea,select'))el.disabled=busy;
  const mayWrite=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
+ $('title').readOnly=!mayWrite;
+ $('content').readOnly=!mayWrite;
  $('save').disabled=busy||!mayWrite;
  $('delete').disabled=busy||!mayWrite;
 }
