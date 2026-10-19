@@ -214,3 +214,14 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - `multi-account-gate.test.cjs` 新增「偽造全 TRUE 仍 HOLD」回歸；GitHub commit `688787f1f1088093f780071c1706a6db645e8c96` 的 `gas-sync-probe/node-regression` 回報 `success`。真正 Apps Script OAuth／線上同步仍完全未驗證。
 - **不用 Work**。現有 Google Drive／Sheets 連線無 Apps Script 專案建立、更新、部署、部署回讀的專用 OAuth 介面。未確認存在安全的 OAuth 工作流程之前，不得要求使用者花 Work 額度或工程操作。
 - 本次未接入正式 CRM `main`，也未存取／遷移／分享真實記事或 ERP、客戶、報價資料。
+
+## 2026-10-19 晚間｜共用記事撤銷權限隱藏與真實隱私邊界
+
+- 在獨立測試 UI 找到風險：成員被移出共用群組或從 ADMIN／EDITOR 降權時，雖然後端會拒絕後續讀寫，但手機可能仍留著之前顯示的共用記事或開啟中的編輯畫面。
+- `Index.html` 增加伺服器權限錯誤處理（`FORBIDDEN_SHARED`、`FORBIDDEN_ADMIN`、`FORBIDDEN_WRITE`、`FORBIDDEN_DELETE`、`GROUP_NOT_FOUND` 等）：立即清空可見共用記事、群組、管理及編輯畫面，失效化之前尚未回來的請求。被撤銷權限後不能沿用舊草稿寫入。清單重新取得群組前也先隱藏舊內容。
+- `ui-smoke.test.cjs` 新增兩種情境（權限降級拒絕 UPDATE／成員被撤銷拒絕 LIST，並模擬舊回覆延遲抵達），GitHub commit `e00b7a7b82c5e59bc26c7da4b10bf9e85a805136` 回報 `gas-sync-probe/node-regression: success`。
+- 使用者版面的 `privacyBoundary` 明確揭露：這些記事目前是公司 Google Sheet 的**明文事件記錄**，被 CRM ACL 禁止的成員看不到，但真正擁有原始 Sheets 權限的人能讀取；**未實作端對端加密**。不以「私人」二字誤導使用者。
+- `ui-smoke.test.cjs` 新增隱私揭露回歸，最新 commit `4d99b08a4f349a454683ab3f1c6f635d9fa9e285` 的 `gas-sync-probe/node-regression` 已實際回報 **success**；總共 **15 組 Node.js CI PASS**，其中 UI 模擬測試 **27 項**。
+- 據 Google 官方 Session 文件，`getTemporaryActiveUserKey()` 每 30 天輪替，不能作為長期多手機帳號；單一 owner GAS＋Google 官方身分驗證仍需 OAuth Client ID、伺服器端驗證 ID Token、CSRF 等可靠機制，未取得可安全部署的執行證據；見 `GOOGLE-DEPLOYMENT-FEASIBILITY.md`。
+- **權限撤銷並不代表能即時刪掉離線手機過去已讀資料。** 本次修正只保證網頁收到服務端拒絕或重新取得群組時清空快取；背景／離線及實機情境仍待驗證。
+- 此輪不使用 Work；沒有 Google Apps Script 真實部署、沒有更改正式 CRM／ERP、沒有把原有 R73/R74 隨手記上傳雲端。
