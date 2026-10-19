@@ -299,7 +299,7 @@ function applyErpData(){
  if(!confirm('確定更新這台 iPhone 的 ERP 供應商、產品、客戶及價格？\n其他客戶、報價、專案及待辦會保留；請確認備份已保存。'))return;
  const current=getMaster(),old=localStorage.getItem(KEYS.master);
  const customers=current.customers.map(c=>({...c}));
- const positions=new Map(customers.map((c,i)=>[norm(c.name),i]).filter(x=>x[0]));
+ const positions=new Map();customers.forEach((c,i)=>{const key=norm(c.name);if(key&&!positions.has(key))positions.set(key,i)});
  for(const c of erpPending.customers){
   const key=norm(c.name),index=positions.get(key);
   if(index===undefined){positions.set(key,customers.length);customers.push({...c,source:'ERP_R2_R23'})}
