@@ -59,6 +59,7 @@ const check=async(name,fn)=>{await fn();passed++;console.log('PASS: '+name)};
   const status=await session.flush();assert.equal(status.length,1);
   assert.equal(sendCount,1);assert.equal(received[0].actor,'bob@example.test');
   assert.equal(received[0].args.content,'B PRIVATE');
+  assert.equal(received[0].args.__expectedGoogleAccount,'bob@example.test');
  });
  await check('Switching back to A restores only A pending draft',async()=>{
   session.reset();onlineAccount='alice@example.test';
