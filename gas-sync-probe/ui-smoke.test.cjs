@@ -8,7 +8,7 @@ const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,'embedded UI program exists');
 let pass=0,serial=0,randomSerial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false,lostDeleteAckOnce=false;
 const committedOps=new Map();
-let notes=[],calls=[],groups=[],members=[];
+let notes=[],calls=[],groups=[],members=[],backendDenial=null;
 class Element{
  constructor(id=''){this.id=id;this.textContent='';this.children=[];this.value='';
   this.hidden=false;this.disabled=false;this.className='';this.onclick=null;this.onchange=null;}
@@ -40,6 +40,11 @@ const fakeService={onSuccess:null,onFailure:null,
   try{
    // Backend checks all read/write actions against current Google Session.
    if(args.__expectedGoogleAccount!==remoteAccount)throw Error('GOOGLE_ACCOUNT_SWITCHED');
+   if(backendDenial&&backendDenial.action===action){
+    const code=backendDenial.code;
+    backendDenial=null;
+    throw Error(code);
+   }
    if(action==='LIST_GROUPS')result=groups;
    else if(action==='CREATE_GROUP'){
     result={groupId:'test-group-'+(++serial),role:'ADMIN'};
@@ -311,4 +316,35 @@ succeed('ADMIN can revoke shared membership from phone',()=>{
  assert.equal(members.find(x=>x.memberId==='member@example.test').status,'REVOKED');
 });
 
+succeed('Downgraded group role hides opened editor when Google refuses its UPDATE',()=>{
+ const groupId=elements.groupId.value;
+ notes.push({articleId:'stale-editor-001',scope:'SHARED',groupId:groupId,
+  title:'僅群組能看到',content:'授權撤銷前的內容',version:1,updatedAt:'2026-10-19T03:00:00Z'});
+ elements.team.onclick();
+ const index=elements.items.children.findIndex(x=>x.children[0].textContent==='僅群組能看到');
+ assert.ok(index>=0);
+ elements.items.children[index].children[3].onclick();
+ elements.noteContent.value='尚未成功上傳的舊授權文字';
+ backendDenial={action:'UPDATE_NOTE',code:'FORBIDDEN_WRITE'};
+ elements.saveNote.onclick();
+ assert.equal(elements.editor.hidden,true);
+ assert.equal(elements.items.children.length,0);
+ assert.equal(elements.noteContent.value,'');
+ assert.equal(elements.newNote.disabled,true);
+ assert.equal(elements.groupId.value,'');
+ assert.match(elements.status.textContent,/權限已變更/);
+});
+succeed('Revocation of member clears cached shared notes and rejects stale callback',()=>{
+ elements.team.onclick(); // mock group listing before current permission is revoked
+ assert.ok(elements.items.children.length>0);
+ const staleCallback=fakeService.onSuccess;
+ backendDenial={action:'LIST_NOTES',code:'FORBIDDEN_SHARED'};
+ elements.refresh.onclick();
+ assert.equal(elements.items.children.length,0);
+ assert.equal(elements.editor.hidden,true);
+ assert.equal(elements.newNote.disabled,true);
+ staleCallback(notes.filter(n=>n.scope==='SHARED'));
+ assert.equal(elements.items.children.length,0);
+ assert.match(elements.status.textContent,/權限已變更/);
+});
 console.log('IPHONE SYNC NOTE UI MOCK PASS',pass);
