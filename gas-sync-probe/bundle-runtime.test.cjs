@@ -104,6 +104,14 @@ try{
   assert.equal(typeof apiA.gasNoteCall,'function');
   assert.equal(typeof coreB.doPost,'function');
  });
+ check('A rejects stale different-account READ before reaching backend',()=>{
+  who('bob@example.test',()=>fail('GOOGLE_ACCOUNT_SWITCHED',()=>apiA.gasNoteCall(
+   'LIST_NOTES',{scope:'PRIVATE',__expectedGoogleAccount:'alice@example.test'})));
+ });
+ check('A denies missing account assertion on all READ requests',()=>{
+  who('alice@example.test',()=>fail('EXPECTED_ACCOUNT_REQUIRED',()=>apiA.gasNoteCall(
+   'LIST_GROUPS',{})));
+ });
  check('A rejects a stale different-account mutation before backend signing',()=>{
   who('bob@example.test',()=>fail('GOOGLE_ACCOUNT_SWITCHED',()=>apiA.gasNoteCall(
    'CREATE_NOTE',{operationId:'staleAcc000001',scope:'PRIVATE',content:'ALICE_NOTE',
