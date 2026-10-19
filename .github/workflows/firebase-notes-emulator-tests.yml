@@ -46,9 +46,11 @@ jobs:
           if [[ "$state" == "failure" ]]; then
             last=$(grep '^BEGIN ' firebase-emulator-ci.log 2>/dev/null | tail -1 | cut -c 1-100 || true)
             last=${last:-"Emulator setup or rules compilation"}
+            failed_slug=$(printf '%s' "$last" | tr '[:upper:]' '[:lower:]' | sed -E 's/^begin //; s/[^a-z0-9]+/-/g; s/^-|-$//g' | cut -c1-45)
+            failed_slug=${failed_slug:-"emulator-startup"}
             gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
               --field state=failure \
-              --field context='firebase-sync-probe/failing-invite-check' \
+              --field context="firebase-sync-probe/failed-$failed_slug" \
               --field description="$last" >/dev/null
           fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
