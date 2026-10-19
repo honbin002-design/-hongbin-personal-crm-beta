@@ -25,17 +25,16 @@ function gasNoteCall(action,params) {
   // Safety assertion, not an identity authority. The verified Session remains
   // authoritative. Stops an iPhone offline draft belonging to a previous Google
   // account from being accidentally submitted after an account switch.
-  var mutations=['CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE','CREATE_GROUP','SET_MEMBER'];
-  if(mutations.includes(action)){
-    if(!params||typeof params!=='object'||Array.isArray(params)||
-       !Object.prototype.hasOwnProperty.call(params,'__expectedGoogleAccount'))
-       throw Error('EXPECTED_ACCOUNT_REQUIRED');
-    var expected=params.__expectedGoogleAccount;
-    if(typeof expected!=='string'||expected.trim().toLowerCase()!==account.trim().toLowerCase())
-       throw Error('GOOGLE_ACCOUNT_SWITCHED');
-    params=Object.assign({},params);
-    delete params.__expectedGoogleAccount; // never forward it as trusted actor
-  }
+  // All read and write calls must match the account shown on the iPhone.
+  // Otherwise switching Google account in Safari can show a stale account label.
+  if(!params||typeof params!=='object'||Array.isArray(params)||
+     !Object.prototype.hasOwnProperty.call(params,'__expectedGoogleAccount'))
+     throw Error('EXPECTED_ACCOUNT_REQUIRED');
+  var expected=params.__expectedGoogleAccount;
+  if(typeof expected!=='string'||expected.trim().toLowerCase()!==account.trim().toLowerCase())
+     throw Error('GOOGLE_ACCOUNT_SWITCHED');
+  params=Object.assign({},params);
+  delete params.__expectedGoogleAccount; // a safety assertion, never signed identity
   var props=PropertiesService.getScriptProperties();
   var endpoint=props.getProperty('HONBIN_NOTES_BACKEND_URL');
   var secret=props.getProperty('HONBIN_NOTES_INTERNAL_SECRET');
