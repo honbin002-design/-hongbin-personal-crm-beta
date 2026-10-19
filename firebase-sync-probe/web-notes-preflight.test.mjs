@@ -19,7 +19,7 @@ check('No live Firestore flag enabled',()=>assert.match(config,/firestoreReadyFo
 check('Firebase initialization behind explicit true gate',()=>assert.match(script,
  /if\(firestoreReadyForRealData!==true\)[\s\S]*?return;[\s\S]*?getFirestore\(app\)/));
 check('Original R73 notes never read or uploaded',()=>assert.doesNotMatch(script,
- /hongbin_crm_quick_notes_r73|localStorage|indexedDB|FileReader|importLegacy/));
+ /hongbin_crm_quick_notes_r73|localStorage|FileReader|importLegacy/));
 check('Original CRM scripts never imported',()=>assert.doesNotMatch(html,
  /simple-core\.js|r73-fixes\.js|r72-fixes\.js/));
 check('Google provider and session identity checked',()=>{
@@ -72,10 +72,29 @@ check('Deletion stays soft-delete, explicit confirmation',()=>{
  assert.match(script,/window\.confirm\('確定刪除/);
  assert.doesNotMatch(script,/deleteDoc\(/);
 });
-check('Offline success not claimed and no persistent draft yet',()=>{
- assert.match(html,/關閉 Safari 頁面可能遺失/);
+check('Persistent drafts are partitioned, manually saved to cloud and never use R73 storage',()=>{
+ const local=readFileSync('firebase-offline-drafts.mjs','utf8');
+ parse(local);
+ assert.match(script,/makeDraftStore\(\{factory:window\.indexedDB\}\)/);
+ assert.match(script,/await persistBeforeCloud\(\)/);
+ assert.match(script,/await loadDraft\(\)/);
+ assert.match(local,/honbin-crm-notes-local-drafts-v1/);
+ assert.doesNotMatch(local,/hongbin_crm_quick_notes_r73|localStorage|fetch\(/);
+ assert.match(html,/不會自動重送/);
+ assert.match(html,/未經額外加密/);
+});
+check('Offline success never claimed and drafts stay on the device',()=>{
  assert.match(script,/網路或伺服器不可用/);
  assert.match(script,/沒有自動覆蓋編輯草稿/);
+ assert.match(html,/清除網站資料/);
+});
+check('Revoked group triggers local draft removal',()=>{
+ assert.match(script,/void dropDraft\(draftContext\(\)\)/);
+});
+check('Local create ID persisted BEFORE Firestore transaction',()=>{
+ const idx=script.indexOf('await persistBeforeCloud();');
+ const sent=script.indexOf('await notes.create(');
+ assert.ok(idx>=0&&sent>idx);
 });
 check('No forbidden billing or third-party endpoints',()=>{
  assert.doesNotMatch(script,/CloudFunctions|firebase\.deploy|firebaseapphosting|stripe|fetch\(/i);
