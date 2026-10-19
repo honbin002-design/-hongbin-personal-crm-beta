@@ -56,6 +56,21 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
 
+ const expectedFont=(pt,px)=>Math.abs(px-pt*96/72)<0.25;
+ const quoteTypography=await oldPaper.evaluate(el=>{
+   const names=['.q-party','.q-party-row','.q-table th','.q-table td','.q-terms','.q-notes','.q-notes span','.q-sales','.q-page-no'];
+   const sizes=names.map(s=>({selector:s,px:parseFloat(getComputedStyle(el.querySelector(s)).fontSize)}));
+   const title=el.querySelector('.q-title'),ts=getComputedStyle(title),under=getComputedStyle(title,'::after');
+   return {titlePx:parseFloat(ts.fontSize),decoration:ts.textDecorationLine,
+     underlineContent:under.content,underlineDistance:parseFloat(under.marginTop),sizes};
+ });
+ check(expectedFont(20,quoteTypography.titlePx)&&quoteTypography.decoration==='none'&&
+  quoteTypography.underlineContent!=='none'&&quoteTypography.underlineDistance>=7,
+  '標題字體為 20pt，底線分離且不與文字重疊');
+ check(quoteTypography.sizes.every(x=>expectedFont(16,x.px)),
+  '報價預覽中除標題及公司抬頭圖片外，資料、表格、條款、備註、業務代表、頁碼全為 16pt');
+
+
  // iOS Safari/WebKit 使用 print media 時，首張報價必須留 25mm 安全高度，
  // 並且絕不能對最後一張設定強制換頁。
  await page.emulateMedia({media:'print'});
@@ -71,6 +86,15 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  });
  check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
  check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
+
+ const printFonts=await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
+  const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales','.q-page-no'];
+  return {title:parseFloat(getComputedStyle(el.querySelector('.q-title')).fontSize),
+   sizes:names.map(s=>parseFloat(getComputedStyle(el.querySelector(s)).fontSize))};
+ });
+ check(expectedFont(20,printFonts.title)&&printFonts.sizes.every(x=>expectedFont(16,x)),
+  'Safari 列印版標題 20pt，其餘文字（包括頁碼）統一為 16pt');
+
  check(webkitPrint.shellCount===1&&webkitPrint.shellHeight<1040&&webkitPrint.paperHeight<1030,
   'Safari A4 報價紙張預留足夠列印安全高度');
  check(webkitPrint.breakAfter==='auto'&&webkitPrint.paperBreakAfter==='auto',
