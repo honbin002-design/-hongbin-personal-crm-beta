@@ -102,11 +102,15 @@ try{
   sdk.setDoc(sdk.doc(a,'groups',G),{
    ownerUid:'alice-n',name:'共同測試',createdAt:sdk.Timestamp.now()
   })));
- await check('Owner grants EDITOR and VIEWER roles',async()=>{
-  await assertSucceeds(sdk.setDoc(sdk.doc(a,'groups',G,'members','bob-n'),
-   {uid:'bob-n',status:'ACTIVE',role:'EDITOR'}));
-  await assertSucceeds(sdk.setDoc(sdk.doc(a,'groups',G,'members','carol-n'),
-   {uid:'carol-n',status:'ACTIVE',role:'VIEWER'}));
+ await check('Direct owner grants forbidden; fixture members remain isolated to emulator',async()=>{
+  const ep='groups/'+G+'/members/bob-n',vp='groups/'+G+'/members/carol-n';
+  const e={uid:'bob-n',status:'ACTIVE',role:'EDITOR'},v={uid:'carol-n',status:'ACTIVE',role:'VIEWER'};
+  await assertFails(sdk.setDoc(sdk.doc(a,ep),e));
+  await assertFails(sdk.setDoc(sdk.doc(a,vp),v));
+  await env.withSecurityRulesDisabled(async ctx=>{
+    await sdk.setDoc(sdk.doc(ctx.firestore(),ep),e);
+    await sdk.setDoc(sdk.doc(ctx.firestore(),vp),v);
+  });
  });
  await check('EDITOR creates shared note',async()=>{
   shared=bob.newId(S);
