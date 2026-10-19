@@ -35,7 +35,11 @@ function createEventService({identity,storage,withLock,clock=()=>new Date().toIS
         if(!history.has(item.id))history.set(item.id,[]);
         history.get(item.id).push({operation:item.action,actor:item.actor,at:item.at,version:n.version,note:copy(n)});
       }else if(item.entity==='GROUP'){
+        if(groups.has(item.id))fail('EVENT_LOG_DUPLICATE_GROUP');
         groups.set(item.id,item.payload);
+        const bootstrap=item.payload.members||{};
+        for(const [memberId,m] of Object.entries(bootstrap))
+          members.set(item.id+'|'+memberId,{groupId:item.id,memberId,...m});
       }else{
         const g=item.payload;
         members.set(item.id+'|'+g.memberId,g);
