@@ -159,10 +159,16 @@ async function loadGroups(){
  selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
  select.value=selectedGroup.id;
  $('groupRole').textContent='已驗證角色：'+selectedGroup.role;
+ buttons();
 }
 async function loadNotes(){
  const epoch=generation;
  if(mode==='SHARED'){await loadGroups();if(epoch!==generation)return}
+ if(mode==='SHARED'&&!selectedGroup){
+   shown=[];$('list').replaceChildren();
+   $('list').append(node('p','尚未加入共用群組，可先使用私人記事。'));
+   return;
+ }
  const query=scope();
  const all=await notes.list({...query,search:$('search').value});
  if(epoch!==generation)return;
