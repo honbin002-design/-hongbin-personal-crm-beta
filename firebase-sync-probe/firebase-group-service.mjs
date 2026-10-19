@@ -74,6 +74,12 @@ export function groupService({db,sdk,identity}) {
    return result.docs.map(item=>({id:item.id,...item.data()}));
  }
  async function ensureIndex(groupId) {
+   // Never re-index a group after revocation just because an old invite
+   // remains ACCEPTED. A server-authorized fresh read is mandatory.
+   const authorized=await getDoc(path(groupId));
+   if(!authorized.exists())throw Error('GROUP_NOT_FOUND');
+   const existing=await getDoc(pointer(groupId));
+   if(existing.exists())return true;
    await setDoc(pointer(groupId),indexBody(groupId));
    return true;
  }
