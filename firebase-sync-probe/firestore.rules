@@ -162,15 +162,12 @@ service cloud.firestore {
           || (googleUser() && memberUid == request.auth.uid);
         allow list: if canAdminGroup(groupId);
         // The immutable group owner is implicitly ADMIN and cannot be revoked.
-        allow create: if (canAdminGroup(groupId)
-          && memberUid != get(groupPath(groupId)).data.ownerUid
-          && request.resource.data.keys().hasOnly(['uid','role','status'])
-          && request.resource.data.keys().hasAll(['uid','role','status'])
-          && request.resource.data.uid == memberUid
-          && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
-          && request.resource.data.status == 'ACTIVE')
-          || (memberUid != get(groupPath(groupId)).data.ownerUid
-            && recipientMembershipRedemption(groupId, memberUid));
+        // Join is invitation-only, including when the caller is ADMIN.
+        // A group admin may INVITE but cannot directly insert a member by
+        // guessing UID. The Google-email holder must accept the invite in
+        // the same atomic batch as membership creation.
+        allow create: if memberUid != get(groupPath(groupId)).data.ownerUid
+          && recipientMembershipRedemption(groupId, memberUid);
         allow update: if (canAdminGroup(groupId)
           && memberUid != get(groupPath(groupId)).data.ownerUid
           && request.resource.data.uid == resource.data.uid
@@ -226,7 +223,11 @@ service cloud.firestore {
           && request.resource.data.groupId == groupId
           && request.resource.data.version == 1
           && request.resource.data.deleted == false;
-        allow update: if canEditGroup(groupId) && safeNoteUpdate();
+        // EDITOR may edit text but only ADMIN may soft-delete a shared
+        // article. The direct hard-delete rule below already is admin-only.
+        allow update: if canEditGroup(groupId) && safeNoteUpdate()
+          && (request.resource.data.deleted == resource.data.deleted
+              || canAdminGroup(groupId));
         allow delete: if canAdminGroup(groupId);
       }
     }
