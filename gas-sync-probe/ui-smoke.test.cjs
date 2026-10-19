@@ -19,6 +19,9 @@ class Element{
 const ids=['identity','groupId','groupSection','items','personal','team','status','refresh',
  'newNote','editor','editorTitle','noteTitle','noteContent','deleteNote','saveNote','cancelNote'];
 const elements=Object.fromEntries(ids.map(id=>[id,new Element(id)]));
+// Mirror initial HTML attributes; this fake DOM is not a real HTML parser.
+elements.personal.className='active';
+elements.team.className='secondary';
 const document={
  getElementById:id=>{if(!elements[id])throw Error('Unknown element: '+id);return elements[id]},
  createElement:tag=>new Element(tag)
