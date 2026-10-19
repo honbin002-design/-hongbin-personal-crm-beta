@@ -42,9 +42,11 @@ try {
   uid:'group-owner',groupId:'extra',createdAt:t,title:'must never be copied'
  })));
  await test('Pointers are immutable (update denied)',()=>assertFails(updateDoc(doc(owner,ownerIndex),{createdAt:Timestamp.now()})));
- await test('Owner grants viewer group membership',()=>assertSucceeds(setDoc(doc(owner,base+'/members/group-member'),{
-  uid:'group-member',role:'VIEWER',status:'ACTIVE'
- })));
+ await test('Owner cannot bypass verified invite for viewer group membership',async()=>{
+  const ref=base+'/members/group-member',member={uid:'group-member',role:'VIEWER',status:'ACTIVE'};
+  await assertFails(setDoc(doc(owner,ref),member));
+  await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),ref),member));
+ });
  await test('Viewer may register own discovery pointer',()=>assertSucceeds(setDoc(doc(member,memberIndex),pointer('group-member'))));
  await test('Viewer can list own index',()=>assertSucceeds(getDocs(collection(member,'users/group-member/groupIndex'))));
  await test('Viewer can resolve group',()=>assertSucceeds(getDoc(doc(member,base))));
