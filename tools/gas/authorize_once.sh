@@ -1,51 +1,59 @@
 #!/usr/bin/env bash
-# One-time Google authorization setup for isolated GAS proof.
-# NO Apps Script edits, NO printing tokens, NO commits containing credentials.
+# Isolated, one-time GAS deployment proof from a browser-based GitHub Codespace.
+# No GitHub Secrets, no credential upload, no CRM edits, no Sheets access.
 set -euo pipefail
 umask 077
-REPO="honbin002-design/-hongbin-personal-crm-beta"
-BRANCH="probe/gas-no-work-20261019"
-CRED_FILE="$HOME/.clasprc.json"
 
-if [[ "$(git branch --show-current)" != "$BRANCH" ]]; then
-  echo "STOP: 請使用 GitHub Codespaces 的 $BRANCH 測試分支。"
+EXPECTED='probe/gas-no-work-20261019'
+if [[ "$(git branch --show-current 2>/dev/null || true)" != "$EXPECTED" ]]; then
+  echo "HOLD: 請先使用 GitHub Codespaces 開啟測試分支 $EXPECTED"
+  exit 1
+fi
+if ! command -v node >/dev/null || ! command -v npm >/dev/null; then
+  echo 'BLOCKED: Codespaces 缺少 Node.js 或 npm。'
   exit 1
 fi
 
-echo "【1/4】檢查 Google clasp 工具"
-if ! command -v clasp >/dev/null 2>&1; then
-  npm install --global --no-audit --no-fund @google/clasp@3.2.0
-fi
-clasp --version
+ROOT="$(mktemp -d)"
+trap 'rm -rf "$ROOT"' EXIT
+mkdir -p "$ROOT/home" "$ROOT/probe"
+export HOME="$ROOT/home"
 
-echo "【2/4】Google OAuth 首次授權"
-if [[ ! -s "$CRED_FILE" ]]; then
-  echo "請依終端機顯示的 Google 授權連結操作。"
-  echo "僅使用你信任的 Google 帳號；授權完成後返回這個終端機。"
-  clasp login --no-localhost
-fi
-if [[ ! -s "$CRED_FILE" ]]; then
-  echo "BLOCKED: 授權檔尚未產生；未對 GitHub 寫入任何憑證。"
-  exit 1
-fi
+echo '[1/4] 安裝獨立的 Google clasp CLI (3.4.1)'
+npm install --prefix "$ROOT/tools" --no-audit --no-fund --silent @google/clasp@3.4.1
+CLI="$ROOT/tools/node_modules/.bin/clasp"
+"$CLI" --version
 
-echo "【3/4】直接寫入 GitHub Actions Secret（絕不輸出內容）"
-if ! gh secret set CLASPRC_JSON --app actions --repo "$REPO" < "$CRED_FILE"; then
-  echo "目前 GitHub 授權不足。以下僅要求額外 GitHub 登入，不要求分享 Token。"
-  env -u GH_TOKEN -u GITHUB_TOKEN gh auth login --hostname github.com --web --scopes repo
-  env -u GH_TOKEN -u GITHUB_TOKEN gh secret set CLASPRC_JSON --app actions --repo "$REPO" < "$CRED_FILE"
-fi
-env -u GH_TOKEN -u GITHUB_TOKEN gh secret list --app actions --repo "$REPO" \
-  | grep -q '^CLASPRC_JSON[[:space:]]' || {
-    # Some Codespaces use only their injected token for gh read access.
-    gh secret list --app actions --repo "$REPO" | grep -q '^CLASPRC_JSON[[:space:]]'
+echo '[2/4] Google 官方授權：請在 iPhone 開啟終端機提供的登入網址'
+echo '僅在 Google 官方網域輸入登入資料；授權碼只貼回 Codespaces 終端機。'
+echo '不要把任何授權碼、Token 或終端機登入畫面傳給 ChatGPT。'
+"$CLI" login --no-localhost
+
+echo '[3/4] 自動建立完全獨立的測試 Script'
+cd "$ROOT/probe"
+"$CLI" create-script --type standalone --title "HONBIN GAS isolated no-Work proof"
+cat > Code.gs <<'GAS'
+function doGet() {
+  return ContentService.createTextOutput('HONBIN GAS PROOF READY');
+}
+GAS
+cat > appsscript.json <<'MANIFEST'
+{
+  "timeZone": "Asia/Taipei",
+  "runtimeVersion": "V8",
+  "webapp": {
+    "access": "MYSELF",
+    "executeAs": "USER_DEPLOYING"
   }
-rm -f "$CRED_FILE"
-echo "SECRET_SAVED: yes（已清除本機臨時授權檔）"
+}
+MANIFEST
 
-echo "【4/4】觸發獨立 GitHub Actions 部署驗證"
-git -c user.name="GAS probe" -c user.email="gas-probe@users.noreply.github.com" \
-  commit --allow-empty --no-gpg-sign -m "Trigger isolated GAS deployment proof after user OAuth" >/dev/null
-git push origin "HEAD:$BRANCH"
-echo "READY: GitHub Actions 已觸發；請回報 workflow 成功/失敗結果。"
-echo "不會修改 main 分支、正式 CRM 或任何 Google Sheets。"
+echo '[4/4] 上傳測試內容、部署僅限本人查看的網頁'
+"$CLI" push --force
+"$CLI" create-deployment --description "Isolated owner-only automatic deployment verification"
+echo 'RESULT: GAS_CREATE_PUSH_DEPLOY_PASS'
+echo 'WEBAPP_ACCESS: MYSELF'
+echo 'CRM_MAIN_MODIFIED: no'
+echo 'GOOGLE_SHEETS_ACCESSED: no'
+echo 'GOOGLE_CREDENTIAL_STORED_IN_GITHUB: no'
+echo '臨時 OAuth 授權檔將隨測試環境自動清除。'
