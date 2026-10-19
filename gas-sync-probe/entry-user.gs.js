@@ -2,12 +2,19 @@
 /*
  * Script A: Google-signed-in-user entry. OFFLINE TEMPLATE — NOT DEPLOYED.
  * Deploy "execute as user accessing the web app" and reject empty Session email.
- * ONLY gasNoteCall() is reachable from google.script.run; NEVER return internal secret.
+ * Public web calls: gasWhoAmI() returns the signed-in account; gasNoteCall()\n * authorizes all note operations. NEVER return internal secret.
  * Google Apps Script API access, live identity availability and OAuth still BLOCKED.
  */
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('鴻繽科技 CRM｜獨立同步記事測試');
+}
+function gasWhoAmI(){
+  if(PropertiesService.getScriptProperties().getProperty('HONBIN_NOTES_TEST_GATE')!=='ISOLATED_TEST_APPROVED')
+    throw Error('SYNC_TEST_NOT_ENABLED');
+  var email=Session.getActiveUser().getEmail();
+  if(typeof email!=='string'||!email.trim())throw Error('GOOGLE_IDENTITY_UNAVAILABLE');
+  return {account:email.trim().toLowerCase()};
 }
 function gasNoteCall(action,params) {
   var gate=PropertiesService.getScriptProperties().getProperty('HONBIN_NOTES_TEST_GATE');
