@@ -198,8 +198,10 @@ async function modeChange(next){
  $('groupsBox').hidden=mode!=='SHARED';
  $('privateMode').className=mode==='PRIVATE'?'':'secondary';
  $('sharedMode').className=mode==='SHARED'?'':'secondary';
- restore();
- await execute(async()=>{if(mode==='SHARED')await loadGroups();await loadNotes();return '已切換記事範圍。';});
+ await execute(async()=>{
+  if(mode==='SHARED')await loadGroups();
+  restore();await loadNotes();return '已切換記事範圍。';
+ });
 }
 $('privateMode').addEventListener('click',()=>modeChange('PRIVATE'));
 $('sharedMode').addEventListener('click',()=>modeChange('SHARED'));
