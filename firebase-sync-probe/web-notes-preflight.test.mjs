@@ -62,6 +62,11 @@ check('Version conflict keeps draft and shows latest version number',()=>{
  assert.match(script,/e\.remote\?\.version/);
  assert.match(script,/remember\(\)/);
 });
+check('Membership revocation refresh hides formerly visible note editor',()=>{
+ assert.match(script,/if\(selectedGroup&&!result\.some\(group=>group\.id===selectedGroup\.id\)\)/);
+ assert.match(script,/\$\('title'\)\.value='';\$\('content'\)\.value=''/);
+ assert.match(script,/\$\('list'\)\.replaceChildren\(\)/);
+});
 check('Deletion stays soft-delete, explicit confirmation',()=>{
  assert.match(script,/notes\.softDelete\(/);
  assert.match(script,/window\.confirm\('確定刪除/);
