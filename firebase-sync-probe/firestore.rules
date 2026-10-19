@@ -13,6 +13,43 @@ service cloud.firestore {
     function memberPath(groupId, uid) {
       return /databases/$(database)/documents/groups/$(groupId)/members/$(uid);
     }
+
+    // Invite ID is unpredictable and invitations stay under the recipient
+    // Google email's own inbox. Neither email nor the browser is an actor ID.
+    function invitationPath(email, invitationId) {
+      return /databases/$(database)/documents/inboxes/$(email)/invites/$(invitationId);
+    }
+    function verifiedGoogleEmail(email) {
+      return googleUser()
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == email;
+    }
+    function inviteRedemption(groupId, invitationId, role) {
+      return googleUser()
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && invitationId is string
+        && exists(invitationPath(request.auth.token.email.lower(), invitationId))
+        && get(invitationPath(request.auth.token.email.lower(), invitationId)).data.groupId == groupId
+        && get(invitationPath(request.auth.token.email.lower(), invitationId)).data.recipientEmail
+             == request.auth.token.email.lower()
+        && get(invitationPath(request.auth.token.email.lower(), invitationId)).data.role == role
+        && get(invitationPath(request.auth.token.email.lower(), invitationId)).data.status == 'PENDING'
+        && getAfter(invitationPath(request.auth.token.email.lower(), invitationId)).data.status == 'ACCEPTED'
+        && getAfter(invitationPath(request.auth.token.email.lower(), invitationId)).data.acceptedUid
+             == request.auth.uid;
+    }
+    function recipientMembershipRedemption(groupId, memberUid) {
+      return googleUser() && memberUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid','role','status','invitationId'])
+        && request.resource.data.keys().hasOnly(['uid','role','status','invitationId'])
+        && request.resource.data.uid == memberUid
+        && request.resource.data.status == 'ACTIVE'
+        && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
+        && inviteRedemption(groupId, request.resource.data.invitationId,
+              request.resource.data.role);
+    }
     function groupOwner(groupId) {
       return googleUser() && exists(groupPath(groupId))
         && get(groupPath(groupId)).data.ownerUid == request.auth.uid;
@@ -99,20 +136,28 @@ service cloud.firestore {
           || (googleUser() && memberUid == request.auth.uid);
         allow list: if canAdminGroup(groupId);
         // The immutable group owner is implicitly ADMIN and cannot be revoked.
-        allow create: if canAdminGroup(groupId)
+        allow create: if (canAdminGroup(groupId)
           && memberUid != get(groupPath(groupId)).data.ownerUid
           && request.resource.data.keys().hasOnly(['uid','role','status'])
           && request.resource.data.keys().hasAll(['uid','role','status'])
           && request.resource.data.uid == memberUid
           && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
-          && request.resource.data.status == 'ACTIVE';
-        allow update: if canAdminGroup(groupId)
+          && request.resource.data.status == 'ACTIVE')
+          || (memberUid != get(groupPath(groupId)).data.ownerUid
+            && recipientMembershipRedemption(groupId, memberUid));
+        allow update: if (canAdminGroup(groupId)
           && memberUid != get(groupPath(groupId)).data.ownerUid
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['role','status'])
           && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
-          && request.resource.data.status in ['ACTIVE','REVOKED'];
+          && request.resource.data.status in ['ACTIVE','REVOKED'])
+          || (memberUid != get(groupPath(groupId)).data.ownerUid
+            && resource.data.status == 'REVOKED'
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['role','status','invitationId'])
+            && request.resource.data.invitationId != resource.data.get('invitationId', '')
+            && recipientMembershipRedemption(groupId, memberUid));
         allow delete: if false;
       }
 
@@ -127,6 +172,55 @@ service cloud.firestore {
         allow update: if canEditGroup(groupId) && safeNoteUpdate();
         allow delete: if canAdminGroup(groupId);
       }
+    }
+
+    // An invite can be created by group ADMIN for a recipient's verified
+    // Google email. Recipient may read ONLY their own exact inbox path.
+    // Acceptance MUST be in the same atomic Firestore write batch as joining.
+    match /inboxes/{recipientEmail}/invites/{invitationId} {
+      allow get, list: if verifiedGoogleEmail(recipientEmail);
+      allow create: if googleUser()
+        && recipientEmail is string
+        && recipientEmail.size() <= 254
+        && recipientEmail.matches('^[^@ ]+@[^@ ]+[.][^@ ]+
+  }
+}
+)
+        && request.resource.data.keys().hasOnly([
+          'groupId','recipientEmail','role','status','invitedBy'])
+        && request.resource.data.keys().hasAll([
+          'groupId','recipientEmail','role','status','invitedBy'])
+        && request.resource.data.recipientEmail == recipientEmail
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
+        && request.resource.data.status == 'PENDING'
+        && canAdminGroup(request.resource.data.groupId);
+      allow update: if (
+        // Admin can cancel an unused invite; accepted invites stay consumed.
+        canAdminGroup(resource.data.groupId)
+        && resource.data.status == 'PENDING'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status'])
+        && request.resource.data.status == 'REVOKED'
+      ) || (
+        // No email self-assertion: Firebase-signed, verified Google email only.
+        verifiedGoogleEmail(recipientEmail)
+        && resource.data.status == 'PENDING'
+        && request.resource.data.status == 'ACCEPTED'
+        && request.resource.data.acceptedUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status','acceptedUid'])
+        // Must create / re-activate the exact matching UID membership atomically.
+        && getAfter(memberPath(resource.data.groupId, request.auth.uid)).data.uid
+             == request.auth.uid
+        && getAfter(memberPath(resource.data.groupId, request.auth.uid)).data.role
+             == resource.data.role
+        && getAfter(memberPath(resource.data.groupId, request.auth.uid)).data.status
+             == 'ACTIVE'
+        && getAfter(memberPath(resource.data.groupId, request.auth.uid)).data.invitationId
+             == invitationId
+      );
+      allow delete: if false;
     }
     // No wildcard allowance: every other path must fail closed.
   }
