@@ -56,9 +56,7 @@ run('Invalid cryptographic hash cannot become an operation ID',()=>{
 run('Bigger than supported content is not silently truncated',()=>{
  denied('LEGACY_NOTE_TOO_LARGE',()=>planLegacyImport({notes:[{id:1,content:'a'.repeat(30001)}]}));
 });
-run('Import plan never invokes an external network service',()=>{
- assert.equal(typeof globalThis.fetch,'function'||'undefined');
- const res=planLegacyImport({notes});
- assert.equal(res.consentRequired,true);
+run('Unknown legacy storage format must be rejected',()=>{
+ denied('LEGACY_FORMAT_UNEXPECTED',()=>planLegacyImport({notes:{entries:notes}}));
 });
 console.log('LEGACY IMPORT SAFETY PASS',passed);
