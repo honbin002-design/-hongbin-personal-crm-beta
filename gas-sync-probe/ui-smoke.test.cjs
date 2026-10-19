@@ -36,8 +36,8 @@ const fakeService={onSuccess:null,onFailure:null,
   calls.push({action,args:JSON.parse(JSON.stringify(args))});
   let result;
   try{
-   const mutations=['CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE','CREATE_GROUP','SET_MEMBER'];
-   if(mutations.includes(action)&&args.__expectedGoogleAccount!==remoteAccount)throw Error('GOOGLE_ACCOUNT_SWITCHED');
+   // Backend checks all read/write actions against current Google Session.
+   if(args.__expectedGoogleAccount!==remoteAccount)throw Error('GOOGLE_ACCOUNT_SWITCHED');
    if(action==='LIST_GROUPS')result=groups;
    else if(action==='LIST_NOTES'){
     result=notes.filter(n=>n.scope===args.scope&&(args.scope==='PRIVATE'||n.groupId===args.groupId));
@@ -161,6 +161,14 @@ succeed('Changed draft after ambiguous ACK refuses unsafe new operation',()=>{
  assert.equal(elements.noteContent.value,'再次編輯的新內容');
  assert.match(elements.status.textContent,/上一次儲存結果尚未確認/);
  elements.cancelNote.onclick();
+});
+succeed('Switching Google account blocks stale-personal-note READ',()=>{
+ remoteAccount='bob@example.test';
+ elements.refresh.onclick();
+ assert.match(elements.status.textContent,/GOOGLE_ACCOUNT_SWITCHED/);
+ remoteAccount='alice@example.test';
+ elements.refresh.onclick();
+ assert.match(elements.status.textContent,/同步讀取成功/);
 });
 succeed('Shared VIEWER cannot create or edit notes',()=>{
  groups=[{groupId:'group-001',name:'共同記事',role:'VIEWER'}];
