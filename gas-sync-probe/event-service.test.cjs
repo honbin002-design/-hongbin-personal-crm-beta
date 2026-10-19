@@ -60,7 +60,9 @@ test('Admin grants EDITOR and VIEWER',()=>{
   svc.setMember({operationId:'addBobEditor01',groupId:group.groupId,memberId:bob,role:'EDITOR'});
   svc.setMember({operationId:'addCarolView01',groupId:group.groupId,memberId:carol,role:'VIEWER'});
  });
- assert.equal(as(alice,()=>svc.listMembers(group.groupId)).length,3);
+ const active=as(alice,()=>svc.listMembers(group.groupId));
+ assert.equal(active.find(x=>x.memberId===bob).role,'EDITOR');
+ assert.equal(active.find(x=>x.memberId===carol).role,'VIEWER');
 });
 test('Viewer reads shared but not private',()=>{
  sharedNote=as(alice,()=>svc.createNote({operationId:'createShared01',scope:'SHARED',groupId:group.groupId,content:'shared v1'}));
