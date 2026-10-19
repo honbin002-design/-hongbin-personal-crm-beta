@@ -395,7 +395,7 @@ function renderProducts(){
     p.variants.map(v=>'<div class="priceLine">品項：'+esc(v.name||'—')+'　｜　包裝：'+esc(v.spec||'—')+'　｜　單位：'+esc(v.unit||'—')+'</div>').join('')+'</details>':'')+
    (pricing.length?'<details class="priceList"><summary>客戶售價（'+pricing.length+' 筆）</summary>'+
     pricing.map(x=>'<div class="priceLine">'+esc(x.customerName)+'　｜　客戶品號：'+esc(x.customerPartNo||'—')+
-     '　｜　售價：NT$ '+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div>').join('')+'</details>':
+     '　｜　售價：'+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div>').join('')+'</details>':
      productCustomer(p)?'<div class="sub">使用客戶：'+esc(productCustomer(p))+'</div>':'')+
    '<button type="button" class="secondary" data-product="'+i+'">查看／編輯</button></div>').join('')+
   '</details>').join(''):htmlListEmpty('尚無符合的產品');
@@ -463,7 +463,7 @@ function showCustomer360(name){
  const customerPriceList=block('ERP 客戶使用產品及售價',related.customerPrices,x=>
   '<div class="customer360-entry"><strong>'+esc(x.productName||x.supplierPartNo)+'</strong>'+
   '<div class="sub">供應商：'+esc(x.supplierName||x.supplierShortName)+'　｜　供應商品號：'+esc(x.supplierPartNo)+'</div>'+
-  '<div class="sub">客戶品號：'+esc(x.customerPartNo||'—')+'　｜　售價：NT$ '+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div></div>',
+  '<div class="sub">客戶品號：'+esc(x.customerPartNo||'—')+'　｜　售價：'+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div></div>',
   '此客戶沒有已確認售價');
  const quotes=block('報價單',related.quotes,q=>
   '<div class="customer360-entry"><strong>'+esc(q.fields?.qdNo||'未編號')+'</strong><div class="sub">'+esc(q.fields?.qdDate||'未設定日期')+'</div><button type="button" class="secondary" data-customer-quote="'+esc(q.id)+'">開啟報價</button></div>','尚無報價單');
