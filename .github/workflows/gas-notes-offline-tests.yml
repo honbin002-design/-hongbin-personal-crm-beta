@@ -47,6 +47,8 @@ jobs:
         run: node gas-sync-probe/deployment-readback.test.cjs
       - name: Test iPhone sync notes create edit delete and conflict UI behavior
         run: node gas-sync-probe/ui-smoke.test.cjs
+      - name: Block cross-account release until genuine Google OAuth and deployment proof
+        run: node gas-sync-probe/multi-account-gate.test.cjs
       - name: Publish real Node.js regression result as GitHub commit status
         if: always()
         env:
