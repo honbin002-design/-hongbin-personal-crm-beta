@@ -105,6 +105,9 @@ try{
   ()=>assertFails(deleteDoc(doc(bob,sharedPath))));
  await run('Owner can revoke viewer Carol',
   ()=>assertSucceeds(updateDoc(doc(alice,groupPath+'/members/carol-uid'),{status:'REVOKED'})));
+ await run('Admin cannot reactivate revoked Carol without fresh email invite',()=>assertFails(
+  updateDoc(doc(alice,groupPath+'/members/carol-uid'),{status:'ACTIVE'})
+ ));
  await run('Revoked viewer cannot reopen shared article',
   ()=>assertFails(getDoc(doc(carol,sharedPath))));
  await run('Group owner can downgrade Bob to VIEWER',
