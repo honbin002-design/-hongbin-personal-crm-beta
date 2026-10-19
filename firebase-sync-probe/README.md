@@ -151,3 +151,28 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 - **部署 Gate 未改**：`firebase-web-config.mjs` 的 `firestoreReadyForRealData = false`，未部署到正式 Firebase Cloud Firestore，正式安全規則仍以使用者前次提供的 deny-all 畫面為基準（本輪無管理登入可即時重新查證）；未建立 HTTPS 測試網站，未整合 CRM `main`，未匯入舊 R73 記事，未使用計費或 Work。
 
 **下一個有效工作包**：獨立且 Spark 免費的 HTTPS Auth 測試入口與 Firebase Google 已授權網域實機查證；也可在隔離分支做候選 UI 實際瀏覽器事件測試與版本衝突選擇／人工合併流程。不得把 IndexedDB 模擬器 PASS 說成 iPhone Safari 跨裝置同步已通過。
+
+## 2026-10-20｜邀請唯一路徑、管理員刪除權限、Firebase Spark HTTPS 準備 Gate
+
+**這是已由 GitHub CI 驗證的隔離分支程式碼，不是正式 CRM 或真實 Firebase 雲端上線。**
+
+### 一、後端安全規則修正（上線前必要）
+- Firestore `groups/{groupId}/members/{uid}` 的 **create** 現在僅接受登入本人，且必須透過同一 Firestore writeBatch 兌換該本人已驗證 Google Email 的 `PENDING` 邀請；即使是群組 ADMIN 也不能猜 UID 然後直接加入成員。群組創辦人保持隱含 ADMIN。管理員仍有發送邀請與調整有效成員角色的能力。
+- 被撤銷的成員不能讓 ADMIN 直接把 `status: REVOKED` 改回 `ACTIVE`；只能重新發出**新的**本人 Email 邀請，按既有受邀者原子兌換規則建立新 `invitationId` 後才可恢復。
+- 共享記事在 `groups/{gid}/notes/{noteId}` 的 `update` 保留 `EDITOR` 的文字更新能力，但禁止 EDITOR 改變 `deleted`（軟刪除），僅 ADMIN 可改成刪除；已有 shared hard-delete 仍是 ADMIN-only。手機候選頁同步讓 EDITOR 的刪除鍵隱藏/禁用，VIEWER 全部只讀。真正權限以 Firestore Rules 為準，前端不是 ACL。
+- 既有模擬器測試曾將「管理員直接加人」當合法行為；已轉為驗證其必須拒絕，並僅在官方 Emulator 以 `withSecurityRulesDisabled` 建立假測試成員。受邀者真實接受／撤銷原子兌換測試仍逐項執行；不會以測試繞過方式部署真實 Firebase。
+- 整體 **Google 官方 Firestore Emulator 140 項**（原 136 ＋ 4 項新增負向權限案例；既有多項邀請／群組案例亦改為拒絕後端直接授權）。逐包通過：base 33、invites 16、directory 22、outbox 14、group workflow 21、notes CRUD 34。
+
+### 二、唯一免費 HTTPS 測試方案的具體成果（未上線）
+- 官方證實 Firebase Hosting 在 **Spark** 下靜態 Hosting 有免費額度，超額會無法再部署或暫停服務，不需升級／不准升級 Blaze：https://firebase.google.com/docs/hosting/usage-quotas-pricing 。
+- `firebase-hosting-auth-package.mjs` 建立獨立 **Auth-only** 部署包，`public/` 只包含 `index.html`（現有 `firebase-auth-smoke.html`）及 `firebase-web-config.mjs`（公開 Web SDK 設定與 `firestoreReadyForRealData=false`），另外產出 `firebase.json` 靜態 Hosting 專屬設定。**不包含** Firestore 規則、記事、群組 CRUD、本機記事、舊 CRM、Google 密鑰或部署 Token，也沒有自動執行 `firebase deploy`。
+- `firebase-hosting-auth-package.test.mjs` 新增 **10 項獨立 Node 建置／污染拒絕測試**：檢查輸出檔案白名單、無資料庫操作、無服務帳戶金鑰、無專案別名、明確 `false` 防線、偽造雲端旗標或混入 Firestore SDK 時拒絕輸出。**這 10 項不能算入 140 項官方 Firestore Emulator 測試**。
+- 現有 GitHub 工具沒有建立另一個新 GitHub Pages Repository／修改 Pages 網站部署來源的操作；且既有 CRM Repository 只對應一個正式 Pages 網站，不能用切換 Pages 來源的方式犧牲正式服務。Firebase 專案管理員身分／部署授權也尚未可用，故未部署、未建立可供 iPhone 登入的 HTTPS 測試網址。**不能捏造已上線的 `web.app` URL。**
+- Firebase Hosting 官方文件：https://firebase.google.com/docs/hosting/quickstart （在可用的 Firebase 授權部署工具與專案擁有者批准前，部署停留 HOLD；不要求使用者手貼程式或使用終端機）。
+
+### 三、CI Readback 與保護
+- GitHub commit `d4244a63738ee2fbf8fb120bb7016c95925aaaaf`：GitHub Actions `rules-emulator` 為 `completed/success`，對應 commit status `firebase-sync-probe/rules-emulator=success`。log 真實回讀 `FIREBASE_SECURITY_RULES_EMULATOR_PASS 33`、`FIREBASE_VERIFIED_EMAIL_INVITES_PASS 16`、`FIREBASE_GROUP_DIRECTORY_RULES_PASS 22`、`FIREBASE_OUTBOUND_SECURITY_EMULATOR_PASS 14`、`FIREBASE_GROUP_WORKFLOW_EMULATOR_PASS 21`、`HONBIN_FIRESTORE_NOTE_CRUD_EMULATOR_PASS 34`、`HONBIN_OFFLINE_DRAFT_INDEXEDDB_PASS 19`、`HONBIN_SPARK_AUTH_HOSTING_PACKAGE_PASS 10`、`FIRESTORE_EMULATOR_RESULT=success`。
+- 全部只有 GitHub `probe/gas-no-work-20261019` 隔離新檔與 workflow 改動，`main` 兩個 CRM blob 應在每輪繼續驗證：`index.html` SHA `909d05477b2b33e9238798529283cad395750c0b`、`simple-core.js` SHA `4c7d58ba03a1a5ed53c797060b9d2572cfc0776c`。
+- 不修改 `firestoreReadyForRealData=false`、不動正式 Firestore 雲端 Security Rules／Google Auth 使用者／現有 R73 記事、不部署、不計費、不使用 Work。
+
+**下一階段**：優先處理獨立 Auth-only Hosting 的官方管理授權與 Firebase 已授權網域，僅此 Gate 過關才可請使用者在 iPhone Safari 做 Google 登入真機 PASS。其後才進行合成資料的真正 Firestore ACL 部署及兩帳號／雙手機驗收（都須符合原安全 Gate）；沒有授權時可繼續隔離做版本衝突 UI／模擬器測試，但不得冒稱 HTTPS 或雲端同步已完成。
