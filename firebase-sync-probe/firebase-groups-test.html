@@ -106,8 +106,10 @@ async function operation(work,{refresh=false}={}){
  }catch(error){
   if(epoch!==generation)return;
   msg(statusError(error));
-  if(error?.code==='permission-denied'){selected=null;$('selected').hidden=true;
-   $('groupList').replaceChildren();$('inboxList').replaceChildren();$('memberList').replaceChildren();
+  if(error?.code==='permission-denied'){
+   selected=null;issued=[];$('selected').hidden=true;$('admin').hidden=true;
+   $('selectedName').textContent='群組';$('selectedRole').textContent='';
+   for(const id of ['groupList','inboxList','memberList','sentList'])$(id).replaceChildren();
   }
  }finally{if(epoch===generation){busy=false;btns();}}
 }
@@ -125,6 +127,21 @@ async function reload(){
  const groups=await svc.listGroups();
  if(epoch!==generation)return;
  const box=$('groupList');box.replaceChildren();
+ if(selected){
+  const current=groups.find(item=>item.id===selected.id);
+  if(!current){
+    selected=null;issued=[];$('selected').hidden=true;$('admin').hidden=true;
+    $('memberList').replaceChildren();$('sentList').replaceChildren();
+    $('selectedName').textContent='群組';$('selectedRole').textContent='';
+  }else{
+    selected=current;$('selectedName').textContent=current.name;
+    $('selectedRole').textContent='目前權限：'+current.role;
+    $('admin').hidden=current.role!=='ADMIN';
+    if(current.role!=='ADMIN'){
+      issued=[];$('memberList').replaceChildren();$('sentList').replaceChildren();
+    }
+  }
+ }
  if(!groups.length)box.append(el('p','目前沒有可存取的群組。'));
  for(const g of groups){
   const item=listItem(g.name,'身分：'+g.role);
