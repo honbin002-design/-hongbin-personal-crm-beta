@@ -207,7 +207,14 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
 
  await page.locator('[data-customer="測試甲公司"]').click();
  check((await page.locator('#customer360Content').innerText()).includes('QTEST-001'),'既有報價自動彙整到客戶完整資料');
- check((await page.locator('#customer360Content').innerText()).includes('既有產品'),'已儲存客戶使用產品自動顯示');
+ check(!(await page.locator('#customer360Content').innerText()).includes('既有產品')&&
+  (await page.locator('#customer360Content').innerText()).includes('ERP 客戶使用產品及售價'),
+  '客戶詳細資料僅顯示 ERP 使用產品與售價，不再顯示重複的舊使用產品');
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).products.some(p=>p.name==='既有產品')),
+  '隱藏舊使用產品區塊不會刪除原產品資料');
+ check(await page.locator('#customer360Content .customer360-block h3').allTextContents().then(h=>h.filter(t=>t.includes('使用產品')).length===1)&&
+  await page.locator('#addCustomerProduct').count()===0,
+  '客戶頁只保留單一 ERP 使用產品區塊，取消重複新增按鈕');
  check((await page.locator('#customer360Content').innerText()).includes('舊ID專案'),'使用客戶 ID 的舊專案也能顯示在客戶資料');
 
  check(await page.locator('#customerListCard').isHidden(),'查看完整資料時，其他客戶清單不再留在上方');
@@ -348,11 +355,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('button[data-tab="customers"]').click();
  await page.locator('[data-customer="測試甲公司"]').click();
  const overview=await page.locator('#customer360Content').innerText();
- check(['R73客戶使用產品','QTEST-001','R74測試專案','R74行事曆事項'].every(t=>overview.includes(t)),'客戶完整資料同時彙整產品、報價、專案、待辦');
+ check(['QTEST-001','R74測試專案','R74行事曆事項','ERP 客戶使用產品及售價'].every(t=>overview.includes(t))&&
+  !overview.includes('R73客戶使用產品'),
+  '客戶完整資料只顯示 ERP 使用產品區塊，報價／專案／待辦仍正常顯示');
  check(overview.includes('14:30'),'客戶待辦紀錄含設定的時間');
- await page.locator('#addCustomerProduct').click();
- check(await page.locator('#pdCustomer').inputValue()==='測試甲公司','從客戶頁新增使用產品自動帶入該客戶');
- await page.locator('#cancelProduct').click();
+ check(await page.locator('#addCustomerProduct').count()===0&&
+   await page.locator('#customer360Content .customer360-block h3').allTextContents().then(h=>h.filter(t=>t.includes('使用產品')).length===1),
+  '新增舊產品後客戶頁仍只有 ERP 產品及售價區塊，舊產品資料不會被刪除');
 
 
  await page.locator('button[data-tab="backup"]').click();
@@ -439,8 +448,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('[data-tab="customers"]').click();
  await page.locator('[data-customer="舊版R70客戶"]').click();
  check((await page.locator('#customer360Content').innerText()).includes('ERP 客戶使用產品及售價')&&
-  (await page.locator('#customer360Content').innerText()).includes('1,234.5'),
-  '客戶完整資料可反向查看 ERP 品號及價格，仍保留既有客戶');
+  (await page.locator('#customer360Content').innerText()).includes('1,234.5')&&
+  await page.locator('#customer360Content .customer360-block h3').allTextContents().then(h=>h.filter(t=>t.includes('使用產品')).length===1)&&
+  (await page.locator('#customer360Content .customer360-badges').innerText()).includes('ERP 使用產品 1 筆'),
+  'ERP 匯入後客戶頁僅一個使用產品及售價區塊，筆數正確且不包含舊產品');
 
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R73 SIMPLE ACCEPTANCE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
