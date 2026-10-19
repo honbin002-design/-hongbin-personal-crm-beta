@@ -20,34 +20,49 @@ jobs:
         with:
           node-version: '22'
       - name: Run synthetic-user access and conflict tests
+        id: test_note_rules
         run: node gas-sync-probe/note-rules.test.cjs
       - name: Run mock Google Sheets event adapter tests
+        id: test_sheets_adapter
         run: node gas-sync-probe/sheets-adapter.test.cjs
       - name: Run verified-actor HMAC boundary tests with Node crypto
+        id: test_signed_boundary
         run: node gas-sync-probe/signed-boundary.test.cjs
       - name: Run versioned event store and recovery tests
+        id: test_event_service
         run: node gas-sync-probe/event-service.test.cjs
       - name: Run durable nonce replay and pruning tests
+        id: test_nonce_registry
         run: node gas-sync-probe/nonce-registry.test.cjs
       - name: Run iPhone offline outbox and legacy preview tests
+        id: test_offline_outbox
         run: node gas-sync-probe/offline-outbox.test.cjs
       - name: Prevent data loss during two simultaneous iPhone note syncs
+        id: test_offline_race
         run: node gas-sync-probe/offline-race.test.cjs
       - name: Build both closed-access Google Apps Script packages and scan for risks
+        id: test_build_bundles
         run: node gas-sync-probe/build-bundles.test.cjs
       - name: Run synthetic A-to-B signed request and storage integration with real crypto
+        id: test_bundle_runtime
         run: node gas-sync-probe/bundle-runtime.test.cjs
       - name: Require explicit consent before R73 note import and dedupe by SHA256
+        id: test_legacy_import
         run: node gas-sync-probe/legacy-import.test.cjs
       - name: Reject Google account switching for offline private note uploads
+        id: test_account_scoped_outbox
         run: node gas-sync-probe/account-scoped-outbox.test.cjs
       - name: Show only authorized shared groups and honor membership revocation
+        id: test_group_list
         run: node gas-sync-probe/group-list.test.cjs
       - name: Deny unsafe actual Apps Script deployment access on readback
+        id: test_deployment_readback
         run: node gas-sync-probe/deployment-readback.test.cjs
       - name: Test iPhone sync notes create edit delete and conflict UI behavior
+        id: test_ui_smoke
         run: node gas-sync-probe/ui-smoke.test.cjs
       - name: Block cross-account release until genuine Google OAuth and deployment proof
+        id: test_multi_account_gate
         run: node gas-sync-probe/multi-account-gate.test.cjs
       - name: Assemble deployable but CLOSED Google Script source bundles
         run: node gas-sync-probe/build-bundles.cjs "$RUNNER_TEMP/honbin-gas-package"
@@ -63,9 +78,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_RESULT: ${{ job.status }}
+          STEPS_REPORT: ${{ toJSON(steps) }}
         run: |
           set -euo pipefail
           if [[ "$JOB_RESULT" == "success" ]]; then state=success; else state=failure; fi
+          failed=$(printf '%s' "$STEPS_REPORT" | jq -r '[to_entries[] | select(.value.outcome == "failure") | .key][0] // empty')
+          if [[ -n "$failed" ]]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+              --field state=failure \
+              --field context="gas-sync-probe/failed-$failed" \
+              --field description="Failed isolated Node suite: $failed" >/dev/null
+          fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             --field state="$state" \
             --field context='gas-sync-probe/node-regression' \
