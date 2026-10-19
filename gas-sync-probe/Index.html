@@ -405,7 +405,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  };
  var changeMember=function(memberId,role,statusValue){
   if(!isGroupAdmin()){status('只有管理者能變更共用成員。');return}
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(memberId.trim())||
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberId.trim())||
      memberId.length>254){status('請填寫正確的 Google 帳號 Email。');return}
   runAdminAction('SET_MEMBER',{groupId:byId('groupId').value,
    memberId:memberId.trim().toLowerCase(),role:role,status:statusValue},function(){
