@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>鴻繽 CRM｜私人與共用記事測試候選</title>
+<style>
+:root{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;color:#23364d;background:#f5f7fa}
+*{box-sizing:border-box}body{max-width:680px;margin:0 auto;padding:16px 14px 72px}
+h1{font-size:1.3rem;margin:4px 0 9px}h2{font-size:1.1rem;margin:0 0 10px}
+section{background:#fff;padding:16px;margin:13px 0;border:1px solid #d3ddec;border-radius:13px}
+label{font-weight:600;display:block;margin:11px 0 5px}
+input,textarea,select{font:inherit;width:100%;border:1px solid #a1b1c4;border-radius:8px;min-height:44px;padding:10px;background:white}
+textarea{min-height:145px;resize:vertical}button{font:600 15px/1.4 inherit;min-height:44px;border:0;border-radius:9px;background:#205a9a;color:white;padding:9px 15px}
+button.secondary{color:#205a9a;background:#e5edf7}button.danger{background:#963b47}
+button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #d49b38}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.muted{color:#5a687c;font-size:14px}.notice{background:#fff7e6;border-left:4px solid #cc8c29;padding:10px}
+#status{white-space:pre-wrap;overflow-wrap:anywhere;background:#e8f0fa;border-radius:9px;padding:10px}
+.entry{border-bottom:1px solid #dce3ee;padding:12px 0}.entry:last-child{border-bottom:0}
+.entry strong{overflow-wrap:anywhere}.tiny{color:#596677;font-size:13px}
+[hidden]{display:none!important}
+</style></head>
+<body>
+<h1>鴻繽科技 CRM｜同步記事候選</h1>
+<p class="muted">獨立工程測試版，尚未正式部署，與原 CRM 隨手記分離。</p>
+<p id="gate" class="notice">安全 HOLD：Firestore 雲端讀寫尚未核准啟用。</p>
+<section>
+<h2>Google 身分驗證</h2>
+<p id="identity">尚未登入</p>
+<div class="actions"><button id="login" disabled>以 Google 帳號登入</button><button id="logout" class="secondary" disabled>登出／切換帳號</button></div>
+<p id="status" role="status" aria-live="polite">正在核對安全條件……</p>
+</section>
+<main id="workspace" hidden>
+<section>
+<h2>記事模式</h2>
+<div class="actions"><button id="privateMode" type="button">私人記事</button><button id="sharedMode" type="button" class="secondary">共用記事</button></div>
+<div id="groupsBox" hidden>
+<label for="groupSelect">選擇已授權群組</label><select id="groupSelect"></select>
+<p class="muted" id="groupRole">請先選擇共用群組。</p>
+</div>
+<div class="actions"><button id="refresh" class="secondary">重新讀取記事</button></div>
+<label for="search">搜尋標題或內容</label><input id="search" type="search" autocomplete="off" placeholder="輸入關鍵字">
+</section>
+<section>
+<h2>記事列表</h2>
+<div id="list" aria-live="polite"></div>
+</section>
+<section>
+<h2 id="editTitle">新增記事</h2>
+<p id="editorHint" class="muted">新增後才會寫入授權的 Firebase 測試資料庫。</p>
+<label for="title">標題</label><input id="title" maxlength="120" autocomplete="off">
+<label for="content">內容</label><textarea id="content" maxlength="30000" placeholder="輸入記事內容"></textarea>
+<div class="actions">
+<button id="save">儲存</button>
+<button id="cancel" type="button" class="secondary">取消編輯</button>
+<button id="delete" type="button" class="danger" hidden>刪除記事</button>
+</div>
+<p id="conflict" class="notice" hidden></p>
+</section>
+</main>
+<section class="muted">
+<strong>限制與隱私</strong>
+<p>本候選版不會讀取舊 R73 隨手記或匯入既有資料。Firebase 內容並非端對端加密，專案管理員可能存取明文。</p>
+<p>儲存成功以伺服器交易回覆為準，斷線不會宣稱已同步。未儲存草稿只暫存本次分頁記憶體，關閉 Safari 頁面可能遺失；目前沒有永久離線草稿功能。</p>
+<p>共用群組與 Email 邀請管理仍在另一個隔離候選介面測試。正式 CRM、客戶、產品及報價資料不受影響。</p>
+</section>
+<script type="module">
+import {firebaseConfig,firestoreReadyForRealData} from './firebase-web-config.mjs';
+import {noteService} from './firebase-note-service.mjs';
+import {groupService} from './firebase-group-service.mjs';
+const $=id=>document.getElementById(id);
+const node=(tag,value)=>{const e=document.createElement(tag);e.textContent=String(value??'');return e};
+const msg=text=>$('status').textContent=String(text);
+let sdk=null,auth=null,db=null,notes=null,groups=null,account='',mode='PRIVATE';
+let selectedGroup=null,groupOptions=[],shown=[],active=null,pendingCreateId=null;
+let busy=false,ready=false,generation=0;
+const drafts=new Map();
+const snapshotDraft=()=>({title:$('title').value,content:$('content').value,
+  active:active?{...active}:null,pendingCreateId});
+const key=()=>account+':'+mode+':'+(selectedGroup?.id||'private');
+function remember(){if(account)drafts.set(key(),snapshotDraft())}
+function restore(){
+ const v=drafts.get(key());
+ active=v?.active||null;pendingCreateId=v?.pendingCreateId||null;
+ $('title').value=v?.title||'';$('content').value=v?.content||'';
+ $('editTitle').textContent=active?'編輯記事（版本 '+active.version+'）':'新增記事';
+ $('delete').hidden=!active;
+ $('conflict').hidden=true;
+}
+function clearEditor(){
+ active=null;pendingCreateId=null;$('title').value='';$('content').value='';
+ $('delete').hidden=true;$('editTitle').textContent='新增記事';$('conflict').hidden=true;
+ remember();
+}
+function clearSensitive(){
+ account='';notes=null;groups=null;selectedGroup=null;groupOptions=[];shown=[];
+ active=null;pendingCreateId=null;$('title').value='';$('content').value='';
+ $('list').replaceChildren();$('groupSelect').replaceChildren();
+ $('workspace').hidden=true;$('groupsBox').hidden=true;$('conflict').hidden=true;
+ $('delete').hidden=true;$('editTitle').textContent='新增記事';
+}
+function buttons(){
+ $('login').disabled=!ready||busy||Boolean(auth?.currentUser);
+ $('logout').disabled=!ready||busy||!auth?.currentUser;
+ for(const el of $('workspace').querySelectorAll('button,input,textarea,select'))el.disabled=busy;
+ const mayWrite=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
+ $('save').disabled=busy||!mayWrite;
+ $('delete').disabled=busy||!mayWrite;
+}
+function scope(){
+ if(mode==='PRIVATE')return {mode};
+ if(!selectedGroup)throw Error('GROUP_NOT_SELECTED');
+ return {mode,groupId:selectedGroup.id};
+}
+function reason(e){
+ if(e?.code==='NOTE_VERSION_CONFLICT')return '版本衝突：伺服器已有新版本，你的文字仍保留，沒有覆蓋別人的更新。請比較後自行處理。';
+ if(e?.code==='permission-denied')return '伺服器拒絕存取，可能已被撤銷權限。共用內容已隱藏。';
+ if(e?.code==='unavailable')return '網路或伺服器不可用。草稿仍留在此頁，尚未雲端儲存。';
+ if(e?.message==='GOOGLE_ACCOUNT_CHANGED')return 'Google 帳號已切換，舊帳號的操作已停止。';
+ return '操作未完成（'+String(e?.code||e?.message||'UNKNOWN')+'）。';
+}
+async function execute(work){
+ if(!notes||busy)return;
+ const token=generation;busy=true;buttons();
+ try{
+  const result=await work();
+  if(token===generation)msg(result||'操作完成。');
+ }catch(e){
+  if(token!==generation)return;
+  if(e?.code==='NOTE_VERSION_CONFLICT'){
+   $('conflict').hidden=false;
+   $('conflict').textContent='遠端版本：'+(e.remote?.version??'已移除')+
+     '。目前畫面保留你的草稿，請先閱讀最新版本再決定。';
+   remember();
+  }
+  if(e?.code==='permission-denied'&&mode==='SHARED'){
+   remember();
+   selectedGroup=null;groupOptions=[];shown=[];$('list').replaceChildren();
+   $('groupsBox').hidden=true;$('title').value='';$('content').value='';
+   active=null;pendingCreateId=null;$('delete').hidden=true;
+  }
+  msg(reason(e));
+ }finally{if(token===generation){busy=false;buttons();}}
+}
+async function loadGroups(){
+ const epoch=generation;
+ const result=await groups.listGroups();
+ if(epoch!==generation)return;
+ groupOptions=result;
+ const select=$('groupSelect');select.replaceChildren();
+ for(const group of result){
+  const o=node('option',group.name+'（'+group.role+'）');o.value=group.id;select.append(o);
+ }
+ if(!result.length){
+  selectedGroup=null;$('groupRole').textContent='目前沒有可存取的共用群組。';
+  return;
+ }
+ selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
+ select.value=selectedGroup.id;
+ $('groupRole').textContent='已驗證角色：'+selectedGroup.role;
+}
+async function loadNotes(){
+ const epoch=generation;
+ if(mode==='SHARED'){await loadGroups();if(epoch!==generation)return}
+ const query=scope();
+ const all=await notes.list({...query,search:$('search').value});
+ if(epoch!==generation)return;
+ shown=all;const root=$('list');root.replaceChildren();
+ if(!all.length)root.append(node('p','此範圍目前沒有符合條件的記事。'));
+ for(const item of all){
+  const e=node('div');e.className='entry';
+  e.append(node('strong',item.title),node('div','版本 '+item.version+'｜'+
+   String(item.content).slice(0,70)));
+  e.append(node('div','更新日期：'+(item.updatedAt?.toDate?.().toLocaleString('zh-TW')||'未提供')));
+  const b=node('button','開啟／編輯');b.type='button';b.className='secondary';
+  b.addEventListener('click',()=>{
+   if($('title').value||$('content').value){
+    if(!window.confirm('目前草稿尚未儲存。確定切換記事？'))return;
+   }
+   active={id:item.id,version:item.version};pendingCreateId=null;
+   $('title').value=item.title;$('content').value=item.content;
+   $('editTitle').textContent='編輯記事（版本 '+item.version+'）';
+   $('delete').hidden=false;$('conflict').hidden=true;remember();buttons();
+  });
+  e.append(b);root.append(e);
+ }
+}
+async function modeChange(next){
+ if(mode===next)return;
+ remember();mode=next;selectedGroup=null;shown=[];$('list').replaceChildren();
+ $('groupsBox').hidden=mode!=='SHARED';
+ $('privateMode').className=mode==='PRIVATE'?'':'secondary';
+ $('sharedMode').className=mode==='SHARED'?'':'secondary';
+ restore();
+ await execute(async()=>{if(mode==='SHARED')await loadGroups();await loadNotes();return '已切換記事範圍。';});
+}
+$('privateMode').addEventListener('click',()=>modeChange('PRIVATE'));
+$('sharedMode').addEventListener('click',()=>modeChange('SHARED'));
+$('groupSelect').addEventListener('change',()=>{
+ remember();selectedGroup=groupOptions.find(x=>x.id===$('groupSelect').value)||null;
+ restore();execute(async()=>{await loadNotes();return '已重新讀取群組記事。';});
+});
+$('refresh').addEventListener('click',()=>execute(async()=>{
+ await loadNotes();return '已從伺服器重新讀取，沒有自動覆蓋編輯草稿。';
+}));
+$('search').addEventListener('input',()=>{const query=$('search').value.toLocaleLowerCase('zh-Hant');
+ const root=$('list');for(const child of [...root.children]){
+  if(!child.classList.contains('entry'))continue;
+  child.hidden=!child.textContent.toLocaleLowerCase('zh-Hant').includes(query);
+ }
+});
+$('title').addEventListener('input',remember);
+$('content').addEventListener('input',remember);
+$('cancel').addEventListener('click',()=>{
+ if(($('title').value||$('content').value)&&!window.confirm('確定放棄目前未儲存的修改？'))return;
+ clearEditor();
+});
+$('save').addEventListener('click',()=>execute(async()=>{
+ const target=scope(),title=$('title').value,content=$('content').value;
+ const result=active?
+  await notes.update({...target,noteId:active.id,expectedVersion:active.version,title,content}):
+  await notes.create({...target,noteId:pendingCreateId||(pendingCreateId=notes.newId(target)),title,content});
+ clearEditor();await loadNotes();
+ return (result.alreadyCreated?'已確認先前記事存在。':'已收到伺服器交易成功回覆。')+
+   '目前版本：'+result.version;
+}));
+$('delete').addEventListener('click',()=>{
+ if(!active||!window.confirm('確定刪除此記事？將先標記刪除，不直接移除資料庫文件。'))return;
+ execute(async()=>{
+  await notes.softDelete({...scope(),noteId:active.id,expectedVersion:active.version});
+  clearEditor();await loadNotes();return '已由伺服器確認刪除標記。';
+ });
+});
+$('login').addEventListener('click',()=>{
+ if(!ready||busy||!auth)return;
+ busy=true;buttons();
+ // Popup must be initiated synchronously by a direct iPhone tap.
+ sdk.signInWithPopup(auth,new sdk.GoogleAuthProvider())
+   .catch(error=>msg(reason(error))).finally(()=>{busy=false;buttons();});
+});
+$('logout').addEventListener('click',()=>{
+ if(!auth||busy)return;remember();busy=true;buttons();
+ sdk.signOut(auth).catch(e=>msg(reason(e))).finally(()=>{busy=false;buttons();});
+});
+async function start(){
+ // The current branch deliberately stays fail-closed. NO SDK / getFirestore
+ // or cloud requests are reached until a later authorized release.
+ if(firestoreReadyForRealData!==true){
+  msg('安全 HOLD：候選介面已建立，但真實資料庫仍拒絕讀寫，尚未發佈測試網站。');
+  return;
+ }
+ if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_PROJECT');
+ const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
+ const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
+ const fsSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js');
+ sdk={...authSdk,...fsSdk};const app=appSdk.initializeApp(firebaseConfig);
+ auth=authSdk.getAuth(app);await authSdk.setPersistence(auth,authSdk.browserSessionPersistence);
+ db=fsSdk.getFirestore(app);ready=true;
+ authSdk.onAuthStateChanged(auth,async user=>{
+  remember();const epoch=++generation;clearSensitive();buttons();
+  if(!user){$('identity').textContent='尚未登入';msg('請使用自己的 Google 帳號登入。');return;}
+  try{
+   const claim=await user.getIdTokenResult();
+   if(epoch!==generation||auth.currentUser?.uid!==user.uid)return;
+   if(user.emailVerified!==true||claim.claims.firebase?.sign_in_provider!=='google.com'){
+    await authSdk.signOut(auth);return;
+   }
+   account=user.uid;
+   notes=noteService({db,sdk,identity:{uid:user.uid,emailVerified:true,
+      providerId:'google.com'},currentUid:()=>auth.currentUser?.uid});
+   groups=groupService({db,sdk,identity:user});
+   $('identity').textContent='已登入：'+user.email;
+   $('workspace').hidden=false;mode='PRIVATE';selectedGroup=null;restore();
+   await loadNotes();if(epoch===generation)msg('已載入此 Google 帳號的私人記事。');
+  }catch(e){if(epoch===generation){clearSensitive();msg(reason(e));}}
+  finally{buttons();}
+ });
+ buttons();
+}
+start().catch(e=>msg(reason(e)));
+</script>
+</body>
+</html>
