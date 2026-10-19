@@ -133,6 +133,14 @@ try{
  await check('EDITOR stale update conflicts without overwriting owner change',()=>assert.rejects(
   bob.update({...S,noteId:shared,expectedVersion:1,title:'過期版',content:'不能覆蓋'}),
   /NOTE_VERSION_CONFLICT/));
+ await check('EDITOR cannot soft-delete shared article through version+1',()=>assertFails(
+  bob.softDelete({...S,noteId:shared,expectedVersion:2})
+ ));
+ await check('EDITOR cannot forge the deleted field directly',()=>assertFails(
+  sdk.updateDoc(sdk.doc(b,'groups',G,'notes',shared),{
+   deleted:true,version:3
+  })
+ ));
  await check('VIEWER cannot modify valid newer shared note',()=>assertFails(
   carol.update({...S,noteId:shared,expectedVersion:2,
    title:'檢視者不許編輯',content:'禁止'})
