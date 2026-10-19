@@ -298,12 +298,17 @@ function applyErpData(){
  let counts;try{counts=validateErpData(erpPending)}catch(e){alert(e.message);return}
  if(!confirm('確定更新這台 iPhone 的 ERP 供應商、產品、客戶及價格？\n其他客戶、報價、專案及待辦會保留；請確認備份已保存。'))return;
  const current=getMaster(),old=localStorage.getItem(KEYS.master);
- const customers=new Map(current.customers.filter(c=>c?.name).map(c=>[norm(c.name),{...c}]));
- for(const c of erpPending.customers)customers.set(norm(c.name),{...(customers.get(norm(c.name))||{}),...c,source:'ERP_R2_R23'});
+ const customers=current.customers.map(c=>({...c}));
+ const positions=new Map(customers.map((c,i)=>[norm(c.name),i]).filter(x=>x[0]));
+ for(const c of erpPending.customers){
+  const key=norm(c.name),index=positions.get(key);
+  if(index===undefined){positions.set(key,customers.length);customers.push({...c,source:'ERP_R2_R23'})}
+  else customers[index]={...customers[index],...c,source:'ERP_R2_R23'};
+ }
  const keys=new Set(erpPending.products.map(p=>norm(p.supplierShortName)+'|'+norm(p.model)));
  const legacy=current.products.filter(p=>p.source!=='ERP_R2_R23'&&!keys.has(norm(p.supplierShortName||productSupplier(p))+'|'+norm(productModel(p))))
   .map(p=>({...p,source:'legacy-not-verified'}));
- const next={...current,customers:[...customers.values()],suppliers:erpPending.suppliers.map(x=>({...x})),
+ const next={...current,customers,suppliers:erpPending.suppliers.map(x=>({...x})),
   products:[...erpPending.products.map(x=>({...x})),...legacy],
   customerPrices:erpPending.customerPrices.map(x=>({...x})),
   erpMasterImport:{fileId:erpPending.source.fileId,fileName:erpPending.source.fileName,counts,importedAt:new Date().toISOString(),unverifiedLegacyProducts:legacy.length}};
@@ -358,6 +363,10 @@ function saveSupplier(){
  if(duplicate){alert('供應商已存在，請直接修改原資料');return}
  const old=idx==null?{}:m.suppliers[idx]||{},next={...old,name,contact:field('suContact'),tel:field('suTel'),email:field('suEmail'),address:field('suAddress'),note:field('suNote')};
  if(idx==null)m.suppliers.push(next);else m.suppliers[idx]=next;
+ if(idx!=null&&norm(supplierName(old))!==norm(name)){
+  m.products.forEach(p=>{if(norm(productSupplier(p))===norm(supplierName(old)))p.supplierName=name});
+  if(Array.isArray(m.customerPrices))m.customerPrices.forEach(p=>{if(norm(p.supplierName)===norm(supplierName(old)))p.supplierName=name});
+ }
  if(!store(KEYS.master,m))return;
  $('supplierEditor').hidden=true;renderSuppliers();fillCustomerNames();toast('供應商已儲存');
 }
@@ -402,7 +411,10 @@ function editProduct(index,customer){
 function saveProduct(){
  const name=field('pdName');if(!name){alert('請輸入產品名稱');return}
  const m=getMaster(),idx=editProductIndex,customer=field('pdCustomer'),model=field('pdModel');
- const match=m.products.some((p,i)=>i!==idx&&norm(productName(p))===norm(name)&&norm(productModel(p))===norm(model)&&norm(productCustomer(p))===norm(customer));
+ const supplier=field('pdSupplier');
+ const match=m.products.some((p,i)=>i!==idx&&(
+  (model&&supplier&&norm(productModel(p))===norm(model)&&norm(productSupplier(p))===norm(supplier))||
+  (norm(productName(p))===norm(name)&&norm(productModel(p))===norm(model)&&norm(productCustomer(p))===norm(customer))));
  if(match){alert('相同名稱、型號與使用客戶的產品已存在，請編輯原項目');return}
  const old=idx==null?{}:m.products[idx]||{};
  const next={...old,name,model,spec:field('pdSpec'),supplierName:field('pdSupplier'),customerName:customer,customerId:customer?customerId(customer):null,notes:field('pdNotes')};
