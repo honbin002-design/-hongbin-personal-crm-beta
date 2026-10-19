@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;color:#193247;background:#f3f7fa}
+*{box-sizing:border-box}
+body{margin:0;padding:16px 16px calc(36px + env(safe-area-inset-bottom))}
+main{max-width:650px;margin:auto}
+h1{font-size:23px;margin:3px 0 8px}
+p{line-height:1.6} .sub{color:#4e6070;font-size:14px}
+.panel{background:white;border:1px solid #d5e2eb;border-radius:14px;padding:16px;margin-top:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}
+button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:8px 15px;background:#135c8e;color:white}
+button.secondary{background:#e5edf4;color:#193247}
+button.active{background:#135c8e;color:white}
+button:disabled{opacity:.55}
+input{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d2df;border-radius:7px}
+.note{border-top:1px solid #dbe7f0;padding:12px 0}
+.note strong{display:block;font-size:16px}
+.note .body{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+#status{min-height:46px;padding:12px;border-radius:8px;background:#e8f0f6;white-space:pre-wrap}
+</style></head>
+<body><main>
+<h1>同步記事｜隔離測試頁</h1>
+<p class="sub">此頁只供經授權的測試環境使用。原本 CRM 隨手記不會自動上傳。</p>
+<section class="panel">
+<div class="tabs" role="tablist">
+<button id="personal" class="active" type="button">私人記事</button>
+<button id="team" class="secondary" type="button">共用記事</button>
+</div>
+<div id="groupSection" hidden><label for="groupId">共用群組 ID</label><input id="groupId" autocomplete="off" placeholder="輸入已獲授權的群組 ID"></div>
+<p id="status" role="status" aria-live="polite">尚未連接 Google 服務。</p>
+<button id="refresh" type="button">重新讀取</button>
+<div id="items"></div>
+</section></main>
+<script>
+(function(){
+ 'use strict';
+ var scope='PRIVATE',running=false;
+ var byId=function(id){return document.getElementById(id)};
+ var status=function(message){byId('status').textContent=message};
+ var choose=function(s){
+  scope=s;
+  byId('personal').className=s==='PRIVATE'?'active':'secondary';
+  byId('team').className=s==='SHARED'?'active':'secondary';
+  byId('groupSection').hidden=s==='PRIVATE';
+  byId('items').replaceChildren();
+  status(s==='PRIVATE'?'私人記事：尚未讀取':'共用記事：請輸入已授權群組 ID');
+ };
+ var dateText=function(value){
+  if(!value)return '未記錄';
+  var d=new Date(value);
+  return isNaN(d.getTime())?'未記錄':d.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false});
+ };
+ var showNotes=function(list){
+  var root=byId('items');root.replaceChildren();
+  if(!Array.isArray(list)){status('資料格式不正確，已停止顯示。');return}
+  status('同步讀取成功：'+list.length+' 則');
+  if(!list.length){var p=document.createElement('p');p.textContent='目前沒有授權可查看的記事。';root.appendChild(p)}
+  list.forEach(function(n){
+   var article=document.createElement('article');article.className='note';
+   var heading=document.createElement('strong');heading.textContent=String(n.title||'未命名記事');
+   var date=document.createElement('div');date.className='sub';
+   date.textContent='修改於 '+dateText(n.updatedAt)+'｜版本 '+Number(n.version||0);
+   var content=document.createElement('div');content.className='body';content.textContent=String(n.content||'');
+   article.append(heading,date,content);root.appendChild(article);
+  });
+ };
+ var refresh=function(){
+  if(running)return;
+  if(!window.google||!google.script||!google.script.run){status('尚未部署到 Google Apps Script 測試環境');return}
+  var req={scope:scope};
+  if(scope==='SHARED'){req.groupId=byId('groupId').value.trim();if(!req.groupId){status('請先填入共用群組 ID');return}}
+  running=true;byId('refresh').disabled=true;status('正在透過 Google 驗證權限並讀取……');
+  google.script.run.withSuccessHandler(function(data){running=false;byId('refresh').disabled=false;showNotes(data)})
+  .withFailureHandler(function(err){running=false;byId('refresh').disabled=false;
+   status('讀取失敗，資料未更動：'+String(err&&err.message||'UNKNOWN_ERROR'))})
+  .gasNoteCall('LIST_NOTES',req);
+ };
+ byId('personal').onclick=function(){choose('PRIVATE')};
+ byId('team').onclick=function(){choose('SHARED')};
+ byId('refresh').onclick=refresh;
+})();
+</script></body></html>
