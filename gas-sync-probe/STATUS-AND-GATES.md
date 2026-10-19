@@ -204,3 +204,13 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - GitHub commit `d58043b28fe19f7a92ea7579fb372f4d22168396` 的 `gas-sync-probe/node-regression` 已回報 **success**。**15 組最新 Node.js CI PASS**；這表示整個測試流程通過，不代表現場 Apps Script 已執行。
 - 實際公司 Google Sheet 本輪只做 metadata 讀取，**沒有插入或刪除任何正式／測試資料**。真實 Google Sheets 的 Apps Script 擴容行為仍待擁有正確 Google OAuth 的測試部署驗證。
 - 正式 CRM main、既有 R73/R74 隨手記、報價、客戶與 ERP 均保持原狀。現階段仍必須 HOLD：Google Apps Script 實際安全部署、跨帳號 Script A→B 存取及兩支 iPhone 使用者驗收未完成。
+
+## 2026-10-19｜Google 部署架構裁決與可信證據關卡
+
+- Google 官方 Session／Web App 說明已證實：「execute as owner」通常無法使用 `Session.getActiveUser().getEmail()` 判斷其他使用者身分；「execute as user」不會自動取得公司私有 Google Sheets 的所有者權限。
+- 現有 A→B 兩層封閉部署架構仍未證明跨帳號網路授權可行。不能只因 Node CI 全綠就宣稱部署可成功，也不能直接把 B 設成公開匿名服務。
+- 新增 `GOOGLE-DEPLOYMENT-FEASIBILITY.md`：比對雙層 Apps Script、單一 Google 擁有者 Script + Google Identity Services、直接分享試算表及外部後端四種方式，對不符合用戶需求的路徑標明不採用或 HOLD。
+- 發現原 `multi-account-gate.cjs` 只驗證可由呼叫者自行填入的多個 `true`，可能誤將虛構的授權證據當作「可進入驗收」。已修正成**真正 Google 官方部署與帳號證據驗證介面尚未接入前永遠 HOLD**；不能靠自行組裝布林值放行。
+- `multi-account-gate.test.cjs` 新增「偽造全 TRUE 仍 HOLD」回歸；GitHub commit `688787f1f1088093f780071c1706a6db645e8c96` 的 `gas-sync-probe/node-regression` 回報 `success`。真正 Apps Script OAuth／線上同步仍完全未驗證。
+- **不用 Work**。現有 Google Drive／Sheets 連線無 Apps Script 專案建立、更新、部署、部署回讀的專用 OAuth 介面。未確認存在安全的 OAuth 工作流程之前，不得要求使用者花 Work 額度或工程操作。
+- 本次未接入正式 CRM `main`，也未存取／遷移／分享真實記事或 ERP、客戶、報價資料。
