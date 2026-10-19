@@ -24,6 +24,8 @@ function doPost(e) {
   var envelope;
   try{envelope=JSON.parse(e.postData.contents);}catch(err){throw Error('INVALID_AUTH_ENVELOPE');}
   var props=PropertiesService.getScriptProperties();
+  if(props.getProperty('HONBIN_NOTES_TEST_GATE')!=='ISOLATED_TEST_APPROVED')
+    throw Error('SYNC_TEST_NOT_ENABLED');
   var secret=props.getProperty('HONBIN_NOTES_INTERNAL_SECRET');
   var verifier=GASBoundary_.createServerSideVerifier({
     secret:secret,hmac:gasHmacSha256Base64Url_,
