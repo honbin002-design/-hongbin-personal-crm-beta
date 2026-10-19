@@ -23,6 +23,7 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
 <body><main>
 <h1>同步記事｜隔離測試頁</h1>
 <p class="sub">此頁只供經授權的測試環境使用。原本 CRM 隨手記不會自動上傳。</p>
+<p class="sub" id="identity" aria-live="polite">正在確認 Google 登入帳號……</p>
 <section class="panel">
 <div class="tabs" role="tablist">
 <button id="personal" class="active" type="button">私人記事</button>
@@ -104,5 +105,14 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
  byId('personal').onclick=function(){choose('PRIVATE')};
  byId('team').onclick=function(){choose('SHARED')};
  byId('refresh').onclick=refresh;
+ if(window.google&&google.script&&google.script.run){
+  google.script.run.withSuccessHandler(function(info){
+   byId('identity').textContent='目前 Google 帳號：'+String(info&&info.account||'未確認');
+  }).withFailureHandler(function(){
+   byId('identity').textContent='目前 Google 帳號：無法驗證（同步已停用）';
+  }).gasWhoAmI();
+ }else{
+  byId('identity').textContent='尚未部署；這是隔離測試介面。';
+ }
 })();
 </script></body></html>
