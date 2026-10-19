@@ -225,3 +225,15 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - 據 Google 官方 Session 文件，`getTemporaryActiveUserKey()` 每 30 天輪替，不能作為長期多手機帳號；單一 owner GAS＋Google 官方身分驗證仍需 OAuth Client ID、伺服器端驗證 ID Token、CSRF 等可靠機制，未取得可安全部署的執行證據；見 `GOOGLE-DEPLOYMENT-FEASIBILITY.md`。
 - **權限撤銷並不代表能即時刪掉離線手機過去已讀資料。** 本次修正只保證網頁收到服務端拒絕或重新取得群組時清空快取；背景／離線及實機情境仍待驗證。
 - 此輪不使用 Work；沒有 Google Apps Script 真實部署、沒有更改正式 CRM／ERP、沒有把原有 R73/R74 隨手記上傳雲端。
+
+
+## 2026-10-19｜Google Firebase Spark 替代方案｜真實 Firestore 模擬器驗證
+
+- 不再把雙層 Apps Script 的 A→B 跨帳號代理視為唯一途徑。Google 自家 Firebase Authentication + Cloud Firestore Security Rules 可直接處理 Google 登入 UID 與私人／共用記事 ACL，理論上**不需要部署 Apps Script**。
+- Firebase Spark 免費方案由 Google 官方確認：社交 Google 登入支援，首個 Firestore 免費 DB 額度為 1 GiB、每日 50,000 次讀取及 20,000 次寫入；未綁付款方式／未升級 Blaze 時超額可能停用服務，絕不能稱無限免費。
+- 在相同 GitHub 隔離分支新增 `firebase-sync-probe/` 的 Firestore Security Rules（預設拒絕，使用 Google Provider + auth.uid，私人 notes path 與共用群組 ADMIN/EDITOR/VIEWER）及官方 Java Firestore Emulator 測試。
+- 使用 **Google 官方 Firestore Emulator + @firebase/rules-unit-testing** 測試 32 項安全情境，不是自己 mock 一個授權函式。GitHub 提交 `8d3b95f71d7d781a1c10050015bc18cdd0a0ebb0` 的 `firebase-sync-probe/rules-emulator` 狀態由 GitHub API 實際讀回 **success**。原本 Apps Script 15 組 Node CI 仍獨立保留。
+- 驗證項目：陌生人／非 Google 登入無權存取、私人 UID 嚴格隔離、共用群組角色、會員權限提升拒絕、VIEWER 無法更新、EDITOR 無法硬刪、版本跳號拒絕、撤銷／降權後新請求拒絕等。
+- **尚未做 Firebase 真實 Google 專案建立或部署，也沒有做 iPhone Safari 跨手機驗收。** Firebase UID 邀請需要先識別 UID；目前尚無未登入成員的 Email 邀請兌換流程，群組列表索引也尚未建立。GitHub Pages + Safari 的 Firebase Google 重導向登入受到第三方儲存限制，必須實機測試及評估 Popup/同網域 Hosting。
+- Firebase 是 Google 自家產品。已有可以由使用者自行確認連線的 Firebase 專用整合選項，但**目前尚未連上，不可宣稱能操作使用者的 Firebase 專案，也不可冒稱可零額外操作正式部署**。
+- 新方案詳細裁決請見 `firebase-sync-probe/README.md`。保留舊 GAS 原型與所有 PASS，不更動 CRM main、原有記事、Sheets、ERP，不使用 Work，正式 GO LIVE 仍 HOLD。
