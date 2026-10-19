@@ -39,9 +39,9 @@ try{
    getDocs(collection(charlie,'groups/'+gid+'/sentInvites'))));
  await test('Unrelated account cannot read recipient inbox',()=>assertFails(getDoc(doc(charlie,recv))));
  await test('Editor cannot read admin outbox',async()=>{
-   await assertSucceeds(setDoc(doc(alice,'groups/'+gid+'/members/editor'),{
-     uid:'editor',status:'ACTIVE',role:'EDITOR'
-   }));
+   const target='groups/'+gid+'/members/editor',body={uid:'editor',status:'ACTIVE',role:'EDITOR'};
+   await assertFails(setDoc(doc(alice,target),body));
+   await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),target),body));
    await assertFails(getDocs(collection(editor,'groups/'+gid+'/sentInvites')));
  });
  await test('Admin cannot mutate permanent index',()=>assertFails(updateDoc(doc(alice,sent),{role:'ADMIN'})));
