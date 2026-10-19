@@ -14,10 +14,19 @@ button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:8px 15px;
 button.secondary{background:#e5edf4;color:#193247}
 button.active{background:#135c8e;color:white}
 button:disabled{opacity:.55}
-input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d2df;border-radius:7px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;min-height:44px;padding:10px;border:1px solid #c4d2df;border-radius:7px}
+textarea{min-height:185px;resize:vertical;line-height:1.5}
+label{display:block;font-weight:600;margin:10px 0 5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions button{flex:1}
+#editor[hidden]{display:none}
+[hidden]{display:none!important}
+.note button{margin-top:7px}
+.warning{color:#973e21;font-weight:600}
+.note .body{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+
 .note{border-top:1px solid #dbe7f0;padding:12px 0}
 .note strong{display:block;font-size:16px}
-.note .body{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
 #status{min-height:46px;padding:12px;border-radius:8px;background:#e8f0f6;white-space:pre-wrap}
 </style></head>
 <body><main>
@@ -32,21 +41,69 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
 <div id="groupSection" hidden><label for="groupId">選擇共用群組</label>
 <select id="groupId" aria-label="已加入的共用群組"><option value="">載入已加入的群組中……</option></select></div>
 <p id="status" role="status" aria-live="polite">尚未連接 Google 服務。</p>
+<div class="actions">
 <button id="refresh" type="button">重新讀取</button>
+<button id="newNote" type="button" disabled>新增記事</button>
+</div>
+<section id="editor" class="panel" hidden aria-label="新增或編輯記事">
+<strong id="editorTitle">新增記事</strong>
+<label for="noteTitle">標題</label>
+<input id="noteTitle" autocomplete="off" maxlength="120" placeholder="輸入標題">
+<label for="noteContent">記事內容</label>
+<textarea id="noteContent" maxlength="30000" placeholder="請輸入記事內容"></textarea>
+<div class="actions">
+<button id="saveNote" type="button">儲存至 Google</button>
+<button id="cancelNote" class="secondary" type="button">取消</button>
+<button id="deleteNote" class="secondary" type="button" hidden>刪除記事</button>
+</div>
+<p class="sub" id="draftWarning">尚未儲存至 Google 的文字，只保留在目前編輯畫面。</p>
+</section>
 <div id="items"></div>
 </section></main>
 <script>
 (function(){
  'use strict';
- var scope='PRIVATE',running=false;
+ var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null;
  var byId=function(id){return document.getElementById(id)};
  var status=function(message){byId('status').textContent=message};
+ var groupRole=function(){
+  var selected=byId('groupId').value;
+  var g=groups.find(function(x){return String(x.groupId)===selected});
+  return g?String(g.role):'NONE';
+ };
+ var canWrite=function(){
+  return scope==='PRIVATE'||['ADMIN','EDITOR'].includes(groupRole());
+ };
+ var canDelete=function(){
+  return scope==='PRIVATE'||groupRole()==='ADMIN';
+ };
+ var secureId=function(){
+  var bytes=new Uint8Array(16);
+  if(!window.crypto||typeof window.crypto.getRandomValues!=='function')
+   throw Error('SECURE_RANDOM_UNAVAILABLE');
+  window.crypto.getRandomValues(bytes);
+  var out='';
+  for(var i=0;i<bytes.length;i++)out+=bytes[i].toString(16).padStart(2,'0');
+  return 'operation_'+out;
+ };
+ var remote=function(action,params,onSuccess,onFail){
+  if(!account){status('Google 帳號尚未驗證，禁止同步。');return}
+  if(!window.google||!google.script||!google.script.run){
+   status('尚未部署，不能讀寫雲端記事。');return;
+  }
+  var payload=Object.assign({},params||{});
+  var changes=['CREATE_GROUP','SET_MEMBER','CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE'];
+  if(changes.includes(action))payload.__expectedGoogleAccount=account;
+  google.script.run.withSuccessHandler(onSuccess)
+   .withFailureHandler(onFail).gasNoteCall(action,payload);
+ };
  var choose=function(s){
   scope=s;
   byId('personal').className=s==='PRIVATE'?'active':'secondary';
   byId('team').className=s==='SHARED'?'active':'secondary';
   byId('groupSection').hidden=s==='PRIVATE';
-  byId('items').replaceChildren();
+  notes=[];byId('items').replaceChildren();byId('editor').hidden=true;editing=null;
+  byId('newNote').disabled=!account||s==='SHARED';
   status(s==='PRIVATE'?'私人記事：尚未讀取':'共用記事：正在查詢你已加入的群組');
   if(s==='SHARED')loadGroups();
  };
@@ -55,7 +112,8 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
   if(!window.google||!google.script||!google.script.run){
    status('尚未部署至 Google Apps Script 測試環境');return
   }
-  google.script.run.withSuccessHandler(function(groups){
+  remote('LIST_GROUPS',{},function(received){
+   groups=Array.isArray(received)?received:[];
    select.replaceChildren();
    if(!Array.isArray(groups)||!groups.length){
     var empty=document.createElement('option');empty.value='';empty.textContent='尚未加入共用群組';
@@ -67,10 +125,12 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
     option.textContent=String(g.name||'未命名群組')+'（'+String(g.role||'成員')+'）';
     select.appendChild(option);
    });
-   status('已取得 '+groups.length+' 個授權群組，點「重新讀取」查看記事。');
-  }).withFailureHandler(function(err){
+   status('已取得 '+groups.length+' 個授權群組。');
+   byId('newNote').disabled=!account||!canWrite();
+   refresh();
+  },function(err){
    status('群組讀取失敗：'+String(err&&err.message||'UNKNOWN_ERROR'));
-  }).gasNoteCall('LIST_GROUPS',{});
+  });
  };
  var dateText=function(value){
   if(!value)return '未記錄';
@@ -81,6 +141,8 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
   var root=byId('items');root.replaceChildren();
   if(!Array.isArray(list)){status('資料格式不正確，已停止顯示。');return}
   status('同步讀取成功：'+list.length+' 則');
+  notes=list;
+  byId('newNote').disabled=!account||!canWrite();
   if(!list.length){var p=document.createElement('p');p.textContent='目前沒有授權可查看的記事。';root.appendChild(p)}
   list.forEach(function(n){
    var article=document.createElement('article');article.className='note';
@@ -88,26 +150,87 @@ input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px sol
    var date=document.createElement('div');date.className='sub';
    date.textContent='修改於 '+dateText(n.updatedAt)+'｜版本 '+Number(n.version||0);
    var content=document.createElement('div');content.className='body';content.textContent=String(n.content||'');
-   article.append(heading,date,content);root.appendChild(article);
+   article.append(heading,date,content);
+   if(canWrite()){
+    var edit=document.createElement('button');edit.type='button';edit.className='secondary';
+    edit.textContent='編輯記事';
+    edit.onclick=function(){openEditor(n)};article.appendChild(edit);
+   }
+   root.appendChild(article);
+  });
+ };
+ var openEditor=function(note){
+  if(!account||!canWrite()){status('目前帳號沒有修改權限。');return}
+  editing=note||null;
+  byId('editorTitle').textContent=note?'編輯記事':'新增記事';
+  byId('noteTitle').value=note?String(note.title||''):'';
+  byId('noteContent').value=note?String(note.content||''):'';
+  byId('deleteNote').hidden=!note||!canDelete();
+  byId('editor').hidden=false;
+  byId('noteTitle').focus();
+ };
+ var closeEditor=function(){byId('editor').hidden=true;editing=null};
+ var saveNote=function(){
+  if(running||!account||!canWrite())return;
+  var title=byId('noteTitle').value.trim(),content=byId('noteContent').value;
+  if(!content.trim()){status('記事內容不能空白。');return}
+  if(title.length>120||content.length>30000){status('記事長度超過限制。');return}
+  var action=editing?'UPDATE_NOTE':'CREATE_NOTE';
+  var params={operationId:secureId(),title:title,content:content};
+  if(editing){params.articleId=String(editing.articleId);params.expectedVersion=Number(editing.version)}
+  else{params.scope=scope;if(scope==='SHARED')params.groupId=byId('groupId').value}
+  running=true;byId('saveNote').disabled=true;status('正在儲存，請稍候……');
+  remote(action,params,function(){
+   running=false;byId('saveNote').disabled=false;
+   closeEditor();status('已確認 Google 儲存成功。');refresh();
+  },function(err){
+   running=false;byId('saveNote').disabled=false;
+   var code=String(err&&err.message||'REMOTE_REQUEST_FAILED');
+   status(code.includes('VERSION_CONFLICT')
+    ?'另一支手機已修改這則記事。你的文字仍保留在編輯畫面，請先複製，再重新讀取最新版。'
+    :'儲存失敗；編輯內容仍留在畫面中，尚未同步。'+code);
+  });
+ };
+ var deleteNote=function(){
+  if(running||!account||!editing||!canDelete())return;
+  if(!window.confirm('確定要刪除這則記事嗎？刪除後會保留異動紀錄。'))return;
+  var params={operationId:secureId(),articleId:String(editing.articleId),expectedVersion:Number(editing.version)};
+  running=true;status('正在刪除……');
+  remote('DELETE_NOTE',params,function(){
+   running=false;closeEditor();refresh();
+  },function(err){
+   running=false;
+   status('刪除失敗，資料未更動：'+String(err&&err.message||'REMOTE_REQUEST_FAILED'));
   });
  };
  var refresh=function(){
   if(running)return;
   if(!window.google||!google.script||!google.script.run){status('尚未部署到 Google Apps Script 測試環境');return}
+  if(!account){status('請先完成 Google 帳號身分驗證。');return}
   var req={scope:scope};
   if(scope==='SHARED'){req.groupId=byId('groupId').value.trim();if(!req.groupId){status('請先選擇共用群組');return}}
   running=true;byId('refresh').disabled=true;status('正在透過 Google 驗證權限並讀取……');
-  google.script.run.withSuccessHandler(function(data){running=false;byId('refresh').disabled=false;showNotes(data)})
-  .withFailureHandler(function(err){running=false;byId('refresh').disabled=false;
-   status('讀取失敗，資料未更動：'+String(err&&err.message||'UNKNOWN_ERROR'))})
-  .gasNoteCall('LIST_NOTES',req);
+  remote('LIST_NOTES',req,function(data){
+   running=false;byId('refresh').disabled=false;showNotes(data);
+  },function(err){
+   running=false;byId('refresh').disabled=false;
+   status('讀取失敗，資料未更動：'+String(err&&err.message||'UNKNOWN_ERROR'));
+  });
  };
  byId('personal').onclick=function(){choose('PRIVATE')};
  byId('team').onclick=function(){choose('SHARED')};
  byId('refresh').onclick=refresh;
+ byId('groupId').onchange=function(){byId('newNote').disabled=!account||!canWrite();refresh()};
+ byId('newNote').onclick=function(){openEditor(null)};
+ byId('saveNote').onclick=saveNote;
+ byId('cancelNote').onclick=closeEditor;
+ byId('deleteNote').onclick=deleteNote;
  if(window.google&&google.script&&google.script.run){
   google.script.run.withSuccessHandler(function(info){
-   byId('identity').textContent='目前 Google 帳號：'+String(info&&info.account||'未確認');
+   account=info&&typeof info.account==='string'?info.account.trim().toLowerCase():'';
+   if(!account){byId('identity').textContent='Google 身分無法確認，已停用同步。';return}
+   byId('identity').textContent='目前 Google 帳號：'+account;
+   byId('newNote').disabled=false;refresh();
   }).withFailureHandler(function(){
    byId('identity').textContent='目前 Google 帳號：無法驗證（同步已停用）';
   }).gasWhoAmI();
