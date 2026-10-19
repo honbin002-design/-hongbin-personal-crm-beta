@@ -430,15 +430,14 @@ function relatedCustomer(name){
  const quotes=getQuotes().filter(q=>norm(q.fields?.qdCustomer||q.customerName||q.customer)===key);
  const projects=getCRM().projects.filter(p=>norm(projectCustomerName(p))===key);
  const todos=getCRM().todos.filter(t=>norm(linkedTodoCustomer(t))===key);
- const products=getMaster().products.map((p,i)=>({...p,__index:i})).filter(p=>norm(productCustomer(p))===key);
  const customerPrices=(Array.isArray(getMaster().customerPrices)?getMaster().customerPrices:[]).filter(p=>norm(p.customerName)===key);
- return {quotes,projects,todos,products,customerPrices};
+ return {quotes,projects,todos,customerPrices};
 }
 function showCustomer360(name){
  const customer=customerByName(name);if(!customer)return;
  customer360Name=customer.name;
  const related=relatedCustomer(name);
- const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['使用產品',related.products.length+related.customerPrices.length]];
+ const metrics=[['報價單',related.quotes.length],['專案',related.projects.length],['待辦',related.todos.length],['ERP 使用產品',related.customerPrices.length]];
  $('customer360Title').textContent=customer.name;
  const block=(title,items,render,empty,footer='')=>
   '<section class="customer360-block'+(items.length?'':' is-empty')+'"><h3>'+esc(title)+'（'+items.length+'）</h3>'+
@@ -457,9 +456,6 @@ function showCustomer360(name){
   '<div class="customer360-empty">尚未填寫聯絡資料</div>';
  const customerInfoHtml='<section class="customer360-block"><h3>客戶基本資料</h3>'+factsHtml+
   '<button type="button" class="secondary" data-customer-edit="'+esc(name)+'">修改客戶資料</button></section>';
- const products=block('使用產品',related.products,p=>
-  '<div class="customer360-entry"><strong>'+esc(productName(p))+'</strong><div class="sub">型號：'+esc(productModel(p)||'—')+'　規格：'+esc(p.spec||'—')+'</div><div class="sub">供應商：'+esc(productSupplier(p)||'—')+'</div><button type="button" class="secondary" data-customer-product="'+p.__index+'">編輯產品</button></div>',
-  '尚未建立使用產品','<button id="addCustomerProduct" class="customer-product-action" type="button">＋ 新增該客戶使用產品</button>');
  const customerPriceList=block('ERP 客戶使用產品及售價',related.customerPrices,x=>
   '<div class="customer360-entry"><strong>'+esc(x.productName||x.supplierPartNo)+'</strong>'+
   '<div class="sub">供應商：'+esc(x.supplierName||x.supplierShortName)+'　｜　供應商品號：'+esc(x.supplierPartNo)+'</div>'+
@@ -471,7 +467,7 @@ function showCustomer360(name){
   '<div class="customer360-entry"><strong>'+esc(p.name||'未命名專案')+'</strong><div class="sub">階段：'+esc(p.stage||'—')+'　進度：'+esc(projectProgress(p).progress||p.progress||'—')+'</div><div class="sub">下次追蹤：'+esc(p.followDate||'未設定')+'</div><button type="button" class="secondary" data-customer-project="'+esc(p.id)+'">查看追蹤</button></div>','尚無專案');
  const todos=block('待辦行事曆',related.todos.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),t=>
   '<div class="customer360-entry"><strong>'+esc(t.text||'未命名待辦')+'</strong><div class="sub">'+esc(t.date||'未指定日期')+'　'+esc(t.time||'')+'　'+(t.done?'已完成':'待處理')+'</div><button type="button" class="secondary" data-customer-todo="'+esc(t.id)+'">查看待辦</button></div>','尚無客戶相關待辦');
- $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+products+customerPriceList+quotes+projects+todos;
+ $('customer360Content').innerHTML='<div class="customer360-badges">'+metrics.map(x=>'<span class="pill">'+esc(x[0])+' '+x[1]+' 筆</span>').join('')+'</div>'+customerInfoHtml+customerPriceList+quotes+projects+todos;
  $('customerListCard').hidden=true;
  $('customer360').hidden=false;
  $('customer360').scrollIntoView({block:'start'});
@@ -521,7 +517,7 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()
 $('quoteSearch').addEventListener('input',renderQuotes);$('newQuote').onclick=()=>editQuote(null);$('quoteList').onclick=e=>{const b=e.target.closest('[data-quote]');if(b)editQuote(b.dataset.quote)};
 $('qdCustomer').addEventListener('change',()=>{const c=customerByName(field('qdCustomer'));if(c){if(!field('qdContact'))$('qdContact').value=c.contact||'';if(!field('qdTel'))$('qdTel').value=c.tel||'';if(!field('qdFax'))$('qdFax').value=c.fax||''}});
 $('addQuoteItem').onclick=()=>addItem();$('saveQuote').onclick=saveQuote;$('previewQuote').onclick=previewQuote;$('printQuote').onclick=printQuote;$('exportPdf').onclick=pdfQuote;$('hideQuotePreview').onclick=()=>$('quotePreview').hidden=true;$('cancelQuote').onclick=()=>$('quoteEditor').hidden=true;
-$('customerSearch').addEventListener('input',renderCustomers);$('newCustomer').onclick=()=>editCustomer(null);$('customerList').onclick=e=>{const b=e.target.closest('[data-customer]');if(b)showCustomer360(b.dataset.customer)};$('closeCustomer360').onclick=()=>{$('customer360').hidden=true;$('customerListCard').hidden=false;customer360Name=null;$('customerEditor').hidden=true;$('customerListCard').scrollIntoView({block:'start'})};$('customer360Content').onclick=e=>{const t=e.target;if(t.closest('[data-customer-edit]')){editCustomer(t.closest('[data-customer-edit]').dataset.customerEdit);return}if(t.id==='addCustomerProduct'){editProduct(null,customer360Name);return}let b=t.closest('[data-customer-product]');if(b){editProduct(b.dataset.customerProduct);return}b=t.closest('[data-customer-quote]');if(b){openTab('quotes');editQuote(b.dataset.customerQuote);return}b=t.closest('[data-customer-project]');if(b){openTab('projects');editProject(b.dataset.customerProject);return}b=t.closest('[data-customer-todo]');if(b){const rec=todoItems().find(x=>String(x.id)===String(b.dataset.customerTodo));if(rec?.date){selectedDate=rec.date;monthDate=new Date(rec.date+'T12:00:00')}openTab('calendar');editTodo(b.dataset.customerTodo)}};$('saveCustomer').onclick=saveCustomer;$('cancelCustomer').onclick=()=>$('customerEditor').hidden=true;
+$('customerSearch').addEventListener('input',renderCustomers);$('newCustomer').onclick=()=>editCustomer(null);$('customerList').onclick=e=>{const b=e.target.closest('[data-customer]');if(b)showCustomer360(b.dataset.customer)};$('closeCustomer360').onclick=()=>{$('customer360').hidden=true;$('customerListCard').hidden=false;customer360Name=null;$('customerEditor').hidden=true;$('customerListCard').scrollIntoView({block:'start'})};$('customer360Content').onclick=e=>{const t=e.target;if(t.closest('[data-customer-edit]')){editCustomer(t.closest('[data-customer-edit]').dataset.customerEdit);return}let b=t.closest('[data-customer-quote]');if(b){openTab('quotes');editQuote(b.dataset.customerQuote);return}b=t.closest('[data-customer-project]');if(b){openTab('projects');editProject(b.dataset.customerProject);return}b=t.closest('[data-customer-todo]');if(b){const rec=todoItems().find(x=>String(x.id)===String(b.dataset.customerTodo));if(rec?.date){selectedDate=rec.date;monthDate=new Date(rec.date+'T12:00:00')}openTab('calendar');editTodo(b.dataset.customerTodo)}};$('saveCustomer').onclick=saveCustomer;$('cancelCustomer').onclick=()=>$('customerEditor').hidden=true;
 function shiftMonth(delta){const d=Math.max(1,Number(selectedDate.slice(-2))||1);monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+delta,1);const max=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,0).getDate();selectedDate=localDate(new Date(monthDate.getFullYear(),monthDate.getMonth(),Math.min(d,max)));renderCalendar()}
 function selectMonth(y,m){const day=Math.min(Number(selectedDate.slice(-2))||1,new Date(y,m+1,0).getDate());monthDate=new Date(y,m,1);selectedDate=localDate(new Date(y,m,day));renderCalendar()}
 const yr=$('calendarYear'),mo=$('calendarMonth');for(let y=1980;y<=2100;y++){const o=document.createElement('option');o.value=String(y);o.textContent=y+' 年';yr.appendChild(o)}
