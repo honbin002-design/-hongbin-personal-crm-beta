@@ -16,11 +16,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
  await page.addInitScript(data=>{if(sessionStorage.getItem('__r73_skip_fixtures_after_reset')==='1')return;for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
- check(await page.locator('.nav button').count()===7,'包含供應商與產品資料在內的七個功能主選單');
+ check(await page.locator('.nav button').count()===8,'七個既有功能與隨手記共八個主選單');
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
 
  check(await page.locator('#backToTop').isHidden(),'頁面最上方時回頂端按鈕不遮擋操作');
- for(const tab of ['quotes','customers','calendar','projects','suppliers','products','backup']){
+ for(const tab of ['quotes','customers','calendar','projects','suppliers','products','notes','backup']){
    await page.locator('[data-tab="'+tab+'"]').click();
    await page.evaluate(tab=>{const spacer=document.createElement('div');spacer.dataset.scrollTest='1';spacer.style.height='1700px';document.getElementById('panel-'+tab).appendChild(spacer)},tab);
    await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
@@ -403,16 +403,71 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   '新增舊產品後客戶頁仍只有 ERP 產品及售價區塊，舊產品資料不會被刪除');
 
 
+
+ // Notes regression: all actions run ONLY in disposable browser fixture storage.
+ await page.locator('[data-tab="notes"]').click();
+ check(await page.locator('#noteList').isVisible()&&(await page.locator('#noteList').innerText()).includes('尚無隨手記'),
+  '隨手記獨立清單初始空白');
+ await page.locator('#newNote').click();
+ check(await page.locator('#noteEditor').isVisible()&&await page.locator('#noteListCard').isHidden()&&
+   await page.locator('#floatingGoBack').isVisible(),'新增隨手記為獨立輸入畫面，浮動返回可見');
+ await page.locator('#saveNote').click();
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_quick_notes_r73')===null),
+  '沒有內容不會誤存空白隨手記');
+ await page.locator('#noteTitle').fill('拜訪提醒');
+ await page.locator('#noteContent').fill('聯絡樣品進度\n記得回電');
+ await page.locator('#saveNote').click();
+ check(await page.locator('#recordDetail').isVisible()&&
+   (await page.locator('#recordDetailBody').innerText()).includes('記得回電')&&
+   await page.locator('#recordDetailDelete').isVisible(),'儲存隨手記後進唯讀詳情，內容保留換行');
+ const originalNote=await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73'))[0]);
+ check(originalNote.title==='拜訪提醒'&&originalNote.content==='聯絡樣品進度\n記得回電'&&
+   /^\d{4}-\d\d-\d\dT/.test(originalNote.createdAt),'隨手記本機保存完整內容及建立時間');
+ await page.locator('#floatingGoBack').click();
+ check(await page.locator('#noteList').isVisible(),'浮動返回回到隨手記清單');
+ await page.locator('#noteSearch').fill('回電');
+ check((await page.locator('#noteList').innerText()).includes('拜訪提醒'),'可用內容關鍵字搜尋隨手記');
+ await page.locator('#noteSearch').fill('不存在的關鍵字');
+ check((await page.locator('#noteList').innerText()).includes('找不到符合的隨手記'),'搜尋無結果提示清楚');
+ await page.locator('#noteSearch').fill('');
+ await page.locator('#noteList [data-note]').first().click();
+ check(await page.locator('#noteEditor').isHidden()&&(await page.locator('#recordDetailTitle').innerText())==='拜訪提醒',
+  '點查看時只能唯讀，不直接進入編輯');
+ await page.locator('#recordDetailEdit').click();
+ await page.locator('#noteContent').fill('臨時修改但要取消');
+ await page.locator('#cancelNote').click();
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73'))[0].content==='聯絡樣品進度\n記得回電'),
+  '取消編輯不覆寫原隨手記');
+ await page.locator('#recordDetailEdit').click();
+ await page.locator('#noteContent').fill('拜訪完成\n明日再跟進');
+ await page.locator('#saveNote').click();
+ const updatedNote=await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73'))[0]);
+ check(updatedNote.id===originalNote.id&&updatedNote.createdAt===originalNote.createdAt&&
+  updatedNote.content.includes('明日再跟進'),'編輯原隨手記保留 ID 與建立時間，不重複新增');
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#noteEditor').isHidden(),
+  '編輯儲存後返回唯讀詳細資料');
+ await page.locator('#recordDetailDelete').click();
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73')).length===0),
+  '刪除隨手記須經確認並只刪除目前筆記');
+ await page.locator('#newNote').click();
+ await page.locator('#noteContent').fill('備份還原與清除驗收筆記');
+ await page.locator('#saveNote').click();
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73')).length===1),
+  '無標題隨手記可直接保存，供備份還原驗證');
+ await page.locator('#floatingGoBack').click();
+
  await page.locator('button[data-tab="backup"]').click();
  const dlPromise=page.waitForEvent('download');await page.locator('#downloadBackup').click();const download=await dlPromise;
  check(download.suggestedFilename().endsWith('.json'),'可從 iPhone 下載 JSON 備份');
  const jsonBackupPath=await download.path();
- await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('hongbin_personal_crm_v3'));x.todos=[];localStorage.setItem('hongbin_personal_crm_v3',JSON.stringify(x))});
+ await page.evaluate(()=>{const x=JSON.parse(localStorage.getItem('hongbin_personal_crm_v3'));x.todos=[];localStorage.setItem('hongbin_personal_crm_v3',JSON.stringify(x));localStorage.setItem('hongbin_crm_quick_notes_r73','[]')});
  await page.locator('#restoreFile').setInputFiles(jsonBackupPath);
  await Promise.all([page.waitForEvent('load',{timeout:15000}),page.locator('#restoreBackup').click()]);
  await page.locator('button[data-tab="backup"]').click();
  const restoredTodos=await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')||'{}').todos||[]);
  check(restoredTodos.some(x=>x.text==='R74行事曆事項'),'還原備份可恢復待辦資料；訊息：'+dialogs.slice(-3).join('｜'));
+ check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_quick_notes_r73')).some(n=>n.content==='備份還原與清除驗收筆記')),
+  '備份 JSON 包含隨手記，還原能恢復標題與內容');
 
 
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).commands[0].task==='舊指令'),'未顯示的舊資料仍保留');
@@ -507,6 +562,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   localStorage.setItem('hongbin_erp_other_project','do-not-delete');
   sessionStorage.setItem('__r73_skip_fixtures_after_reset','1');
  });
+ const notesSaved=await page.evaluate(()=>localStorage.getItem('hongbin_crm_quick_notes_r73'));
  const quoteSaved=await page.evaluate(()=>localStorage.getItem('hongbin_crm_formal_quotes_r73'));
  const crmSaved=await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'));
  await Promise.all([page.waitForEvent('load',{timeout:15000}),page.locator('#resetCrmData').click()]);
@@ -514,6 +570,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   localStorage.getItem('hongbin_crm_erp_master_before_import_v1')===null),'只清除主資料會清除正式主檔及舊匯入快照');
  check(await page.evaluate(([q,c])=>localStorage.getItem('hongbin_crm_formal_quotes_r73')===q&&
   localStorage.getItem('hongbin_personal_crm_v3')===c,[quoteSaved,crmSaved]),'主資料清除不會改動正式報價、專案及待辦');
+ check(await page.evaluate(v=>localStorage.getItem('hongbin_crm_quick_notes_r73')===v,notesSaved),'只清除主資料不會刪除隨手記');
  await page.locator('[data-tab="backup"]').click();
  await page.locator('#resetScope').selectOption('all');
  check((await page.locator('#resetPreview').innerText()).includes('ERP JSON 無法恢復'),'全部清除警告 ERP 匯入無法恢復交易資料');
@@ -525,14 +582,14 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await Promise.all([page.waitForEvent('load',{timeout:15000}),page.locator('#resetCrmData').click()]);
  const erased=await page.evaluate(()=>({
   own:['hongbin_crm_master_r70','hongbin_personal_crm_v3','hongbin_crm_formal_quotes_r73',
-   'hongbin_crm_project_progress_r72','hongbin_crm_simple_project_history_r74',
+   'hongbin_crm_project_progress_r72','hongbin_crm_simple_project_history_r74','hongbin_crm_quick_notes_r73',
    'hongbin_crm_cards_r70','hongbin_personal_crm_settings_v1',
    'hongbin_crm_erp_master_before_import_v1'].every(k=>localStorage.getItem(k)===null),
   other:localStorage.getItem('another_app_local_data'),
   otherPrefixed:localStorage.getItem('hongbin_erp_other_project'),
   usable:!!document.getElementById('erpImportFile')
  }));
- check(erased.own,'全部清除只移除 CRM 已知的八個資料鍵');
+ check(erased.own,'全部清除只移除 CRM 已知的九個資料鍵，包含隨手記');
  check(erased.other==='do-not-delete'&&erased.otherPrefixed==='do-not-delete',
   '其他 GitHub Pages 系統與共用前綴的資料不會受到影響');
  check(erased.usable,'全部清除後 CRM 仍可操作並重新匯入 ERP');
