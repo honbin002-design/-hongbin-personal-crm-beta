@@ -35,7 +35,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
 
  check((await page.locator('#quoteList').innerText()).includes('QTEST-001'),'讀取既有正式報價');
  await page.locator('[data-quote="77"]').click();
- check(await page.locator('#qdCustomer').inputValue()==='測試甲公司','既有報價可開啟編輯');
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#quoteEditor').isHidden()&&
+  (await page.locator('#recordDetailBody').innerText()).includes('測試甲公司'),'報價查看為獨立唯讀畫面');
+ check(await page.locator('#floatingGoBack').isVisible(),'浮動回上頁在獨立畫面可見');
+ await page.locator('#recordDetailEdit').click();
+ check(await page.locator('#qdCustomer').inputValue()==='測試甲公司','明確點編輯後才能修改報價');
 
  await page.locator('#qdNo').focus();
  await page.locator('#qdNo').press('Enter');
@@ -44,6 +48,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#qdNotes').fill('僅修改目前這張');
  await page.locator('#saveQuote').click();
  check((await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73'))[0].fields.qdNotes))==='僅修改目前這張','正式報價可儲存修改');
+ check(await page.locator('#recordDetail').isVisible(),'儲存正式報價後回唯讀詳情');
+ await page.locator('#recordDetailEdit').click();
  await page.locator('#previewQuote').click();
  check((await page.locator('#quotePreviewPages').innerText()).includes('舊報價品項'),'報價預覽與金額呈現');
 
@@ -292,20 +298,27 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#projectSearch').fill('舊ID專案');
  check((await page.locator('#projectList').innerText()).includes('測試甲公司'),'舊版只有 customerId 的專案正確顯示客戶');
  await page.locator('#projectList [data-project]').first().click();
- check((await page.locator('#pCustomer').inputValue())==='測試甲公司','舊版只有 customerId 的專案可打開編輯且不遺失客戶');
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#projectEditor').isHidden()&&
+  (await page.locator('#recordDetailBody').innerText()).includes('測試甲公司'),'舊版專案唯讀詳情正確顯示客戶');
+ await page.locator('#recordDetailEdit').click();
+ check((await page.locator('#pCustomer').inputValue())==='測試甲公司','明確點編輯後才顯示表單並保留客戶');
  await page.locator('#cancelProject').click();
+ check(await page.locator('#recordDetail').isVisible(),'取消專案編輯返回唯讀詳情');
+ await page.locator('#recordDetailBack').click();
  await page.locator('#projectSearch').fill('');
 
  await page.locator('#newProject').click();await page.locator('#pName').fill('R74測試專案');await page.locator('#pCustomer').fill('測試甲公司');await page.locator('#pProgress').selectOption('送樣中');await page.locator('#pNote').fill('第一筆追蹤紀錄');await page.locator('#saveProject').click();
  check((await page.locator('#projectList').innerText()).includes('R74測試專案'),'新專案儲存成功');
  await page.locator('#projectList [data-project]').first().click();
- check((await page.locator('#projectHistory').innerText()).includes('第一筆追蹤紀錄'),'歷史追蹤紀錄保留');
+ check((await page.locator('#recordDetailBody').innerText()).includes('第一筆追蹤紀錄'),'唯讀專案詳情保留歷史追蹤');
+ await page.locator('#recordDetailEdit').click();
+ check((await page.locator('#projectHistory').innerText()).includes('第一筆追蹤紀錄'),'編輯時歷史追蹤保留');
  await page.locator('#pStage').selectOption('暫停');
  await page.locator('#pNote').fill('');
  await page.locator('#saveProject').click();
- await page.locator('#projectList [data-project]').first().click();
- const histItems=await page.locator('#projectHistory .note').count();
- check(histItems>=2&&(await page.locator('#projectHistory').innerText()).includes('暫停'),'專案階段異動即使沒有輸入備註，仍追加歷史');
+ check(await page.locator('#recordDetail').isVisible(),'儲存專案回唯讀詳情');
+ const histItems=await page.locator('#recordDetailBody .detail-entry').count();
+ check(histItems>=2&&(await page.locator('#recordDetailBody').innerText()).includes('暫停'),'專案階段異動即使沒有備註仍保留歷史');
 
  // 日期顯示要以台灣時間呈現，不改既有 ISO 追蹤記錄的儲存值。
  check(await page.evaluate(()=>
@@ -321,10 +334,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   entries.find(x=>x.note==='第一筆追蹤紀錄').date='2026-10-19T01:15:23.123Z';
   localStorage.setItem(key,JSON.stringify(hist));
  });
+ await page.locator('#recordDetailBack').click();
  await page.locator('#projectList [data-project]').first().click();
- check((await page.locator('#projectHistory').innerText()).includes('2026/10/19 09:15')&&
-  !(await page.locator('#projectHistory').innerText()).includes('2026-10-19T01:15:23.123Z'),
-  '歷史追蹤紀錄顯示為清楚的台灣本地日期時間，不直接露出 ISO UTC 字串');
+ check((await page.locator('#recordDetailBody').innerText()).includes('2026/10/19 09:15')&&
+  !(await page.locator('#recordDetailBody').innerText()).includes('2026-10-19T01:15:23.123Z'),
+  '唯讀歷史追蹤仍顯示清楚台灣日期時間');
  check(await page.evaluate(()=>{
   const hist=JSON.parse(localStorage.getItem('hongbin_crm_simple_project_history_r74'));
   return Object.values(hist).some(a=>Array.isArray(a)&&a.some(x=>x.date==='2026-10-19T01:15:23.123Z'));
