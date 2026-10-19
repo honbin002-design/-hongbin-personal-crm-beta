@@ -155,3 +155,15 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - 最新 GitHub 提交 `09771e60dc5824e1ce21352b8541007e97bbb240` 的 `gas-sync-probe/node-regression` 實際狀態為 `success`；**14 組 Node.js 自動回歸測試 PASS**，其中手機操作模擬涵蓋 **15 項**情境。
 - 安全提醒：先前 `account-scoped-outbox.cjs` 對帳號 Email 的 SHA256 分區**不是加密**，不能當成共用 iPhone 同源 localStorage 上私人文字的機密防護；目前該模組**沒有接入 CRM／Apps Script 畫面**。尚未有加密或安全金鑰保存方案時，禁止在跨帳號環境以這種分區方式持久化私人記事本文。
 - 部署與上線依然 HOLD：官方 `MYSELF` 不支援跨不同 Google 使用者共同操作，且目前缺少安全的 Apps Script 建立／部署 OAuth 授權。真正 Google Script 部署、兩支 iPhone 不同帳號驗收均未完成。正式 `main` 與 R73 已 PASS 功能完全不更動。
+
+## 2026-10-19｜跨帳號上線阻擋與讀取帳號比對
+
+- Google 官方 `projects.deployments.get` 文件已核對：`MYSELF` 僅部署者可使用，`ANYONE` 需要登入，`ANYONE_ANONYMOUS` 任何人皆可進入；`executeAs=USER_ACCESSING` 表示以當下使用者身分執行。這是跨帳號同步是否可行的真實條件，不可拿 Node 的模擬帳號替代。
+- `multi-account-gate.cjs`、`multi-account-gate.test.cjs`：新增 13 個「正式上線前 HOLD」檢查。缺少真實 OAuth 部署、不同 Google 帳號身分、服務 A→B 的伺服器間授權、真正共用記事 ACL／撤銷驗證、雙 iPhone 衝突測試或正式備份回歸時都必須維持 HOLD。此 gate 永不自行部署正式 CRM，完成技術證據仍須使用者驗收。
+- `entry-user.gs.js`、`Index.html`、`bundle-runtime.test.cjs`：擴大 `__expectedGoogleAccount` 比對範圍，**所有 LIST、GET、CREATE、UPDATE、DELETE 請求都須匹配 Google Session 帳號**。Safari 切換 Google 帳號時，不能用過時的帳號標示繼續讀／寫記事。安全斷言經比對後移除，不會傳給資料服務當可信身分。
+- `ui-smoke.test.cjs`：新增使用者切換帳號後，阻止讀取舊帳號記事的互動回歸。
+- `.github/workflows/gas-notes-offline-tests.yml`：共 **15 組** Node.js 測試；新增測試失敗時回報是哪一組的 GitHub commit status，可直接用 GitHub 連線回讀，不必要求使用者開 GitHub 截圖。
+- workflow 在 Node 測試後自動產生、暫存**僅限本人存取**的兩層 Apps Script 程式包 Artifact，保留 7 天，供未來 OAuth 部署準備；不含 Google 憑證，不會自動執行 `clasp deploy`、`gh secret set`，也不更動正式 CRM。
+- GitHub commit `1a29255cb48487cf9abe09df6a9ed48097651f91` 的 `gas-sync-probe/node-regression` 已實際回報 **success**，因此 **15 組最新 Node CI PASS**。過渡版本有發生過失敗，並未列為成功；最新結果已通過，但真實 Google Apps Script 部署仍 **BLOCKED**。
+- 已取得真實 Google Sheets API 的新增、讀取、刪除合成測試資料及雙帳號 403 權限隔離 PASS；**不要將其誤當成 Apps Script API 的 OAuth 自動部署授權**。
+- `MYSELF` 的 B 資料端若由 A 用 `UrlFetchApp` 呼叫，仍缺實際服務間授權可行證據；不可改成 `ANYONE_ANONYMOUS` 偷偷繞過部署問題。正式跨帳號同步與主 CRM 整合維持 HOLD。
