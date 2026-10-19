@@ -223,6 +223,16 @@ async function loadGroups(){
  selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
  select.value=selectedGroup.id;
  $('groupRole').textContent='已驗證角色：'+selectedGroup.role;
+ if(selectedGroup.role==='VIEWER'){
+  // A former editor's offline group draft must never be displayed to an
+  // account whose CURRENT server-verified role is only VIEWER.
+  await dropDraft(draftContext());
+  editorDirty=false;active=null;pendingCreateId=null;
+  $('title').value='';$('content').value='';
+  $('delete').hidden=true;$('conflict').hidden=true;
+  $('editTitle').textContent='檢視記事（唯讀）';
+  draftMessage('目前是檢視者，舊共用草稿已隱藏並嘗試從本機移除。');
+ }
  buttons();
 }
 async function loadNotes(){
