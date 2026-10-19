@@ -41,7 +41,13 @@ function createSheetsNonceRegistry({SpreadsheetApp,PropertiesService,LockService
       if(Number(rows[i][1])<now-60000){ws.deleteRow(i+2);removed++}
     }
    }
-   ws.getRange(ws.getLastRow()+1,1,1,2).setValues([[key,expiresAt]]);
+   const last=ws.getLastRow(),nextRow=last+1,max=ws.getMaxRows();
+   if(!Number.isSafeInteger(max)||max<last)throw Error('NONCE_GRID_INVALID');
+   if(nextRow>20001)throw Error('NONCE_LOG_REQUIRES_MAINTENANCE');
+   // Capacity increases are serialized by the same ScriptLock as nonce writes.
+   // If expansion fails, no fresh nonce is accepted.
+   if(nextRow>max)ws.insertRowsAfter(max,Math.min(500,20001-max));
+   ws.getRange(nextRow,1,1,2).setValues([[key,expiresAt]]);
    return true;
   }finally{lock.releaseLock()}
  }});
