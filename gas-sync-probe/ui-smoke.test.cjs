@@ -6,7 +6,8 @@ const vm=require('node:vm');
 const html=fs.readFileSync(__dirname+'/Index.html','utf8');
 const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,'embedded UI program exists');
-let pass=0,serial=0,remoteAccount='alice@example.test',forcedConflict=false;
+let pass=0,serial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false;
+const committedOps=new Map();
 let notes=[],calls=[],groups=[];
 class Element{
  constructor(id=''){this.id=id;this.textContent='';this.children=[];this.value='';
@@ -41,9 +42,18 @@ const fakeService={onSuccess:null,onFailure:null,
    else if(action==='LIST_NOTES'){
     result=notes.filter(n=>n.scope===args.scope&&(args.scope==='PRIVATE'||n.groupId===args.groupId));
    }else if(action==='CREATE_NOTE'){
-    result={articleId:'test-id-'+(++serial),title:args.title,content:args.content,
-     groupId:args.groupId||null,scope:args.scope,version:1,updatedAt:'2026-10-19T01:00:00Z'};
-    notes.push(result);
+    // Simulated authoritative server: same operation ID must not append twice.
+    if(committedOps.has(args.operationId))result=committedOps.get(args.operationId);
+    else{
+     result={articleId:'test-id-'+(++serial),title:args.title,content:args.content,
+      groupId:args.groupId||null,scope:args.scope,version:1,updatedAt:'2026-10-19T01:00:00Z'};
+     notes.push(result);committedOps.set(args.operationId,result);
+    }
+    if(lostAckOnce){
+     lostAckOnce=false;
+     this.onFailure(new Error('SIMULATED_ACK_LOSS_AFTER_COMMIT'));
+     return;
+    }
    }else if(action==='UPDATE_NOTE'){
     const n=notes.find(n=>n.articleId===args.articleId);
     if(forcedConflict||n.version!==args.expectedVersion)throw Error('VERSION_CONFLICT');
@@ -111,6 +121,36 @@ succeed('Unsaved private draft blocks tab switch when user cancels',()=>{
  assert.equal(elements.noteContent.value,'我還沒存檔');
  assert.equal(elements.personal.className,'active');
  window.confirm=()=>true;
+ elements.cancelNote.onclick();
+});
+succeed('Lost ACK after Google commit retries same operation ID without duplicate create',()=>{
+ elements.newNote.onclick();
+ elements.noteTitle.value='雲端已寫入，但回覆中斷';
+ elements.noteContent.value='不能重複建立';
+ const originalCount=notes.length;lostAckOnce=true;
+ elements.saveNote.onclick();
+ assert.equal(notes.length,originalCount+1);
+ assert.equal(elements.editor.hidden,false);
+ const initial=calls.filter(x=>x.action==='CREATE_NOTE').at(-1).args.operationId;
+ elements.saveNote.onclick();
+ const retry=calls.filter(x=>x.action==='CREATE_NOTE').at(-1).args.operationId;
+ assert.equal(initial,retry);
+ assert.equal(notes.length,originalCount+1);
+ assert.equal(elements.editor.hidden,true);
+});
+succeed('Changed draft after ambiguous ACK refuses unsafe new operation',()=>{
+ elements.newNote.onclick();
+ elements.noteTitle.value='待核對';
+ elements.noteContent.value='原本送出內容';
+ lostAckOnce=true;elements.saveNote.onclick();
+ const count=calls.filter(x=>x.action==='CREATE_NOTE').length;
+ const storedCount=notes.length;
+ elements.noteContent.value='再次編輯的新內容';
+ elements.saveNote.onclick();
+ assert.equal(calls.filter(x=>x.action==='CREATE_NOTE').length,count);
+ assert.equal(notes.length,storedCount);
+ assert.equal(elements.noteContent.value,'再次編輯的新內容');
+ assert.match(elements.status.textContent,/上一次儲存結果尚未確認/);
  elements.cancelNote.onclick();
 });
 succeed('Shared VIEWER cannot create or edit notes',()=>{
