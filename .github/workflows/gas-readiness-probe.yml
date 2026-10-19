@@ -1,0 +1,40 @@
+name: GAS readiness probe - no Work
+on:
+  push:
+    branches:
+      - probe/gas-no-work-20261019
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Confirm GitHub runner can reach Google Apps Script API
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 15 https://script.googleapis.com/v1/projects)
+          echo "Google Apps Script API HTTP response (unauthenticated): $status"
+          if [[ "$status" == "000" ]]; then exit 1; fi
+          echo 'NETWORK_REACHABLE: yes (not proof of authorization)'
+      - name: Verify supported clasp CLI installs on GitHub Actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --version
+          npm install --no-audit --no-fund -g @google/clasp
+          clasp --version
+          echo 'CLASP_CLI: AVAILABLE (not deployed)'
+      - name: Check presence of deployment prerequisites without exposing values
+        shell: bash
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          CLASP_JSON: ${{ secrets.CLASP_JSON }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${CLASPRC_JSON:-}" ]]; then echo 'GOOGLE_OAUTH_CREDENTIAL: CONFIGURED'; else echo 'GOOGLE_OAUTH_CREDENTIAL: MISSING'; fi
+          if [[ -n "${CLASP_JSON:-}" ]]; then echo 'SCRIPT_PROJECT_MAPPING: CONFIGURED'; else echo 'SCRIPT_PROJECT_MAPPING: MISSING'; fi
+          echo 'SECURITY: No credentials read, printed, or transmitted to other services.'
+          echo 'DEPLOYMENT_ATTEMPTED: no'
