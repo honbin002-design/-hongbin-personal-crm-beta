@@ -49,6 +49,15 @@ function assessMultiAccountRelease({userDeployment,dataDeployment,evidence={}}={
     add('SHEET_ACL_NOT_CONFIRMED','Backing Google Sheet must remain owner-only');
   if(evidence.productionBackupAndRollbackPassed!==true)
     add('PRODUCTION_BACKUP_NOT_RECHECKED','Production backup and rollback must pass immediately before release');
+  // IMPORTANT: all evidence flags and deployment objects supplied to this
+  // pure function can be forged by a caller. They do not prove actual Google
+  // projects.deployments.get, Session identities, signed transport or iPhone
+  // acceptance. No trusted live verifier is connected to this prototype.
+  // NEVER promote to READY based on client-provided truthy flags. A future
+  // Google-authorized verifier must replace this hard hold with an independently
+  // fetched and attested release decision.
+  add('TRUSTED_GOOGLE_EVIDENCE_NOT_CONNECTED',
+      'No trusted Google deployment and two-account attestation provider exists yet');
   // Technical evidence is never equivalent to approval to upload legacy private notes.
   const allowed=blockers.length===0;
   return {status:allowed?'READY_FOR_USER_ACCEPTANCE':'HOLD',
