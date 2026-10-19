@@ -137,7 +137,7 @@ function restore(){
  active=v?.active||null;pendingCreateId=v?.pendingCreateId||null;editorDirty=Boolean(v);
  $('title').value=v?.title||'';$('content').value=v?.content||'';
  $('editTitle').textContent=active?'編輯記事（版本 '+active.version+'）':'新增記事';
- $('delete').hidden=!active;
+ $('delete').hidden=!active||(mode==='SHARED'&&selectedGroup?.role!=='ADMIN');
  $('conflict').hidden=true;
 }
 function clearEditor(){
@@ -160,10 +160,12 @@ function buttons(){
  $('logout').disabled=!ready||busy||!auth?.currentUser;
  for(const el of $('workspace').querySelectorAll('button,input,textarea,select'))el.disabled=busy;
  const mayWrite=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
+ const mayDelete=mode==='PRIVATE'||selectedGroup?.role==='ADMIN';
  $('title').readOnly=!mayWrite;
  $('content').readOnly=!mayWrite;
  $('save').disabled=busy||!mayWrite;
- $('delete').disabled=busy||!mayWrite;
+ $('delete').disabled=busy||!mayDelete;
+ if(active)$('delete').hidden=!mayDelete;
 }
 function scope(){
  if(mode==='PRIVATE')return {mode};
@@ -265,7 +267,8 @@ async function loadNotes(){
    active={id:item.id,version:item.version};pendingCreateId=null;
    $('title').value=item.title;$('content').value=item.content;
    $('editTitle').textContent='編輯記事（版本 '+item.version+'）';
-   $('delete').hidden=false;$('conflict').hidden=true;buttons();
+   $('delete').hidden=mode==='SHARED'&&selectedGroup?.role!=='ADMIN';
+   $('conflict').hidden=true;buttons();
   });
   e.append(b);root.append(e);
  }
