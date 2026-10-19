@@ -294,6 +294,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await page.locator('#todoList').innerText()).includes('14:30'),'待辦時間頁面不需要備份即可查看');
  await page.locator('#todoList input[type="checkbox"]').first().check();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.done)),'待辦完成狀態持久保存');
+ await page.locator('#todoList [data-todo]').first().click();
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#todoEditor').isHidden(),'待辦查看為獨立唯讀資料');
+ await page.locator('#floatingGoBack').click();
+ check(await page.locator('#todoList').isVisible(),'待辦浮動回上頁返回日期清單');
  await page.locator('button[data-tab="projects"]').click();
  await page.locator('#projectSearch').fill('舊ID專案');
  check((await page.locator('#projectList').innerText()).includes('測試甲公司'),'舊版只有 customerId 的專案正確顯示客戶');
@@ -352,6 +356,16 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#saveSupplier').click();
  check((await page.locator('#supplierList').innerText()).includes('R73測試供應商'),'新增供應商成功');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).suppliers.some(x=>x.name==='R73測試供應商')),'供應商存進既有主資料且不覆蓋客戶');
+ await page.locator('#supplierList [data-supplier]').first().click();
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#supplierEditor').isHidden()&&
+  (await page.locator('#recordDetailBody').innerText()).includes('R73測試供應商'),'供應商點查看只顯示唯讀資料');
+ await page.locator('#recordDetailEdit').click();
+ check(await page.locator('#supplierEditor').isVisible()&&await page.locator('#recordDetail').isHidden(),
+  '供應商點編輯才開啟輸入表單');
+ await page.locator('#floatingGoBack').click();
+ check(await page.locator('#recordDetail').isVisible(),'供應商編輯返回唯讀詳情');
+ await page.locator('#floatingGoBack').click();
+ check(await page.locator('#supplierList').isVisible(),'供應商返回原清單');
  await page.locator('button[data-tab="products"]').click();
  await page.locator('#newProduct').click();
  await page.locator('#pdSupplier').fill('R73');
@@ -366,6 +380,17 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#saveProduct').click();
  check((await page.locator('#productList').innerText()).includes('R73客戶使用產品'),'新產品可以新增並在產品資料查詢');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_crm_master_r70')).products.some(x=>x.name==='R73客戶使用產品'&&x.customerName==='測試甲公司')),'客戶使用產品關聯儲存成功');
+ await page.locator('#productList [data-product]').first().click();
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#productEditor').isHidden()&&
+  (await page.locator('#recordDetailBody').innerText()).includes('品號／型號'),'產品查看不跳到頁面最下方編輯');
+ check(await page.locator('#panel-products').isHidden(),'唯讀產品獨立畫面不混入清單');
+ await page.locator('#recordDetailEdit').click();
+ check(await page.locator('#productEditor').isVisible()&&await page.locator('#recordDetail').isHidden(),
+  '產品有獨立編輯按鈕');
+ await page.locator('#cancelProduct').click();
+ check(await page.locator('#recordDetail').isVisible(),'取消產品編輯返回唯讀詳情');
+ await page.locator('#floatingGoBack').click();
+ check(await page.locator('#productList').isVisible(),'產品浮動回上頁返回原清單');
  await page.locator('button[data-tab="customers"]').click();
  await page.locator('[data-customer="測試甲公司"]').click();
  const overview=await page.locator('#customer360Content').innerText();
