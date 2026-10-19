@@ -167,3 +167,14 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - GitHub commit `1a29255cb48487cf9abe09df6a9ed48097651f91` 的 `gas-sync-probe/node-regression` 已實際回報 **success**，因此 **15 組最新 Node CI PASS**。過渡版本有發生過失敗，並未列為成功；最新結果已通過，但真實 Google Apps Script 部署仍 **BLOCKED**。
 - 已取得真實 Google Sheets API 的新增、讀取、刪除合成測試資料及雙帳號 403 權限隔離 PASS；**不要將其誤當成 Apps Script API 的 OAuth 自動部署授權**。
 - `MYSELF` 的 B 資料端若由 A 用 `UrlFetchApp` 呼叫，仍缺實際服務間授權可行證據；不可改成 `ANYONE_ANONYMOUS` 偷偷繞過部署問題。正式跨帳號同步與主 CRM 整合維持 HOLD。
+
+## 2026-10-19｜手機切換帳號後隱藏快取記事（重要安全修補）
+
+- **找到的風險：** 原有測試頁雖然會由 Script A 拒絕舊帳號的 LIST/UPDATE 請求，但前端 `Index.html` 仍可能保留並顯示前一個 Google 帳號先前載入的私人記事；切換帳號後可能看到不該繼續顯示的快取內容。
+- **修正：** 偵測 `GOOGLE_ACCOUNT_SWITCHED`、`GOOGLE_IDENTITY_UNAVAILABLE`、`UNVERIFIED_IDENTITY` 或缺少帳號斷言時，立即清空**可見**記事清單、群組選單與表單內容，停止編輯／同步，停用寫入按鈕，顯示重新驗證帳號提示。
+- **避免手機草稿遺失：** 若切換當下正編輯尚未上傳的內容，僅放入**此頁 JavaScript 記憶體**、標記原 Google 帳號；只有重新經 `gasWhoAmI()` 驗證為原帳號且有對應群組修改權限，才能恢復暫存編輯內容。**這不是持久性離線備份，重新載入、關閉頁面或 Safari 回收後不保證保存**。
+- **避免延遲回覆重新顯示舊資料：** 所有遠端請求的成功／失敗回呼都記錄發出時的 `accountEpoch` 和帳號；發生身分切換就增加世代編號，舊世代的晚到回覆不能再修改目前畫面。
+- `ui-smoke.test.cjs` 已增加不同帳號不能顯示快取私人記事、錯帳號不能恢復草稿、原帳號重新驗證後才能恢復，以及舊請求延遲回覆不能重現私人資料等測試，合計 **19 個 UI 模擬情境**。
+- GitHub 提交 `829c09b9fb1dc0815ed943060ce10cc4a57cb101` 的 `gas-sync-probe/node-regression` 實際狀態 **success**；這意味隔離分支的 **15 組 Node.js CI PASS**（UI 測試 19 項亦在其中）。
+- **此結果仍不是**真實 iPhone Safari、Google Session 跨帳號切換或 GAS 雲端部署的驗收。個人帳號對私人 Sheets 的實際 403 只驗證 Google 原生檔案權限；不代表共用記事服務完成。
+- 正式 CRM `main`、既有 `hongbin_crm_quick_notes_r73` 與 ERP/報價資料沒有改動；不接入正式服務直到 Google OAuth／跨帳號部署及真機測試安全通過。
