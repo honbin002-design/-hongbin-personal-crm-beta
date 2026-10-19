@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const KEYS={master:'hongbin_crm_master_r70',crm:'hongbin_personal_crm_v3',quotes:'hongbin_crm_formal_quotes_r73',progress:'hongbin_crm_project_progress_r72',history:'hongbin_crm_simple_project_history_r74'};
+const KEYS={master:'hongbin_crm_master_r70',crm:'hongbin_personal_crm_v3',quotes:'hongbin_crm_formal_quotes_r73',progress:'hongbin_crm_project_progress_r72',history:'hongbin_crm_simple_project_history_r74',notes:'hongbin_crm_quick_notes_r73'};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const norm=v=>String(v??'').toLocaleLowerCase().trim().replace(/[\s　]+/g,'');
@@ -10,19 +10,20 @@ const store=(key,data)=>{try{localStorage.setItem(key,JSON.stringify(data));retu
 const getMaster=()=>{const m=read(KEYS.master,{});return {...m,customers:Array.isArray(m.customers)?m.customers:[],products:Array.isArray(m.products)?m.products:[],suppliers:Array.isArray(m.suppliers)?m.suppliers:[]}};
 const getCRM=()=>{const d=read(KEYS.crm,{});return {...d,customers:Array.isArray(d.customers)?d.customers:[],projects:Array.isArray(d.projects)?d.projects:[],todos:Array.isArray(d.todos)?d.todos:[]}};
 const getQuotes=()=>{const q=read(KEYS.quotes,[]);return Array.isArray(q)?q:[]};
+const getNotes=()=>{const list=read(KEYS.notes,[]);return Array.isArray(list)?list:[]};
 const getProgress=()=>read(KEYS.progress,{});
 const getHist=()=>read(KEYS.history,{});
 const field=id=>$(id)?.value.trim()||'';
-let currentTab='quotes',editCustomerName=null,editCustomerCrmId=null,editQuoteId=null,editTodoId=null,editProjectId=null,editSupplierIndex=null,editProductIndex=null,selectedDate=localDate(),monthDate=new Date(),lastPdfUrl=null,customer360Name=null;
+let currentTab='quotes',editCustomerName=null,editCustomerCrmId=null,editQuoteId=null,editTodoId=null,editProjectId=null,editSupplierIndex=null,editProductIndex=null,editNoteId=null,creatingNote=false,selectedDate=localDate(),monthDate=new Date(),lastPdfUrl=null,customer360Name=null;
 const QUOTE_FIELDS=['qdCustomer','qdContact','qdTel','qdFax','qdNo','qdDate','qdDelivery','qdPayment','qdPlace','qdValid','qdSales','qdSalesTel','qdNotes'];
 const defaults={qdDelivery:'有庫存 3 天內交貨，如無庫存需 30 天',qdPayment:'次月60天',qdPlace:'貴公司交貨處或指定交貨處',qdValid:'三十日',qdNotes:'1：以上價格為未稅價。\n2：實際價格以訂單確認為準。\n3：特殊規格或需求，請先行告知。'};
 function toast(msg){const n=$('toast');n.textContent=msg;n.style.display='block';setTimeout(()=>{n.style.display='none'},2500)}
 // Separate, read-only record views with a simple back trail; no persisted navigation state.
 let recordView=null,recordTrail=[],editorFromRecord=null,customerDetailEditing=false;
-const RECORD_TABS={quote:'quotes',supplier:'suppliers',product:'products',project:'projects',todo:'calendar'};
+const RECORD_TABS={quote:'quotes',supplier:'suppliers',product:'products',project:'projects',todo:'calendar',note:'notes'};
 function updateFloatingBack(){
  $('floatingGoBack').hidden=!(recordView||editorFromRecord||recordTrail.length||
-  (currentTab==='customers'&&!$('customer360').hidden));
+  (currentTab==='customers'&&!$('customer360').hidden)||creatingNote);
 }
 function readonlyRow(label,value){
  return '<div class="detail-row"><div class="detail-key">'+esc(label)+'</div><div class="detail-value">'+esc(value??'—')+'</div></div>';
@@ -77,6 +78,12 @@ function showRecord(kind,key,push=true){
   name=record.text||'未命名待辦';
   body=[['事項',name],['日期',record.date],['時間',record.time||'未設定時間'],
     ['客戶',linkedTodoCustomer(record)],['狀態',record.done?'已完成':'待處理'],['備註',record.notes]].map(([a,b])=>readonlyRow(a,b||'—')).join('');
+ }else if(kind==='note'){
+  record=getNotes().find(n=>String(n.id)===String(key));if(!record)return;
+  name=noteHeading(record);
+  body=readonlyRow('建立時間',readableHistoryTime(record.createdAt))+
+    readonlyRow('修改時間',readableHistoryTime(record.updatedAt||record.createdAt))+
+    '<section class="detail-section"><h3>記錄內容</h3><div class="quick-note-body">'+esc(record.content||'')+'</div></section>';
  }else if(kind==='quote'){
   record=getQuotes().find(q=>String(q.id)===String(key));if(!record)return;
   const f=record.fields||{};name='報價單 '+(f.qdNo||'未編號');
@@ -95,6 +102,7 @@ function showRecord(kind,key,push=true){
  document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});
  $('recordDetailTitle').textContent=name;
  $('recordDetailBody').innerHTML=body;
+ $('recordDetailDelete').hidden=kind!=='note';
  $('recordDetail').hidden=false;
  window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();
 }
@@ -109,6 +117,7 @@ function editCurrentRecord(){
  else if(state.kind==='product')editProduct(state.key);
  else if(state.kind==='project')editProject(state.key);
  else if(state.kind==='todo')editTodo(state.key);
+ else if(state.kind==='note')editNote(state.key);
  const editor=$(state.kind+'Editor');
  if(editor){editor.hidden=false;editor.scrollIntoView({block:'start',behavior:'instant'})}
  updateFloatingBack();
@@ -121,6 +130,7 @@ function finishRecordEdit(savedId){
  showRecord(previous.kind,savedId??previous.key,false);
 }
 function goBackView(){
+ if(creatingNote){creatingNote=false;editNoteId=null;$('noteEditor').hidden=true;$('panel-notes').classList.remove('is-editing');updateFloatingBack();window.scrollTo({top:0,behavior:'instant'});return}
  if(customerDetailEditing){customerDetailEditing=false;$('customerEditor').hidden=true;$('panel-customers').classList.remove('is-editing');if(customer360Name)showCustomer360(customer360Name);updateFloatingBack();return}
  if(editorFromRecord){finishRecordEdit();return}
  const prior=recordTrail.pop();
@@ -132,7 +142,7 @@ function goBackView(){
  updateFloatingBack();
 }
 
-function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack()}
+function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack()}
 function customerEntries(){const m=getMaster().customers,c=getCRM().customers,map=new Map();m.forEach(x=>{const key=norm(x.name);if(key)map.set(key,{...x,legacyId:c.find(v=>norm(v.name)===key)?.id})});c.forEach(x=>{const key=norm(x.name);if(key&&!map.has(key))map.set(key,{name:x.name,legacyId:x.id})});return [...map.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh-Hant'))}
 function datalist(id,values){const n=$(id);if(!n)return;n.replaceChildren(...[...new Set(values.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant')).map(s=>{const o=document.createElement('option');o.value=s;return o}))}
 function fillCustomerNames(){
@@ -308,10 +318,10 @@ function saveProject(){const name=field('pName');if(!name){alert('請輸入專�
  const changes=[[KEYS.crm,crm],[KEYS.progress,progress],[KEYS.history,hist]],snapshots=changes.map(([k])=>localStorage.getItem(k));try{for(const [k,v] of changes)localStorage.setItem(k,JSON.stringify(v))}catch(e){changes.forEach(([k],idx)=>{try{snapshots[idx]===null?localStorage.removeItem(k):localStorage.setItem(k,snapshots[idx])}catch{}});alert('專案儲存失敗，已嘗試回復先前資料。請備份後確認儲存空間。');return}
  editProjectId=id;$('projectEditor').hidden=true;renderProjects();toast('專案已儲存，追蹤紀錄已保留');if(editorFromRecord?.kind==='project')finishRecordEdit(id)}
 
-// Only these eight CRM-owned localStorage keys may be deleted.
+// Only these nine CRM-owned localStorage keys may be deleted.
 // Other apps may share the GitHub Pages origin and must NOT be touched.
 const CRM_TEXT_KEYS=[
- KEYS.master,KEYS.crm,KEYS.quotes,KEYS.progress,KEYS.history,
+ KEYS.master,KEYS.crm,KEYS.quotes,KEYS.progress,KEYS.history,KEYS.notes,
  'hongbin_crm_cards_r70','hongbin_personal_crm_settings_v1',
  'hongbin_crm_erp_master_before_import_v1'
 ];
@@ -329,7 +339,7 @@ function renderResetPreview(){
   '目前主資料：'+m.customers.length+' 筆客戶、'+m.suppliers.length+' 間供應商、'+m.products.length+
   ' 款產品、'+(Array.isArray(m.customerPrices)?m.customerPrices.length:0)+' 筆客戶價格。'];
  if(scope==='all')lines.push('另外會清除：'+getQuotes().length+' 張報價、'+crm.projects.length+
-  ' 筆專案、'+crm.todos.length+' 筆待辦，及 CRM 追蹤、名片文字與設定；ERP JSON 無法恢復這些紀錄。');
+  ' 筆專案、'+crm.todos.length+' 筆待辦、'+getNotes().length+' 則隨手記，及 CRM 追蹤、名片文字與設定；ERP JSON 無法恢復這些紀錄。');
  if(scope==='master')lines.push('保留報價、專案、待辦及舊 CRM 交易資料；舊 CRM 客戶名稱仍可能出現在客戶清單。');
  lines.push('請先備份後，輸入「'+expectedResetPhrase()+'」才能繼續。');
  $('resetPreview').textContent=scope?lines.join('\n'):'尚未選擇清除範圍，不會刪除任何資料。';
@@ -377,6 +387,7 @@ function validShape(key,value){
  if(key===KEYS.crm&&(!plain(obj)||!arrays(obj,['customers','projects','todos','contacts','quotes','visits','commands'])))throw new Error('CRM 客戶／專案／待辦格式錯誤');
  if(key===KEYS.master&&(!plain(obj)||!arrays(obj,['customers','products','suppliers'])))throw new Error('客戶主資料格式錯誤');
  if(key===KEYS.quotes&&!Array.isArray(obj))throw new Error('正式報價格式錯誤');
+ if(key===KEYS.notes&&(!Array.isArray(obj)||obj.some(n=>!plain(n)||!['number','string'].includes(typeof n.id)||typeof n.content!=='string'||typeof (n.title??'')!=='string')))throw new Error('隨手記資料格式錯誤');
  if((key===KEYS.progress||key===KEYS.history)&&!plain(obj))throw new Error('追蹤紀錄格式錯誤');
  if(key==='hongbin_crm_cards_r70'&&!Array.isArray(obj))throw new Error('舊版名片資料格式錯誤');
 }
@@ -398,7 +409,7 @@ function normalizeBackup(obj){
      if(obj.settings!==undefined){if(!plain(obj.settings))throw new Error('舊版設定資料無效');entries.push(['hongbin_personal_crm_settings_v1',JSON.stringify(obj.settings)])}
    }
  }else throw new Error('無法辨識此備份版本；不會覆蓋任何資料');
- for(const [key,value] of entries)if([KEYS.crm,KEYS.master,KEYS.quotes,KEYS.progress,KEYS.history,'hongbin_crm_cards_r70'].includes(key))validShape(key,value);
+ for(const [key,value] of entries)if([KEYS.crm,KEYS.master,KEYS.quotes,KEYS.progress,KEYS.history,KEYS.notes,'hongbin_crm_cards_r70'].includes(key))validShape(key,value);
  return {source,entries};
 }
 async function restore(){
