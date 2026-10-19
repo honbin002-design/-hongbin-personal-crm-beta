@@ -48,6 +48,22 @@ jobs:
             last=${last:-"Emulator setup or rules compilation"}
             failed_slug=$(printf '%s' "$last" | tr '[:upper:]' '[:lower:]' | sed -E 's/^begin //; s/[^a-z0-9]+/-/g; s/^-|-$//g' | cut -c1-45)
             failed_slug=${failed_slug:-"emulator-startup"}
+            # Publish only non-sensitive error classifications from synthetic emulator,
+            # never environment values, account data, tokens, or full raw logs.
+            matched=$(grep -Ei 'error|failed|invalid|compil|unexpected|fatal|java' firebase-emulator-ci.log 2>/dev/null | tail -n 4 || true)
+            if [[ -n "$matched" ]]; then
+              j=0
+              while IFS= read -r err; do
+                j=$((j+1))
+                slug=$(printf '%s' "$err" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g;s/^-|-$//g' | cut -c1-60)
+                if [[ -n "$slug" ]]; then
+                  gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+                    --field state=failure \
+                    --field context="firebase-sync-probe/error-$j-$slug" \
+                    --field description="Synthetic emulator error classification" >/dev/null
+                fi
+              done <<< "$matched"
+            fi
             gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
               --field state=failure \
               --field context="firebase-sync-probe/failed-$failed_slug" \
