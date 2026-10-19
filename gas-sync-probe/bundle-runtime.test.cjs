@@ -105,6 +105,20 @@ try{
   who('',()=>fail('GOOGLE_IDENTITY_UNAVAILABLE',()=>call('LIST_NOTES',{scope:'PRIVATE'})));
   assert.equal(sheets.UsedNonces.rows.length,before);
  });
+ check('A refuses all note calls when isolated-test gate is not enabled',()=>{
+  const saved=userProps.HONBIN_NOTES_TEST_GATE;
+  delete userProps.HONBIN_NOTES_TEST_GATE;
+  try{who('alice@example.test',()=>fail('SYNC_TEST_NOT_ENABLED',()=>call('LIST_NOTES',{scope:'PRIVATE'})))}
+  finally{userProps.HONBIN_NOTES_TEST_GATE=saved}
+ });
+ check('B refuses requests without explicit isolated-test approval',()=>{
+  const saved=dataProps.HONBIN_NOTES_TEST_GATE;
+  delete dataProps.HONBIN_NOTES_TEST_GATE;
+  try{
+   const response=coreB.doPost({postData:{contents:JSON.stringify({action:'LIST_NOTES'})}});
+   assert.equal(JSON.parse(response.getContentText()).error,'SYNC_TEST_NOT_ENABLED');
+  }finally{dataProps.HONBIN_NOTES_TEST_GATE=saved}
+ });
  let privateNote;
  check('Signed A creates private note in B with true actor, ignores forged owner',()=>{
   privateNote=who('alice@example.test',()=>call('CREATE_NOTE',{
