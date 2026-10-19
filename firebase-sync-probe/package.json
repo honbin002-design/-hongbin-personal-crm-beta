@@ -4,10 +4,11 @@
   "type": "module",
   "description": "No production deploy. Firebase Firestore emulator security proof only.",
   "scripts": {
-    "test:rules": "npm run test:base && npm run test:invites",
+    "test:rules": "npm run test:base && npm run test:invites && npm run test:directory",
     "test:base": "node firestore.rules.test.mjs",
     "test:invites": "node firestore.invites.test.mjs",
-    "test:web": "node web-auth-preflight.test.mjs"
+    "test:web": "node web-auth-preflight.test.mjs",
+    "test:directory": "node firestore.group-directory.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
