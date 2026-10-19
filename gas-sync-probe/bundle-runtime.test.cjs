@@ -92,10 +92,9 @@ try{
    return {getResponseCode:()=>200,getContentText:()=>serverResponse.getContentText()};
   }},
  });
- const mutableActions=['CREATE_GROUP','SET_MEMBER','CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE'];
  const call=(kind,payload)=>{
    var params=Object.assign({},payload||{});
-   if(mutableActions.includes(kind))params.__expectedGoogleAccount=principal;
+   params.__expectedGoogleAccount=principal;
    return apiA.gasNoteCall(kind,params);
  };
  const who=(name,fn)=>{principal=name;return fn()};
