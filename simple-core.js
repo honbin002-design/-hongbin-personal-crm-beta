@@ -192,6 +192,64 @@ function saveProject(){const name=field('pName');if(!name){alert('請輸入專�
  // If writing one of the related keys fails, restore all from snapshots.
  const changes=[[KEYS.crm,crm],[KEYS.progress,progress],[KEYS.history,hist]],snapshots=changes.map(([k])=>localStorage.getItem(k));try{for(const [k,v] of changes)localStorage.setItem(k,JSON.stringify(v))}catch(e){changes.forEach(([k],idx)=>{try{snapshots[idx]===null?localStorage.removeItem(k):localStorage.setItem(k,snapshots[idx])}catch{}});alert('專案儲存失敗，已嘗試回復先前資料。請備份後確認儲存空間。');return}
  editProjectId=id;$('projectEditor').hidden=true;renderProjects();toast('專案已儲存，追蹤紀錄已保留')}
+
+// Only these eight CRM-owned localStorage keys may be deleted.
+// Other apps may share the GitHub Pages origin and must NOT be touched.
+const CRM_TEXT_KEYS=[
+ KEYS.master,KEYS.crm,KEYS.quotes,KEYS.progress,KEYS.history,
+ 'hongbin_crm_cards_r70','hongbin_personal_crm_settings_v1',
+ 'hongbin_crm_erp_master_before_import_v1'
+];
+function selectedResetKeys(){
+ const scope=field('resetScope');
+ return scope==='master'?[KEYS.master,'hongbin_crm_erp_master_before_import_v1']:
+  scope==='all'?CRM_TEXT_KEYS.slice():[];
+}
+function expectedResetPhrase(){return field('resetScope')==='all'?'清除所有資料':field('resetScope')==='master'?'清除主資料':''}
+function renderResetPreview(){
+ const scope=field('resetScope'),keys=selectedResetKeys(),present=keys.filter(k=>localStorage.getItem(k)!==null);
+ const m=getMaster(),crm=getCRM();
+ const lines=['將清除：'+(scope==='all'?'全部已知 CRM 文字資料':'主資料')+
+  '（目前存在 '+present.length+' 個資料項目）',
+  '目前主資料：'+m.customers.length+' 筆客戶、'+m.suppliers.length+' 間供應商、'+m.products.length+
+  ' 款產品、'+(Array.isArray(m.customerPrices)?m.customerPrices.length:0)+' 筆客戶價格。'];
+ if(scope==='all')lines.push('另外會清除：'+getQuotes().length+' 張報價、'+crm.projects.length+
+  ' 筆專案、'+crm.todos.length+' 筆待辦，及 CRM 追蹤、名片文字與設定；ERP JSON 無法恢復這些紀錄。');
+ if(scope==='master')lines.push('保留報價、專案、待辦及舊 CRM 交易資料；舊 CRM 客戶名稱仍可能出現在客戶清單。');
+ lines.push('請先備份後，輸入「'+expectedResetPhrase()+'」才能繼續。');
+ $('resetPreview').textContent=scope?lines.join('\n'):'尚未選擇清除範圍，不會刪除任何資料。';
+}
+function updateResetReady(){
+ const selected=field('resetScope'),phrase=$('resetPhrase').value.trim();
+ $('resetCrmData').disabled=!(selected&&phrase===expectedResetPhrase()&&$('resetBackupConfirmed').checked);
+}
+function resetScopeChange(){
+ $('resetBackupConfirmed').checked=false;$('resetPhrase').value='';$('resetStatus').textContent='';
+ $('resetPhrase').placeholder=expectedResetPhrase()||'先選擇清除範圍';
+ renderResetPreview();updateResetReady();
+}
+function clearCrmData(){
+ const scope=field('resetScope'),keys=selectedResetKeys(),phrase=expectedResetPhrase();
+ if(!keys.length||!$('resetBackupConfirmed').checked||$('resetPhrase').value.trim()!==phrase){
+  $('resetStatus').textContent='未符合備份及文字確認條件；沒有清除任何資料。';return;
+ }
+ const present=keys.filter(k=>localStorage.getItem(k)!==null);
+ const label=scope==='all'?'全部 CRM 已知文字資料（含報價／專案／待辦）':'CRM 主資料（供應商／產品／客戶主檔／價格）';
+ if(!confirm('第一步確認：即將清除這台 iPhone 的「'+label+'」。\n目前有 '+present.length+' 個資料項目。已保存 CRM 備份嗎？'))return;
+ if(!confirm('最後確認：將永久清除「'+label+'」。\n若沒有外部備份，相關資料將無法恢復。確定執行嗎？'))return;
+ const original=present.map(k=>[k,localStorage.getItem(k)]);
+ try{
+  for(const key of present)localStorage.removeItem(key);
+  if(present.some(key=>localStorage.getItem(key)!==null))throw Error('仍有資料無法清除');
+ }catch(e){
+  for(const [key,value] of original){try{localStorage.setItem(key,value)}catch{}}
+  $('resetStatus').textContent='清除未完成，已嘗試還原原有資料：'+String(e.message||e);return;
+ }
+ erpPending=null;$('resetCrmData').disabled=true;
+ alert('已清除 '+present.length+' 個本機 CRM 資料項目。\n其他網站／專案資料未清除。\n下一步請到「備份」選擇 ERP 主資料 JSON，按預覽後重新匯入。');
+ location.reload();
+}
+
 // ── Local backup and careful restore ──
 function renderStorage(){try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('hongbin_'));$('storageStatus').textContent='本機儲存狀態：可使用｜目前找到 '+keys.length+' 個 CRM 資料項目'}catch{$('storageStatus').textContent='無法讀取本機儲存，請勿繼續輸入資料'}}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
@@ -536,6 +594,8 @@ $('productSearch').oninput=renderProducts;$('newProduct').onclick=()=>editProduc
 $('downloadBackup').onclick=backup;$('restoreBackup').onclick=restore;
 $('erpImportFile').onchange=()=>{erpPending=null;$('erpApplyImport').disabled=true;$('erpBackupConfirmed').checked=false;$('erpImportStatus').textContent='已選擇匯入檔，請按預覽';};
 $('erpPreviewImport').onclick=previewErpData;$('erpApplyImport').onclick=applyErpData;
+$('resetScope').onchange=resetScopeChange;$('resetPhrase').oninput=updateResetReady;
+$('resetBackupConfirmed').onchange=updateResetReady;$('resetCrmData').onclick=clearCrmData;
 window.addEventListener('beforeunload',()=>{if(lastPdfUrl)URL.revokeObjectURL(lastPdfUrl)});
 
 window.addEventListener('resize',fitLegacyQuotePreview);
