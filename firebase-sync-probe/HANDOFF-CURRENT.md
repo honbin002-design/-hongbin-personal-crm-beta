@@ -56,7 +56,7 @@
 1. 確認 Firebase Spark 無綁定計費及 Authentication → Settings → Authorized domains 的所需網域（正式 `honbin002-design.github.io` 只是未來可能來源；實際測試來源要與實際 HTTPS 測試頁相符）。
 2. 找到**不動 main、不付費、不要求使用者貼程式或 Work**的獨立 HTTPS 測試發佈方式。Firebase Hosting 如要使用，必須先證實符合 Spark 免費額度、能由已連接的安全管理工具部署且確定不改正式 CRM；未證實前 HOLD，不自行新增第三方付費環境。
 3. 在獨立測試網頁上做一個 Google 帳號的 Safari 登入、登出、切換與 Email verified 真實測試。僅允許 Auth，維持 Firestore deny-all。
-4. 在隔離分支完成 Firestore「只能發現自己的群組」安全索引、群組成員及 Email 邀請列表／接受／撤銷功能，以及私人／共用記事的完整手機 UI；每一階段新增官方 Emulator 負向權限測試，確認 47 項原有案例全部回歸。**不因本項開發而啟用真實資料庫寫入**。
+4. 群組安全索引與新增 22 項 Firestore Emulator 測試 **PASS**；接續完成群組成員及 Email 邀請列表／接受／撤銷功能，以及私人／共用記事完整手機 UI；每階段應保留全部 69 項已有的官方規則模擬器回歸。**不因本項開發而啟用真實資料庫寫入**。
 5. 特別檢查多支手機同時寫入時，Firestore Transaction／版本衝突 UI、刪除策略、重送冪等、帳號切換與離線草稿隔離。
 6. 經授權且完成規則安全審查，才部署**已測試的限定規則**並僅以合成測試資料測試。避免使用者原有記事或正式客戶／報價／庫存資料。
 7. 真實兩個不同 Google 帳號、多支 iPhone：私人互斥、共用邀請與角色、撤銷即拒絕、衝突提示與不丟草稿；需人工最後驗收，不得代稱 PASS。
@@ -64,8 +64,8 @@
 
 ## F. 目前總結
 
-- **PASS**：既有 CRM 正式來源 SHA 保護 readback；隔離分支程式碼、47 項官方 Firestore Emulator 規則測試 CI success、公開 Firebase Web config 靜態檢查；過去截圖中的 Spark 專案／Auth/DB 創建。
-- **HOLD**：實際 HTTPS auth smoke、Firebase 管理連線、Firebase 正式 ACL 部署、群組索引/UI、真實帳號雙手機同步、舊記事遷移、正式 CRM 整合。
+- **PASS**：既有 CRM 正式來源 SHA 保護 readback；隔離分支程式碼、69 項官方 Firestore Emulator 規則測試 CI success、公開 Firebase Web config 靜態檢查；過去截圖中的 Spark 專案／Auth/DB 創建。
+- **HOLD**：實際 HTTPS auth smoke、Firebase 管理連線、Firebase 正式 ACL 部署、群組完整 UI、真實帳號雙手機同步、舊記事遷移、正式 CRM 整合。
 - **嚴禁宣稱**：正式同步完成、Cloud Firestore 已開通真實應用權限、已發佈獨立 Auth 測試網址、已取得 Google 管理員 OAuth。
 - 每輪作業要記錄：實際分支/HEAD、異動檔、CI 結果、Auth／Firestore 的實測或未測、main 兩個 SHA 再驗、安全與免費條件。當沒有執行資格時清楚標示 HOLD，不要求使用者耗費 Work。
 
