@@ -7,7 +7,7 @@
     "test:rules": "npm run test:base && npm run test:invites && npm run test:directory && npm run test:outbound && npm run test:workflow && npm run test:notes",
     "test:base": "node firestore.rules.test.mjs",
     "test:invites": "node firestore.invites.test.mjs",
-    "test:web": "node web-auth-preflight.test.mjs && node web-group-preflight.test.mjs",
+    "test:web": "node web-auth-preflight.test.mjs && node web-group-preflight.test.mjs && node web-notes-preflight.test.mjs",
     "test:directory": "node firestore.group-directory.test.mjs",
     "test:workflow": "node firestore.group-workflow.test.mjs",
     "test:outbound": "node firestore.outbound.test.mjs",
