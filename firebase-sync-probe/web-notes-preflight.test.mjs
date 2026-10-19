@@ -52,7 +52,8 @@ check('Shared empty group does not write to unknown group',()=>{
 });
 check('Viewer cannot save or soft delete by UI',()=>{
  assert.match(script,/selectedGroup\.role!=='VIEWER'/);
- assert.match(script,/\$\('delete'\)\.disabled=busy\|\|!mayWrite/);
+ assert.match(script,/\$\('delete'\)\.disabled=busy\|\|!mayDelete/);
+ assert.match(script,/const mayDelete=mode==='PRIVATE'\|\|selectedGroup\?\.role==='ADMIN'/);
 });
 check('Cloud note calls include optimistic expectedVersion and fixed new ID',()=>{
  assert.match(script,/expectedVersion:active\.version/);
