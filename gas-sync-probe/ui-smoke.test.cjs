@@ -99,6 +99,17 @@ succeed('Account switch fails server assertion and keeps entered text',()=>{
  assert.match(elements.status.textContent,/GOOGLE_ACCOUNT_SWITCHED/);
  remoteAccount='alice@example.test';elements.cancelNote.onclick();
 });
+succeed('Unsaved private draft blocks tab switch when user cancels',()=>{
+ elements.newNote.onclick();
+ elements.noteContent.value='我還沒存檔';
+ window.confirm=()=>false;
+ elements.team.onclick();
+ assert.equal(elements.editor.hidden,false);
+ assert.equal(elements.noteContent.value,'我還沒存檔');
+ assert.equal(elements.personal.className,'active');
+ window.confirm=()=>true;
+ elements.cancelNote.onclick();
+});
 succeed('Shared VIEWER cannot create or edit notes',()=>{
  groups=[{groupId:'group-001',name:'共同記事',role:'VIEWER'}];
  notes.push({articleId:'sh-1',scope:'SHARED',groupId:'group-001',title:'Group',content:'公告',
