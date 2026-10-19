@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const html=fs.readFileSync(__dirname+'/Index.html','utf8');
 const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,'embedded UI program exists');
-let pass=0,serial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false;
+let pass=0,serial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false,lostDeleteAckOnce=false;
 const committedOps=new Map();
 let notes=[],calls=[],groups=[];
 class Element{
@@ -59,9 +59,18 @@ const fakeService={onSuccess:null,onFailure:null,
     if(forcedConflict||n.version!==args.expectedVersion)throw Error('VERSION_CONFLICT');
     n.title=args.title;n.content=args.content;n.version++;result=n;
    }else if(action==='DELETE_NOTE'){
-    const n=notes.find(n=>n.articleId===args.articleId);
-    if(n.version!==args.expectedVersion)throw Error('VERSION_CONFLICT');
-    notes=notes.filter(x=>x!==n);result={deleted:true};
+    if(committedOps.has(args.operationId))result=committedOps.get(args.operationId);
+    else{
+     const n=notes.find(n=>n.articleId===args.articleId);
+     if(!n||n.version!==args.expectedVersion)throw Error('VERSION_CONFLICT');
+     notes=notes.filter(x=>x!==n);result={deleted:true};
+     committedOps.set(args.operationId,result);
+    }
+    if(lostDeleteAckOnce){
+     lostDeleteAckOnce=false;
+     this.onFailure(new Error('SIMULATED_DELETE_ACK_LOSS_AFTER_COMMIT'));
+     return;
+    }
    }else throw Error('UNSUPPORTED_ACTION');
    this.onSuccess(result);
   }catch(e){this.onFailure(e)}
@@ -175,5 +184,24 @@ succeed('Shared ADMIN can delete after explicit confirmation',()=>{
  assert.equal(elements.deleteNote.hidden,false);
  elements.deleteNote.onclick();
  assert.ok(!notes.some(x=>x.articleId==='sh-1'));
+});
+succeed('Lost delete ACK reuses original operation ID and does not re-delete record',()=>{
+ elements.personal.onclick();
+ assert.ok(elements.items.children.length>0);
+ const firstNote=notes.find(n=>n.scope==='PRIVATE');
+ const index=elements.items.children.findIndex(x=>x.children[0].textContent===firstNote.title);
+ assert.ok(index>=0);
+ elements.items.children[index].children[3].onclick();
+ assert.equal(elements.deleteNote.hidden,false);
+ lostDeleteAckOnce=true;
+ elements.deleteNote.onclick();
+ assert.equal(notes.some(n=>n.articleId===firstNote.articleId),false);
+ assert.equal(elements.editor.hidden,false);
+ const id1=calls.filter(x=>x.action==='DELETE_NOTE').at(-1).args.operationId;
+ elements.deleteNote.onclick();
+ const id2=calls.filter(x=>x.action==='DELETE_NOTE').at(-1).args.operationId;
+ assert.equal(id1,id2);
+ assert.equal(notes.some(n=>n.articleId===firstNote.articleId),false);
+ assert.equal(elements.editor.hidden,true);
 });
 console.log('IPHONE SYNC NOTE UI MOCK PASS',pass);
