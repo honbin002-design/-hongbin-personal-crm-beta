@@ -4,7 +4,9 @@
   "type": "module",
   "description": "No production deploy. Firebase Firestore emulator security proof only.",
   "scripts": {
-    "test:rules": "node firestore.rules.test.mjs && node firestore.invites.test.mjs"
+    "test:rules": "npm run test:base && npm run test:invites",
+    "test:base": "node firestore.rules.test.mjs",
+    "test:invites": "node firestore.invites.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
