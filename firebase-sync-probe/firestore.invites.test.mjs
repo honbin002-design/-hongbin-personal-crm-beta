@@ -18,7 +18,7 @@ const membership=group+'/members/bob-uid';
 const inviteData={groupId:gid,recipientEmail:'bob@example.test',
  role:'VIEWER',status:'PENDING',invitedBy:'alice-uid'};
 let done=0;
-async function check(name,fn){await fn();done++;console.log('PASS',name)}
+async function check(name,fn){console.log('BEGIN',name);await fn();done++;console.log('PASS',name)}
 try{
  await check('Group owner creates a group',()=>assertSucceeds(setDoc(doc(alice,group),{
   ownerUid:'alice-uid',name:'test only',createdAt:Timestamp.now()
