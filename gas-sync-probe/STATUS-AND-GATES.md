@@ -193,3 +193,14 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - **正式 Google Apps Script 授權與部署仍未完成。** 官方 API \`projects.create\` 要求 \`script.projects\` scope，\`projects.deployments.create\` 要求 \`script.deployments\` scope；目前已連接的 Drive/Sheets 工具並不提供這些管理操作。不能把既有 Drive 權限冒稱為 Script 部署權限。
 - Script A / B 設為 \`MYSELF\` 的封閉程式包，不能直接讓不同 Google 帳號共用；真正的 A→B 授權傳輸、真實帳號隔離、雙 iPhone 實測仍為 HOLD。
 - 施工全部保留在 GitHub \`probe/gas-no-work-20261019\`，**正式 CRM main、R73/R74 既有記事及 ERP 客戶、報價、交易資料都不改動、不上傳、不重置**。未取得安全授權工具前不要求使用者操作 Codespaces、Terminal 或貼 Script。
+
+## 2026-10-19｜工作表容量自動擴充與容量故障安全回退
+
+- **真實風險：** 透過公司 Google 連線回讀既有獨立測試 Sheet 的 Grid Properties，`Events` 實際配置 **999 列**、`UsedNonces` 實際配置 **1,999 列**。這是有限容量，先前 `getRange(last+1,...).setValues(...)` 在資料到達 Grid 尾端時可能失敗，不能把工作表當成無限列數。
+- 已修正 `sheets-adapter.cjs`：使用後端 ScriptLock 包覆「讀取最後資料列、查詢 `getMaxRows()`、必要時 `insertRowsAfter()` 擴容、單筆 `setValues()`」的連續作業。成長步幅最多 1,000 列，既有事件重播上限 15,000 筆仍維持，不會無限成長。
+- 已修正 `nonce-registry.cjs`：在獨立 ScriptLock 內檢查 `UsedNonces` 真正的 Grid 容量，僅在需要時擴充最多 500 列。原本防重放及已到期清理維持，最多 20,000 筆記錄後需要維護。
+- 當 `getMaxRows()` 回傳異常、容量擴充失敗或 Google Sheets 寫入失敗時，**禁止確認已同步成功**；所有失敗原封回報給呼叫端，後端可用同一 `operationId` 重試。這不是聲稱 Google Sheets append 是 ACID 交易。
+- `sheets-adapter.test.cjs`、`nonce-registry.test.cjs` 各增加 **3 個**容量與擴充失敗回歸案例，另外 `bundle-runtime.test.cjs` 也改用具有實際 Grid 上限的模擬表。原本的讀寫、權限、衝突與簽章測試皆保留。
+- GitHub commit `d58043b28fe19f7a92ea7579fb372f4d22168396` 的 `gas-sync-probe/node-regression` 已回報 **success**。**15 組最新 Node.js CI PASS**；這表示整個測試流程通過，不代表現場 Apps Script 已執行。
+- 實際公司 Google Sheet 本輪只做 metadata 讀取，**沒有插入或刪除任何正式／測試資料**。真實 Google Sheets 的 Apps Script 擴容行為仍待擁有正確 Google OAuth 的測試部署驗證。
+- 正式 CRM main、既有 R73/R74 隨手記、報價、客戶與 ERP 均保持原狀。現階段仍必須 HOLD：Google Apps Script 實際安全部署、跨帳號 Script A→B 存取及兩支 iPhone 使用者驗收未完成。
