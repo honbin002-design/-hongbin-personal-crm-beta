@@ -14,8 +14,15 @@ function check(name,fn){fn();passed++;console.log('PASS: '+name)}
 function fail(code,fn){assert.throws(fn,e=>e.message===code,code)}
 function mockSheet(header){
  const rows=[header.slice()];
+ let allocated=2;
  return {
   rows,getLastRow:()=>rows.length,
+  getMaxRows:()=>allocated,
+  insertRowsAfter(index,count){
+   assert.equal(index,allocated);
+   assert.ok(count>=1);
+   allocated+=count;
+  },
   getRange(row,col,count,width){
    assert.equal(col,1);assert.equal(width,header.length);
    return {
@@ -23,6 +30,7 @@ function mockSheet(header){
     setValues:v=>{
      if(failSheets)throw Error('SIMULATED_SHEETS_OUTAGE');
      assert.equal(v.length,1);assert.equal(row,rows.length+1);
+     if(row>allocated)throw Error('MOCK_GRID_OUT_OF_RANGE');
      rows.push(v[0].slice());
     }
    };
