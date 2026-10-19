@@ -48,3 +48,26 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 - [官方 Firestore Emulator 規則測試](https://firebase.google.com/docs/firestore/security/test-rules-emulator)
 
 **下一個實作 Gate：在不連接真實資料、不啟用 Work 的前提下完成「Email 邀請接受／撤銷不重用」規則與 Firebase Emulator 測試。然後才評估連線 Firebase 專用工具。**
+
+
+## 2026-10-19｜Spark 零元授權條件與 Email 邀請 Gate
+
+使用者已明確同意「**完全免費才採用 Firebase**」；執行的硬限制是：
+- 僅能使用 Google Firebase **Spark（免費）**；不提供信用卡、不建立或連結 Google Cloud Billing 帳戶，不升級 **Blaze**、不設置試用或付費服務。
+- 僅限 Google 社交登入、第一個 Cloud Firestore 免費資料庫、免費額度內的靜態網頁；超過免費額度允許暫停同步，**不准為了不中斷而付費**。
+- 不使用 Cloud Functions、付費自動備份／PITR、TTL 自動刪除、付費 Firebase App Hosting 等需要計費方案的功能；Firebase 社交登入與一般 Firestore 安全規則／原子批次寫入在 Spark 的免費配額內可用。
+- **Spark 不是無限免費**：官方文件列明 1 GiB 儲存、每天 50,000 次讀取／20,000 次寫入／20,000 次刪除、每月 10 GiB 傳出量等免費額度。啟用 Blaze 或連結 Billing 會改變成本風險，需停工並重新徵得使用者明確同意。參考：https://firebase.google.com/docs/projects/billing/firebase-pricing-plans 及 https://firebase.google.com/docs/firestore/pricing
+
+### 已驗證的 Email 邀請安全機制
+
+- `firestore.rules` 新增 `inboxes/{recipientEmail}/invites/{invitationId}`。僅群組 ADMIN 可建立狀態 PENDING 的邀請，只有 Firebase 已驗證 Google Email 相符的登入者能讀取自己的 inbox。
+- 受邀者接受後將邀請改為 ACCEPTED 並建立 `groups/{groupId}/members/{uid}`，兩筆操作必須在**同一 Firestore writeBatch** 中成功；以 `getAfter()` 驗證目標 UID、邀請 ID 和指定角色。這能阻擋任意偽造 UID、無邀請直接加入、把 VIEWER 自行改成 ADMIN、接受邀請但不消耗它、撤銷後沿用已接受邀請重新加入。
+- 群組 ADMIN 可撤銷尚未接受的邀請。受邀者被撤銷權限後，舊邀請無法重新用；管理員日後另建新邀請才可重新加入。**沒有寄送任何真實 Email**：郵件通知／手機分享邀請 UI 仍是待完成工作。
+- 原本 **32 項** Firestore Emulator 權限測試仍保留，新增 **15 項** Email 邀請／原子兌換測試，合計 **47 項真實 Firebase 規則引擎測試**。GitHub commit `483918684bea15e43d7d139f2c6b61f2d79f9a0b` 的 `firebase-sync-probe/rules-emulator` 已回讀狀態 **success**。
+- 施工曾遇到字串插入使 Regex 產生編譯錯誤，已修復，**唯有最新通過的提交才算 PASS**。全程僅改隔離 GitHub 分支，沒有建立真實 Firebase project、沒有計費、沒有部署，也沒有更動 CRM／ERP／正式記事。
+
+### 上線前仍必須解決
+
+- Firebase 專用 ChatGPT 連線目前**尚未安裝／連接**，無法操作使用者的 Firebase 雲端專案。先前已提供 Firebase 連線建議；安裝／連接需要使用者親自確認，不能由對話代替。
+- 尚缺 Spark 真實專案存在／方案及 Billing 狀態回讀、Firebase Google Auth 授權網域與 iPhone Safari 使用、群組列表與邀請 UI、兩支手機的實際跨帳號同步與版本衝突驗收。
+- 原有 R73/R74 隨手記禁止未經預覽與使用者同意自動上傳。公司 Google 資料擁有者具備原始雲端資料存取權，**非端對端加密**。正式 CRM main 維持不變。
