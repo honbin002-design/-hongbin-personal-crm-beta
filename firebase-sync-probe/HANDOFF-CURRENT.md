@@ -65,7 +65,7 @@
 ## F. 目前總結
 
 - **PASS（歷史原始階段）**：既有 CRM 正式來源 SHA 保護 readback；隔離分支程式碼、69 項官方 Firestore Emulator 規則測試 CI success、公開 Firebase Web config 靜態檢查；過去截圖中的 Spark 專案／Auth/DB 創建。
-- **HOLD**：實際 HTTPS auth smoke、Firebase 管理連線、Firebase 正式 ACL 部署、候選記事 UI 的真機驗收、永久離線草稿／即時同步、真實帳號雙手機同步、舊記事遷移、正式 CRM 整合。
+- **HOLD**：實際 HTTPS auth smoke、Firebase 管理連線、Firebase 正式 ACL 部署、候選記事與 IndexedDB 草稿的 iPhone Safari 真機驗收、即時同步、真實帳號雙手機同步、舊記事遷移、正式 CRM 整合。
 - **嚴禁宣稱**：正式同步完成、Cloud Firestore 已開通真實應用權限、已發佈獨立 Auth 測試網址、已取得 Google 管理員 OAuth。
 - 每輪作業要記錄：實際分支/HEAD、異動檔、CI 結果、Auth／Firestore 的實測或未測、main 兩個 SHA 再驗、安全與免費條件。當沒有執行資格時清楚標示 HOLD，不要求使用者耗費 Work。
 
@@ -119,3 +119,18 @@
 - 首要待決 Gate：**建立無付費、獨立 HTTPS 網站測試入口**，核對 Firebase Google 授權網域及 iPhone Safari Popup 實際登入；目前未有安全可執行 URL，也沒有 Firebase 管理工具授權可部署。
 - 隔離分支可繼續原定功能內的離線草稿持久化（需每帳號隔離）、版本衝突 UX、限額與權限負向測試。不得因施工進度自動整合正式 CRM 或讓 Firebase 真實規則從 deny-all 改為開放。
 - 真正跨手機、跨 Google 帳號私人與共用同步、撤銷、離線與上限行為必須待真實測試與使用者驗收。既有 main 的客戶、報價、行事曆與 R73 本機記事未經額外同意一律不能更動或遷移。
+
+## 2026-10-20｜iPhone Safari IndexedDB 離線草稿隔離候選 Gate
+
+**隔離分支原有 `main` 禁改規則持續有效。此為開發候選，不是已上線服務。**
+
+- 新增 `firebase-offline-drafts.mjs`：專屬資料庫 `honbin-crm-notes-local-drafts-v1`，與既有 CRM localStorage `hongbin_crm_quick_notes_r73` 完全分離。紀錄以已驗證 Firebase `uid`／`PRIVATE` 或 `SHARED`／群組 ID 組合為隔離索引；不儲存 Google Email、登入 Token 或密碼欄位；僅存記事編輯草稿、雲端版本及待建立文件的固定 ID。同一索引的非同步讀寫排隊，避免「先刪除後又被較早提交的保存復活」。
+- `firebase-notes-test.html` 已接入 IndexedDB：使用者登入驗證後，只恢復目前 UID 與已授權記事範圍的草稿，明確標示「僅在這支手機保存，尚未雲端同步」。輸入會呼叫本機儲存；按「儲存」時先確定草稿及固定建立 ID 已存入 IndexedDB，再用原本 `runTransaction` 提交 Firestore。Firebase 連線錯誤保留草稿，不作自動重送；雲端成功後清除該草稿，取消操作則按使用者確認清除。
+- 若共用群組被撤銷，頁面下一次確認伺服器授權後隱藏原記事並嘗試刪除本機共用草稿。若角色降為 `VIEWER`，標題／正文設為唯讀且不能恢復舊 `EDITOR` 草稿。因離線時無法即時讀取最新撤銷狀態，**不承諾沒有網路時也能立即撤銷先前已存在此裝置的明文內容**。
+- **資安誠實限制**：IndexedDB 是瀏覽器站點的本機儲存，程式**沒有額外加密**；此處的帳號隔離是應用層 UI／讀取路徑隔離，**不是端對端加密，也不是用戶端資料庫的不可破解安全邊界**。同一裝置上能操作該站點或取得網站資料的人可能接觸本機草稿；需裝置密碼，避免公用手機。Safari 清除網站資料、隱私模式或空間回收可能使草稿遺失。尚無雲端離線備份、實機恢復 PASS 或跨手機同步 PASS。
+- `firebase-offline-drafts.test.mjs` 新增 **19 項使用 `fake-indexeddb` 執行的 IndexedDB API 測試**：帳號與群組隔離、重新開啟物件仍能讀取、輸入資料欄位白名單、編輯版本、待建記事 ID、無效 ID、快速保存順序、保存與刪除競態、存儲不可用時拒絕。此 19 項是**本機 IndexedDB 測試，不能併入官方 Firestore Emulator 136 項**。
+- `web-notes-preflight.test.mjs` 同步驗證離線草稿函式、安全 `false` 旗標、雲端交易前先保存 nonce、`VIEWER` 唯讀及不碰 R73 原始資料。
+- **實際 CI PASS**：提交 `76b8adf2a25e3c006e42917b2b11ae4285ef0eb1`，GitHub `firebase-sync-probe/rules-emulator=success` 並已讀取完成的 `rules-emulator` GitHub Actions job：`HONBIN_OFFLINE_DRAFT_INDEXEDDB_PASS 19`、`HONBIN_FIREBASE_NOTES_WEB_STATIC_PASS 24`、`HONBIN_FIRESTORE_NOTE_CRUD_EMULATOR_PASS 32`、`FIRESTORE_EMULATOR_RESULT=success`，保留原全部 136 項官方 Firestore Emulator 測試。
+- **部署 Gate 未改**：`firebase-web-config.mjs` 的 `firestoreReadyForRealData = false`，未部署到正式 Firebase Cloud Firestore，正式安全規則仍以使用者前次提供的 deny-all 畫面為基準（本輪無管理登入可即時重新查證）；未建立 HTTPS 測試網站，未整合 CRM `main`，未匯入舊 R73 記事，未使用計費或 Work。
+
+**下一個有效工作包**：獨立且 Spark 免費的 HTTPS Auth 測試入口與 Firebase Google 已授權網域實機查證；也可在隔離分支做候選 UI 實際瀏覽器事件測試與版本衝突選擇／人工合併流程。不得把 IndexedDB 模擬器 PASS 說成 iPhone Safari 跨裝置同步已通過。
