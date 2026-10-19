@@ -6,7 +6,8 @@
   "scripts": {
     "test:rules": "npm run test:base && npm run test:invites",
     "test:base": "node firestore.rules.test.mjs",
-    "test:invites": "node firestore.invites.test.mjs"
+    "test:invites": "node firestore.invites.test.mjs",
+    "test:web": "node web-auth-preflight.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
