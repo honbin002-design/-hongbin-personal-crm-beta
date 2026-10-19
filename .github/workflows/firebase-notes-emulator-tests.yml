@@ -31,6 +31,8 @@ jobs:
           java-version: '21'
       - name: Install Google Firebase emulator and test dependencies
         run: npm install --no-audit --no-fund
+      - name: Validate iPhone Firebase Google sign-in test has no Firestore data writes
+        run: npm run test:web
       - name: Run real Firebase Firestore rules engine
         run: |
           set -o pipefail
