@@ -62,15 +62,16 @@ const loginError=error=>{
   return "登入尚未完成（"+c+"）。此頁沒有執行任何資料庫操作。";
 };
 
-let actionBusy=false;
+let actionBusy=false,persistenceReady=false;
 const setButtons=(loggedIn)=>{
-  login.disabled=actionBusy||loggedIn;
-  logout.disabled=actionBusy||!loggedIn;
+  login.disabled=!persistenceReady||actionBusy||loggedIn;
+  logout.disabled=!persistenceReady||actionBusy||!loggedIn;
 };
 onAuthStateChanged(auth,async user=>{
   if(!user){$("identity").textContent="尚未登入";setButtons(false);if(!actionBusy)say("Google 登入測試準備就緒；沒有任何 Firestore 資料庫權限。");return;}
   try{
     const result=await user.getIdTokenResult();
+    if(auth.currentUser?.uid!==user.uid)return; // Ignore a late prior account response.
     // This is only a UX smoke guard; Firestore Security Rules will be the
     // final authority for reads/writes if the app is ever launched.
     if(result.claims.firebase?.sign_in_provider!=="google.com"||
@@ -82,8 +83,8 @@ onAuthStateChanged(auth,async user=>{
   }catch(error){$("identity").textContent="身分驗證失敗";setButtons(false);say(loginError(error));}
 });
 setPersistence(auth,browserSessionPersistence)
-  .then(()=>{setButtons(Boolean(auth.currentUser));if(!auth.currentUser)say("可以按『使用 Google 帳號登入』開始測試。");})
-  .catch(error=>{say("Safari 不能建立安全登入工作階段（"+String(error.code||"UNKNOWN")+"）。");setButtons(false);});
+  .then(()=>{persistenceReady=true;setButtons(Boolean(auth.currentUser));if(!auth.currentUser)say("可以按『使用 Google 帳號登入』開始測試。");})
+  .catch(error=>{persistenceReady=false;say("Safari 不能建立安全登入工作階段（"+String(error.code||"UNKNOWN")+"）。已停用登入。");setButtons(false);});
 
 login.addEventListener("click",()=>{
   if(actionBusy)return;
