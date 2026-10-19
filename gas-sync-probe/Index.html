@@ -14,7 +14,7 @@ button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:8px 15px;
 button.secondary{background:#e5edf4;color:#193247}
 button.active{background:#135c8e;color:white}
 button:disabled{opacity:.55}
-input{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d2df;border-radius:7px}
+input,select{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d2df;border-radius:7px}
 .note{border-top:1px solid #dbe7f0;padding:12px 0}
 .note strong{display:block;font-size:16px}
 .note .body{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
@@ -28,7 +28,8 @@ input{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d
 <button id="personal" class="active" type="button">私人記事</button>
 <button id="team" class="secondary" type="button">共用記事</button>
 </div>
-<div id="groupSection" hidden><label for="groupId">共用群組 ID</label><input id="groupId" autocomplete="off" placeholder="輸入已獲授權的群組 ID"></div>
+<div id="groupSection" hidden><label for="groupId">選擇共用群組</label>
+<select id="groupId" aria-label="已加入的共用群組"><option value="">載入已加入的群組中……</option></select></div>
 <p id="status" role="status" aria-live="polite">尚未連接 Google 服務。</p>
 <button id="refresh" type="button">重新讀取</button>
 <div id="items"></div>
@@ -45,7 +46,30 @@ input{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d
   byId('team').className=s==='SHARED'?'active':'secondary';
   byId('groupSection').hidden=s==='PRIVATE';
   byId('items').replaceChildren();
-  status(s==='PRIVATE'?'私人記事：尚未讀取':'共用記事：請輸入已授權群組 ID');
+  status(s==='PRIVATE'?'私人記事：尚未讀取':'共用記事：正在查詢你已加入的群組');
+  if(s==='SHARED')loadGroups();
+ };
+ var loadGroups=function(){
+  var select=byId('groupId');select.replaceChildren();
+  if(!window.google||!google.script||!google.script.run){
+   status('尚未部署至 Google Apps Script 測試環境');return
+  }
+  google.script.run.withSuccessHandler(function(groups){
+   select.replaceChildren();
+   if(!Array.isArray(groups)||!groups.length){
+    var empty=document.createElement('option');empty.value='';empty.textContent='尚未加入共用群組';
+    select.appendChild(empty);status('目前沒有已加入的共用記事群組。');return;
+   }
+   groups.forEach(function(g){
+    var option=document.createElement('option');
+    option.value=String(g.groupId||'');
+    option.textContent=String(g.name||'未命名群組')+'（'+String(g.role||'成員')+'）';
+    select.appendChild(option);
+   });
+   status('已取得 '+groups.length+' 個授權群組，點「重新讀取」查看記事。');
+  }).withFailureHandler(function(err){
+   status('群組讀取失敗：'+String(err&&err.message||'UNKNOWN_ERROR'));
+  }).gasNoteCall('LIST_GROUPS',{});
  };
  var dateText=function(value){
   if(!value)return '未記錄';
@@ -70,7 +94,7 @@ input{width:100%;font:inherit;min-height:44px;padding:10px;border:1px solid #c4d
   if(running)return;
   if(!window.google||!google.script||!google.script.run){status('尚未部署到 Google Apps Script 測試環境');return}
   var req={scope:scope};
-  if(scope==='SHARED'){req.groupId=byId('groupId').value.trim();if(!req.groupId){status('請先填入共用群組 ID');return}}
+  if(scope==='SHARED'){req.groupId=byId('groupId').value.trim();if(!req.groupId){status('請先選擇共用群組');return}}
   running=true;byId('refresh').disabled=true;status('正在透過 Google 驗證權限並讀取……');
   google.script.run.withSuccessHandler(function(data){running=false;byId('refresh').disabled=false;showNotes(data)})
   .withFailureHandler(function(err){running=false;byId('refresh').disabled=false;
