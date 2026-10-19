@@ -76,7 +76,7 @@ export function makeDraftStore({factory,dbName=NAME}={}){
      }catch(err){reject(err)}
    });
  }
- function save(context,snapshot){
+ async function save(context,snapshot){
    const key=scopeKey(context);
    const clean=copySnapshot(snapshot);
    const scope={uid:context.uid,mode:context.mode,
