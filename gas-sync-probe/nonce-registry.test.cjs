@@ -1,10 +1,17 @@
 'use strict';
 const assert=require('node:assert/strict');
 const {createSheetsNonceRegistry,HONBIN_NONCES_HEADER}=require('./nonce-registry.cjs');
-let now=1000000,blocked=false,locked=false,failWrite=false,corruptHeader=false,passed=0;
+let now=1000000,blocked=false,locked=false,failWrite=false,failExpand=false,maxRows=3,corruptHeader=false,passed=0;
 const rows=[HONBIN_NONCES_HEADER.slice()];
 const tab={
  getLastRow:()=>rows.length,
+ getMaxRows:()=>maxRows,
+ insertRowsAfter(index,count){
+  if(failExpand)throw Error('SIMULATED_NONCE_GRID_EXPANSION_FAILURE');
+  assert.equal(index,maxRows);
+  assert.ok(count>0);
+  maxRows+=count;
+ },
  getRange(row,col,count,width){
   assert.equal(col,1);assert.equal(width,2);
   return {
@@ -15,6 +22,7 @@ const tab={
    setValues:items=>{
     if(failWrite)throw Error('SHEETS_OUTAGE');
     assert.equal(row,rows.length+1);
+    if(row>maxRows)throw Error('NONCE_GRID_OUT_OF_RANGE');
     rows.push(...items.map(x=>x.slice()));
    }
   };
@@ -76,5 +84,22 @@ check('Expired nonce rows may be pruned after replay window',()=>{
 check('Active nonce is not pruned while valid',()=>{
  assert.equal(db.consumeOnce('alice|another-new-98765',now+150000),true);
  assert.ok(rows.some(r=>r[0]==='alice|fresh-9876543210'));
+});
+check('Nonce sheet grows automatically beyond initial three rows',()=>{
+ assert.ok(maxRows>3);
+});
+check('Nonce expansion failure rejects without a consumed nonce',()=>{
+ const previous=maxRows,before=rows.length;
+ maxRows=rows.length;failExpand=true;
+ try{fails('SIMULATED_NONCE_GRID_EXPANSION_FAILURE',
+  ()=>db.consumeOnce('alice|nonce-growfail-12345',now+150000))}
+ finally{failExpand=false;maxRows=previous}
+ assert.equal(rows.length,before);assert.equal(locked,false);
+});
+check('Same nonce can retry successfully after an expansion failure',()=>{
+ const before=rows.length;
+ assert.equal(db.consumeOnce('alice|nonce-growfail-12345',now+150000),true);
+ assert.equal(rows.length,before+1);
+ assert.equal(db.consumeOnce('alice|nonce-growfail-12345',now+150000),false);
 });
 console.log('GAS NONCE STORE OFFLINE PASS',passed);
