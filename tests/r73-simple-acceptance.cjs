@@ -14,7 +14,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  browser=await webkit.launch({headless:true});
  const ctx=await browser.newContext({...devices['iPhone 13'],acceptDownloads:true,serviceWorkers:'block'});
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
- await page.addInitScript(data=>{for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
+ await page.addInitScript(data=>{if(sessionStorage.getItem('__r73_skip_fixtures_after_reset')==='1')return;for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
  check(await page.locator('.nav button').count()===7,'包含供應商與產品資料在內的七個功能主選單');
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
@@ -452,6 +452,51 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await page.locator('#customer360Content .customer360-block h3').allTextContents().then(h=>h.filter(t=>t.includes('使用產品')).length===1)&&
   (await page.locator('#customer360Content .customer360-badges').innerText()).includes('ERP 使用產品 1 筆'),
   'ERP 匯入後客戶頁僅一個使用產品及售價區塊，筆數正確且不包含舊產品');
+
+
+ // Scoped erase regression uses disposable Playwright fixtures, never live iPhone data.
+ await page.locator('[data-tab="backup"]').click();
+ check(await page.locator('#resetCrmData').isDisabled(),'本機清除按鈕預設停用');
+ await page.locator('#resetScope').selectOption('master');
+ check((await page.locator('#resetPreview').innerText()).includes('保留報價'),'主資料清除清楚說明保留報價與待辦');
+ await page.locator('#resetPhrase').fill('清除主資料');
+ check(await page.locator('#resetCrmData').isDisabled(),'未確認已保存備份，禁止清除');
+ await page.locator('#resetBackupConfirmed').check();
+ check(await page.locator('#resetCrmData').isEnabled(),'主資料清除須選擇範圍、勾選備份及輸入指定文字');
+ await page.evaluate(()=>{
+  localStorage.setItem('another_app_local_data','do-not-delete');
+  localStorage.setItem('hongbin_erp_other_project','do-not-delete');
+  sessionStorage.setItem('__r73_skip_fixtures_after_reset','1');
+ });
+ const quoteSaved=await page.evaluate(()=>localStorage.getItem('hongbin_crm_formal_quotes_r73'));
+ const crmSaved=await page.evaluate(()=>localStorage.getItem('hongbin_personal_crm_v3'));
+ await Promise.all([page.waitForEvent('load',{timeout:15000}),page.locator('#resetCrmData').click()]);
+ check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70')===null&&
+  localStorage.getItem('hongbin_crm_erp_master_before_import_v1')===null),'只清除主資料會清除正式主檔及舊匯入快照');
+ check(await page.evaluate(([q,c])=>localStorage.getItem('hongbin_crm_formal_quotes_r73')===q&&
+  localStorage.getItem('hongbin_personal_crm_v3')===c,[quoteSaved,crmSaved]),'主資料清除不會改動正式報價、專案及待辦');
+ await page.locator('[data-tab="backup"]').click();
+ await page.locator('#resetScope').selectOption('all');
+ check((await page.locator('#resetPreview').innerText()).includes('ERP JSON 無法恢復'),'全部清除警告 ERP 匯入無法恢復交易資料');
+ await page.locator('#resetPhrase').fill('清除主資料');
+ await page.locator('#resetBackupConfirmed').check();
+ check(await page.locator('#resetCrmData').isDisabled(),'清除全部必須輸入正確且完整文字');
+ await page.locator('#resetPhrase').fill('清除所有資料');
+ check(await page.locator('#resetCrmData').isEnabled(),'備份、指定文字及範圍正確才能啟用全部清除');
+ await Promise.all([page.waitForEvent('load',{timeout:15000}),page.locator('#resetCrmData').click()]);
+ const erased=await page.evaluate(()=>({
+  own:['hongbin_crm_master_r70','hongbin_personal_crm_v3','hongbin_crm_formal_quotes_r73',
+   'hongbin_crm_project_progress_r72','hongbin_crm_simple_project_history_r74',
+   'hongbin_crm_cards_r70','hongbin_personal_crm_settings_v1',
+   'hongbin_crm_erp_master_before_import_v1'].every(k=>localStorage.getItem(k)===null),
+  other:localStorage.getItem('another_app_local_data'),
+  otherPrefixed:localStorage.getItem('hongbin_erp_other_project'),
+  usable:!!document.getElementById('erpImportFile')
+ }));
+ check(erased.own,'全部清除只移除 CRM 已知的八個資料鍵');
+ check(erased.other==='do-not-delete'&&erased.otherPrefixed==='do-not-delete',
+  '其他 GitHub Pages 系統與共用前綴的資料不會受到影響');
+ check(erased.usable,'全部清除後 CRM 仍可操作並重新匯入 ERP');
 
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R73 SIMPLE ACCEPTANCE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
