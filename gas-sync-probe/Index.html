@@ -63,7 +63,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <script>
 (function(){
  'use strict';
- var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='';
+ var scope='PRIVATE',running=false,account='',notes=[],groups=[],editing=null,activeGroup='',pendingSave=null;
  var byId=function(id){return document.getElementById(id)};
  var status=function(message){byId('status').textContent=message};
  var groupRole=function(){
@@ -173,7 +173,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
  };
  var openEditor=function(note){
   if(!account||!canWrite()){status('目前帳號沒有修改權限。');return}
-  editing=note||null;
+  editing=note||null;pendingSave=null;
   byId('editorTitle').textContent=note?'編輯記事':'新增記事';
   byId('noteTitle').value=note?String(note.title||''):'';
   byId('noteContent').value=note?String(note.content||''):'';
@@ -181,16 +181,26 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   byId('editor').hidden=false;
   byId('noteTitle').focus();
  };
- var closeEditor=function(){byId('editor').hidden=true;editing=null};
+ var closeEditor=function(){byId('editor').hidden=true;editing=null;pendingSave=null};
  var saveNote=function(){
   if(running||!account||!canWrite())return;
   var title=byId('noteTitle').value.trim(),content=byId('noteContent').value;
   if(!content.trim()){status('記事內容不能空白。');return}
   if(title.length>120||content.length>30000){status('記事長度超過限制。');return}
   var action=editing?'UPDATE_NOTE':'CREATE_NOTE';
-  var params={operationId:secureId(),title:title,content:content};
+  var params={title:title,content:content};
   if(editing){params.articleId=String(editing.articleId);params.expectedVersion=Number(editing.version)}
   else{params.scope=scope;if(scope==='SHARED')params.groupId=byId('groupId').value}
+  var fingerprint=JSON.stringify([account,action,params]);
+  // An ambiguous network error may mean Google committed even when the phone
+  // received no ACK. Reuse the original operation ID for the SAME request.
+  // Changing the request before reconciliation can create duplicate records.
+  if(pendingSave&&pendingSave.fingerprint!==fingerprint){
+   status('上一次儲存結果尚未確認，不能用新內容直接重送。請先複製草稿並重新讀取 Google 資料核對。');
+   return;
+  }
+  if(!pendingSave)pendingSave={fingerprint:fingerprint,operationId:secureId()};
+  params.operationId=pendingSave.operationId;
   running=true;byId('saveNote').disabled=true;status('正在儲存，請稍候……');
   remote(action,params,function(){
    running=false;byId('saveNote').disabled=false;
