@@ -32,7 +32,9 @@ jobs:
       - name: Install Google Firebase emulator and test dependencies
         run: npm install --no-audit --no-fund
       - name: Run real Firebase Firestore rules engine
-        run: npx firebase emulators:exec --only firestore --project demo-honbin-crm-rules-isolated --non-interactive "npm run test:rules"
+        run: |
+          set -o pipefail
+          npx firebase emulators:exec --only firestore --project demo-honbin-crm-rules-isolated --non-interactive "npm run test:rules" 2>&1 | tee firebase-emulator-ci.log
       - name: Report real emulator result in GitHub commit status
         if: always()
         env:
@@ -41,6 +43,14 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$JOB_RESULT" == "success" ]]; then state=success; else state=failure; fi
+          if [[ "$state" == "failure" ]]; then
+            last=$(grep '^BEGIN ' firebase-emulator-ci.log 2>/dev/null | tail -1 | cut -c 1-100 || true)
+            last=${last:-"Emulator setup or rules compilation"}
+            gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+              --field state=failure \
+              --field context='firebase-sync-probe/failing-invite-check' \
+              --field description="$last" >/dev/null
+          fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             --field state="$state" \
             --field context='firebase-sync-probe/rules-emulator' \
