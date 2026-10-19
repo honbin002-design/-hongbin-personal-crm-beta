@@ -37,6 +37,11 @@ try{
   ()=>assertFails(setDoc(doc(stranger,'inboxes/bob@example.test/invites/forged'),{
    ...inviteData,invitedBy:'stranger-uid'
   })));
+ await check('ADMIN may invite but cannot enroll the target even when invitation is pending',()=>assertFails(
+  setDoc(doc(alice,membership),{
+   uid:'bob-uid',role:'VIEWER',status:'ACTIVE',invitationId:'bob-first'
+  })
+ ));
  await check('Invitation alone cannot create membership',
   ()=>assertFails(setDoc(doc(bob,membership),{
    uid:'bob-uid',role:'VIEWER',status:'ACTIVE',invitationId:'bob-first'
