@@ -8,7 +8,7 @@ const match=html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(match,'embedded UI program exists');
 let pass=0,serial=0,randomSerial=0,remoteAccount='alice@example.test',forcedConflict=false,lostAckOnce=false,lostDeleteAckOnce=false;
 const committedOps=new Map();
-let notes=[],calls=[],groups=[];
+let notes=[],calls=[],groups=[],members=[];
 class Element{
  constructor(id=''){this.id=id;this.textContent='';this.children=[];this.value='';
   this.hidden=false;this.disabled=false;this.className='';this.onclick=null;this.onchange=null;}
@@ -41,7 +41,20 @@ const fakeService={onSuccess:null,onFailure:null,
    // Backend checks all read/write actions against current Google Session.
    if(args.__expectedGoogleAccount!==remoteAccount)throw Error('GOOGLE_ACCOUNT_SWITCHED');
    if(action==='LIST_GROUPS')result=groups;
-   else if(action==='LIST_NOTES'){
+   else if(action==='CREATE_GROUP'){
+    result={groupId:'test-group-'+(++serial),role:'ADMIN'};
+    groups.push({groupId:result.groupId,name:args.name,role:'ADMIN'});
+    members.push({groupId:result.groupId,memberId:remoteAccount,role:'ADMIN',status:'ACTIVE'});
+   }else if(action==='LIST_MEMBERS'){
+    if(!groups.some(g=>g.groupId===args.groupId&&g.role==='ADMIN'))throw Error('FORBIDDEN_ADMIN');
+    result=members.filter(m=>m.groupId===args.groupId);
+   }else if(action==='SET_MEMBER'){
+    if(!groups.some(g=>g.groupId===args.groupId&&g.role==='ADMIN'))throw Error('FORBIDDEN_ADMIN');
+    const existing=members.find(m=>m.groupId===args.groupId&&m.memberId===args.memberId);
+    if(existing){existing.role=args.role;existing.status=args.status}
+    else members.push({groupId:args.groupId,memberId:args.memberId,role:args.role,status:args.status});
+    result={groupId:args.groupId,memberId:args.memberId,role:args.role,status:args.status};
+   }else if(action==='LIST_NOTES'){
     result=notes.filter(n=>n.scope===args.scope&&
      (args.scope==='PRIVATE'?n.ownerId===remoteAccount:n.groupId===args.groupId));
    }else if(action==='CREATE_NOTE'){
