@@ -287,7 +287,7 @@ async function previewErpData(){
   erpPending=x;$('erpApplyImport').disabled=false;
   status.textContent='尚未修改任何資料｜預覽\n客戶：'+counts.customers+' 筆\n供應商：'+counts.suppliers+
    ' 筆\n供應商產品：'+counts.products+' 款\n客戶售價：'+counts.prices+
-   ' 筆\n來源待核對衝突：'+(x.report?.sourceConflicts?.length||0)+' 項\n現有客戶：'+current.customers.length+
+   ' 筆\n來源待核對衝突：'+(x.report?.sourceConflicts?.length||0)+' 項；其中 '+(x.report?.ambiguousPriceGroupsExcluded||0)+' 組衝突售價已排除\n現有客戶：'+current.customers.length+
    ' 筆（來源外客戶保留）\n現有產品：'+current.products.length+
    ' 款（來源外舊產品會標示待核對）\n「需確認供應商」的紀錄不會匯入。\n請先下載並保存 CRM 備份，再勾選確認。';
  }catch(e){status.textContent='驗證失敗：'+String(e.message||e)}
@@ -339,7 +339,8 @@ function renderSuppliers(){
   return '<div class="listItem"><div class="listTitle">'+esc(supplierName(s))+'</div>'+
    (s.shortName?'<div class="sub">簡稱：'+esc(s.shortName)+'</div>':'')+
    '<div class="sub">'+esc([s.contact,s.tel,s.email].filter(Boolean).join(' ｜ ')||'來源檔未提供聯絡資訊')+'</div>'+
-   '<div class="sub">旗下產品：'+count+' 款</div>'+
+    '<div class="sub">旗下產品：'+count+' 款</div>'+
+   (s.needsSupplierNameReview?'<div class="warn">供應商全名待核對（由已確認客戶對照補全）</div>':'')+
    '<button type="button" class="secondary" data-supplier="'+s.__index+'">查看／編輯</button> '+
    '<button type="button" class="secondary supplier-products-link" data-supplier-browse="'+s.__index+'">查看旗下產品</button></div>';
  }).join(''):htmlListEmpty('尚無供應商，按新增供應商建立');
@@ -381,6 +382,8 @@ function renderProducts(){
    '<div class="sub">單位：'+esc(p.unit||'—')+'　｜　包裝／規格：'+esc(p.spec||'—')+'</div>'+
    (p.fromConfirmedCustomerMapping?'<div class="sub">由已確認客戶品項對照補全</div>':'')+
    (p.source==='legacy-not-verified'?'<div class="warn">舊產品，資料待核對</div>':'')+
+   (Array.isArray(p.variants)&&p.variants.length?'<details class="priceList"><summary>同品號其他規格（'+p.variants.length+'）</summary>'+
+    p.variants.map(v=>'<div class="priceLine">品項：'+esc(v.name||'—')+'　｜　包裝：'+esc(v.spec||'—')+'　｜　單位：'+esc(v.unit||'—')+'</div>').join('')+'</details>':'')+
    (pricing.length?'<details class="priceList"><summary>客戶售價（'+pricing.length+' 筆）</summary>'+
     pricing.map(x=>'<div class="priceLine">'+esc(x.customerName)+'　｜　客戶品號：'+esc(x.customerPartNo||'—')+
      '　｜　售價：NT$ '+esc(formatErpPrice(x.price))+'／'+esc(x.unit||'單位')+'</div>').join('')+'</details>':
