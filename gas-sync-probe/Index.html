@@ -117,6 +117,7 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   byId('newNote').disabled=!account||s==='SHARED';
   status(s==='PRIVATE'?'私人記事：尚未讀取':'共用記事：正在查詢你已加入的群組');
   if(s==='SHARED')loadGroups();
+  else if(account)refresh();
  };
  var loadGroups=function(){
   var select=byId('groupId');select.replaceChildren();
