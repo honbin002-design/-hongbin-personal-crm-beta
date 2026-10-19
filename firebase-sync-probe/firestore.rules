@@ -184,6 +184,37 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Admin-only directory of sent invitations. Index is permanent but
+      // deliberately has no recipient note content or auth credential.
+      // Creating the index requires the corresponding real email invite
+      // to exist in the same committed server-side state.
+      match /sentInvites/{invitationId} {
+        allow get, list: if canAdminGroup(groupId);
+        allow create: if canAdminGroup(groupId)
+          && request.resource.data.keys().hasOnly([
+            'groupId','recipientEmail','role','invitedBy','createdAt'])
+          && request.resource.data.keys().hasAll([
+            'groupId','recipientEmail','role','invitedBy','createdAt'])
+          && request.resource.data.groupId == groupId
+          && request.resource.data.invitedBy == request.auth.uid
+          && request.resource.data.recipientEmail is string
+          && request.resource.data.recipientEmail.size() <= 254
+          && request.resource.data.role in ['ADMIN','EDITOR','VIEWER']
+          && request.resource.data.createdAt is timestamp
+          && getAfter(invitationPath(request.resource.data.recipientEmail,
+                            invitationId)).data.groupId == groupId
+          && getAfter(invitationPath(request.resource.data.recipientEmail,
+                            invitationId)).data.recipientEmail
+               == request.resource.data.recipientEmail
+          && getAfter(invitationPath(request.resource.data.recipientEmail,
+                            invitationId)).data.role == request.resource.data.role
+          && getAfter(invitationPath(request.resource.data.recipientEmail,
+                            invitationId)).data.invitedBy == request.auth.uid
+          && getAfter(invitationPath(request.resource.data.recipientEmail,
+                            invitationId)).data.status == 'PENDING';
+        allow update, delete: if false;
+      }
+
       match /notes/{noteId} {
         allow get, list: if canViewGroup(groupId);
         allow create: if canEditGroup(groupId)
@@ -201,7 +232,12 @@ service cloud.firestore {
     // Google email. Recipient may read ONLY their own exact inbox path.
     // Acceptance MUST be in the same atomic Firestore write batch as joining.
     match /inboxes/{recipientEmail}/invites/{invitationId} {
-      allow get, list: if verifiedGoogleEmail(recipientEmail);
+      // A group's ADMIN can inspect a specific invitation already
+      // identified in its group-scoped sentInvites directory, but cannot
+      // enumerate a recipient's whole inbox or other groups' invites.
+      allow get: if verifiedGoogleEmail(recipientEmail)
+        || (googleUser() && canAdminGroup(resource.data.groupId));
+      allow list: if verifiedGoogleEmail(recipientEmail);
       allow create: if googleUser()
         && recipientEmail is string
         && recipientEmail.size() <= 254
