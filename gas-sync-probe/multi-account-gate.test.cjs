@@ -68,9 +68,19 @@ check('Real production backup and rollback required',()=>{
  evidence:{...complete,productionBackupAndRollbackPassed:false}});
  assert.ok(codes(r).includes('PRODUCTION_BACKUP_NOT_RECHECKED'));
 });
-check('Even all technical flags true cannot auto-deploy CRM to production',()=>{
+check('Even forged true flags cannot approve Google release or acceptance',()=>{
  const r=assessMultiAccountRelease({userDeployment:A,dataDeployment:B,evidence:complete});
- assert.equal(r.status,'READY_FOR_USER_ACCEPTANCE');
+ assert.equal(r.status,'HOLD');
+ assert.equal(r.allowedForUserAcceptance,false);
  assert.equal(r.deployProduction,false);
+ assert.ok(codes(r).includes('TRUSTED_GOOGLE_EVIDENCE_NOT_CONNECTED'));
+});
+check('Fake deployment objects and checkboxes cannot bypass the hard hold',()=>{
+ const fake={userDeployment:JSON.parse(JSON.stringify(A)),dataDeployment:JSON.parse(JSON.stringify(B)),
+  evidence:Object.fromEntries(Object.keys(complete).map(k=>[k,true]))};
+ const r=assessMultiAccountRelease(fake);
+ assert.equal(r.status,'HOLD');
+ assert.equal(r.allowedForUserAcceptance,false);
+ assert.ok(codes(r).includes('TRUSTED_GOOGLE_EVIDENCE_NOT_CONNECTED'));
 });
 console.log('MULTI ACCOUNT RELEASE SAFETY GATE PASS',passed);
