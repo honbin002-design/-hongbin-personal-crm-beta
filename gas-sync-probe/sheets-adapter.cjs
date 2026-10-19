@@ -48,8 +48,16 @@ function createSheetsEventAdapter({SpreadsheetApp,LockService,PropertiesService}
     const r=[e.eventId,e.operationId,e.actor,e.entity,e.id,e.action,e.at,
       e.version,e.fingerprint,JSON.stringify(e.payload),JSON.stringify(e.result)];
     if(r.some(v=>v===undefined))throw Error('INVALID_EVENT');
+    // Sheets getRange() cannot write outside the allocated grid. The real
+    // Events tab starts with 1000 rows, so appending record 1000 must grow it.
+    // The caller holds ScriptLock for capacity check + expansion + append.
+    // A failed expansion must never be mistaken for an acknowledged event.
+    const nextRow=last+1;
+    const max=ws.getMaxRows();
+    if(!Number.isSafeInteger(max)||max<last)throw Error('EVENTS_GRID_INVALID');
+    if(nextRow>max)ws.insertRowsAfter(max,Math.min(1000,15001-max));
     // Single setValues call, no multi-table partial commit by this adapter.
-    ws.getRange(last+1,1,1,r.length).setValues([r]);
+    ws.getRange(nextRow,1,1,r.length).setValues([r]);
   }
   function withLock(fn) {
     const lock=LockService.getScriptLock();
