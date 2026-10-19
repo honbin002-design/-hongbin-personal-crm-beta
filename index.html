@@ -44,6 +44,11 @@
 .legacy-sheet-shell{width:100%;position:relative;overflow:hidden;background:#fff;margin:10px 0}
 #quotePreviewPages{width:100%;max-width:100%}
 /* Supplier → products hierarchy; private customer price details stay in browser storage. */
+.crm-reset{border-top:2px solid #e5ced0;margin-top:26px;padding-top:16px}
+.crm-reset .danger{background:#9b3333;color:#fff}
+.crm-reset .warn{line-height:1.55}
+#resetPreview{margin:12px 0;background:#fff8ef;border:1px solid #e6d9ba;border-radius:8px;padding:10px;white-space:pre-line}
+#resetStatus{margin-top:7px;white-space:pre-line}
 .supplierGroup{border:1px solid #d6e1e9;border-radius:10px;margin:12px 0;background:#fafcfe;padding:0 12px}
 .supplierGroup>summary{padding:15px 4px;cursor:pointer;font-size:17px;font-weight:750;color:#19496d}
 .supplierGroup .listItem{padding:12px 4px}
@@ -325,6 +330,22 @@
 <div id="erpImportStatus" class="erp-import-note" role="status" aria-live="polite">尚未選擇匯入檔。</div>
 <label class="erp-confirm-label"><input id="erpBackupConfirmed" type="checkbox"><span>我已下載並保存 CRM 備份，了解匯入會更換供應商與 ERP 產品清單。</span></label>
 <div class="erp-import-actions"><button id="erpApplyImport" type="button" disabled>確認匯入 ERP 主資料</button></div>
+<div class="crm-reset">
+<h3>清除本機 CRM 資料（重新匯入前使用）</h3>
+<p class="warn">此操作只針對本 CRM 的已知本機文字資料，不會清除整個 Safari 或其他 GitHub Pages 專案。無法單靠 ERP 匯入檔恢復報價單、專案、待辦及追蹤紀錄。舊名片圖片的 IndexedDB 附件不在這次清除範圍內。</p>
+<label for="resetScope">選擇要清除的範圍</label>
+<select id="resetScope">
+<option value="">請先選擇清除範圍</option>
+<option value="master">只清除主資料：供應商、產品、客戶主檔及售價</option>
+<option value="all">清除全部 CRM 文字資料：含報價、專案、待辦</option>
+</select>
+<div id="resetPreview" class="erp-import-note" role="status" aria-live="polite">尚未選擇清除範圍，不會刪除任何資料。</div>
+<label class="erp-confirm-label"><input id="resetBackupConfirmed" type="checkbox"><span>我已將「下載 CRM 備份檔」產生的備份確實保存到 iPhone「檔案」App，了解清除後無法單靠 ERP 匯入檔恢復歷史紀錄。</span></label>
+<label for="resetPhrase">輸入確認文字（選擇範圍後會顯示）</label>
+<input id="resetPhrase" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="先選擇清除範圍">
+<div class="actions"><button id="resetCrmData" type="button" class="danger" disabled>清除選定的 CRM 資料</button></div>
+<div id="resetStatus" class="erp-import-note" role="status" aria-live="polite"></div>
+</div>
 </div>
 </section>
 </main><datalist id="customerNames"></datalist><datalist id="supplierNames"></datalist><datalist id="productNames"></datalist><datalist id="productModels"></datalist>
@@ -332,6 +353,6 @@
 <div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div><div id="smartSuggestions" role="listbox" hidden aria-label="候選選項"></div>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./simple-core.js?v=r73-erp-only-customer-products-20261019" defer></script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-erp-only-customer-products-20261019').catch(()=>{}))}</script>
+<script src="./simple-core.js?v=r73-safe-crm-reset-20261019" defer></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-safe-crm-reset-20261019').catch(()=>{}))}</script>
 </body></html>
