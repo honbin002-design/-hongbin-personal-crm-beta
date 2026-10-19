@@ -375,6 +375,66 @@ function clearCrmData(){
  location.reload();
 }
 
+
+/* Standalone iPhone quick notes, local-only. No ERP, customer, quote or project master changes. */
+function noteHeading(n){
+ return String(n.title||'').trim()||String(n.content||'').split('\n').find(x=>x.trim())?.trim().slice(0,42)||'未命名隨手記';
+}
+function renderNotes(){
+ const q=norm(field('noteSearch'));
+ const list=getNotes().filter(n=>!q||norm([n.title,n.content].join(' ')).includes(q))
+  .slice().sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')));
+ $('noteList').innerHTML=list.length?list.map(n=>
+  '<div class="listItem"><div class="listTitle">'+esc(noteHeading(n))+'</div>'+
+  '<div class="sub">建立：'+esc(readableHistoryTime(n.createdAt))+
+  '　｜　更新：'+esc(readableHistoryTime(n.updatedAt||n.createdAt))+'</div>'+
+  '<div class="sub quick-note-excerpt">'+esc(n.content||'')+'</div>'+
+  '<button type="button" class="secondary" data-note="'+esc(n.id)+'">查看資料</button></div>'
+ ).join(''):htmlListEmpty(q?'找不到符合的隨手記':'尚無隨手記。按「＋ 新增隨手記」即可記錄。');
+}
+function editNote(id){
+ const n=id==null?null:getNotes().find(x=>String(x.id)===String(id));
+ if(id!=null&&!n){alert('找不到這則隨手記，請回清單確認');return}
+ editNoteId=n?.id??null;creatingNote=id==null;
+ $('noteTitle').value=n?.title||'';
+ $('noteContent').value=n?.content||'';
+ $('noteEditorTitle').textContent=n?'編輯隨手記':'新增隨手記';
+ $('panel-notes').classList.add('is-editing');
+ $('noteEditor').hidden=false;
+ $('noteEditor').scrollIntoView({block:'start',behavior:'instant'});
+ updateFloatingBack();
+ if(id==null)$('noteContent').focus();
+}
+function cancelNote(){
+ if(editorFromRecord?.kind==='note'){finishRecordEdit();return}
+ creatingNote=false;editNoteId=null;$('noteEditor').hidden=true;
+ $('panel-notes').classList.remove('is-editing');updateFloatingBack();
+}
+function saveNote(){
+ const title=field('noteTitle'),content=field('noteContent');
+ if(!content){alert('請填寫隨手記內容');$('noteContent').focus();return}
+ if(content.length>30000){alert('單則隨手記不能超過 30,000 字，請分成數則保存');return}
+ const list=getNotes(),i=list.findIndex(n=>editNoteId!=null&&String(n.id)===String(editNoteId));
+ if(editNoteId!=null&&i<0){alert('原始隨手記不存在，未儲存任何資料');return}
+ const old=i<0?null:list[i],now=new Date().toISOString(),id=old?.id??uniqueId();
+ const next={...(old||{}),id,title,content,createdAt:old?.createdAt||now,updatedAt:now};
+ if(i<0)list.push(next);else list[i]=next;
+ if(!store(KEYS.notes,list))return;
+ editNoteId=null;creatingNote=false;
+ $('noteEditor').hidden=true;$('panel-notes').classList.remove('is-editing');
+ renderNotes();toast(old?'隨手記已更新':'隨手記已儲存');
+ if(editorFromRecord?.kind==='note')finishRecordEdit(id);
+ else showRecord('note',id);
+}
+function deleteViewedNote(){
+ if(recordView?.kind!=='note')return;
+ const id=recordView.key,list=getNotes(),note=list.find(n=>String(n.id)===id);
+ if(!note){alert('這則隨手記已不存在');return}
+ if(!confirm('確定永久刪除這則隨手記「'+noteHeading(note)+'」？\n刪除後無法直接復原，請確認已備份。'))return;
+ if(!store(KEYS.notes,list.filter(n=>String(n.id)!==id)))return;
+ toast('已刪除隨手記');goBackView();
+}
+
 // ── Local backup and careful restore ──
 function renderStorage(){try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('hongbin_'));$('storageStatus').textContent='本機儲存狀態：可使用｜目前找到 '+keys.length+' 個 CRM 資料項目'}catch{$('storageStatus').textContent='無法讀取本機儲存，請勿繼續輸入資料'}}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
@@ -722,6 +782,11 @@ $('supplierSearch').oninput=renderSuppliers;$('newSupplier').onclick=()=>editSup
  const item=getMaster().suppliers[Number(b.dataset.supplierBrowse)];if(item){const origin=listContext();$('productSearch').value=supplierName(item);openTab('products');recordTrail.push(origin);updateFloatingBack()}return}
  const edit=e.target.closest('[data-supplier]');if(edit)showRecord('supplier',edit.dataset.supplier)};$('saveSupplier').onclick=saveSupplier;$('cancelSupplier').onclick=()=>{if(editorFromRecord?.kind==='supplier')finishRecordEdit();else $('supplierEditor').hidden=true};
 $('productSearch').oninput=renderProducts;$('newProduct').onclick=()=>editProduct(null);$('productList').onclick=e=>{const b=e.target.closest('[data-product]');if(b)showRecord('product',b.dataset.product)};$('saveProduct').onclick=saveProduct;$('cancelProduct').onclick=()=>{if(editorFromRecord?.kind==='product')finishRecordEdit();else $('productEditor').hidden=true};
+$('noteSearch').oninput=renderNotes;
+$('newNote').onclick=()=>editNote(null);
+$('noteList').onclick=e=>{const b=e.target.closest('[data-note]');if(b)showRecord('note',b.dataset.note)};
+$('saveNote').onclick=saveNote;$('cancelNote').onclick=cancelNote;
+$('recordDetailDelete').onclick=deleteViewedNote;
 $('downloadBackup').onclick=backup;$('restoreBackup').onclick=restore;
 $('erpImportFile').onchange=()=>{erpPending=null;$('erpApplyImport').disabled=true;$('erpBackupConfirmed').checked=false;$('erpImportStatus').textContent='已選擇匯入檔，請按預覽';};
 $('erpPreviewImport').onclick=previewErpData;$('erpApplyImport').onclick=applyErpData;
