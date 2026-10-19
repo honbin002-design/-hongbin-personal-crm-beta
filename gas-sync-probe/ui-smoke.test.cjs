@@ -196,6 +196,20 @@ succeed('Switching Google account during a READ clears previously displayed note
  assert.match(elements.identity.textContent,/alice@example.test/);
  assert.match(elements.status.textContent,/同步讀取成功/);
 });
+succeed('Late old-account success callback cannot re-display cached private notes',()=>{
+ assert.ok(elements.items.children.length>0);
+ // Simulate response arriving late from a request issued while Alice was logged in.
+ const staleReadSuccess=fakeService.onSuccess;
+ remoteAccount='bob@example.test';
+ elements.refresh.onclick(); // explicit Google mismatch hides Alice's cached notes
+ assert.equal(elements.items.children.length,0);
+ staleReadSuccess(notes.filter(x=>x.scope==='PRIVATE'&&x.ownerId==='alice@example.test'));
+ assert.equal(elements.items.children.length,0);
+ assert.equal(elements.editor.hidden,true);
+ remoteAccount='alice@example.test';
+ elements.refresh.onclick(); // verify Alice, not Bob
+ assert.match(elements.identity.textContent,/alice@example.test/);
+});
 succeed('Shared VIEWER cannot create or edit notes',()=>{
  groups=[{groupId:'group-001',name:'共同記事',role:'VIEWER'}];
  notes.push({articleId:'sh-1',scope:'SHARED',groupId:'group-001',title:'Group',content:'公告',
