@@ -114,7 +114,7 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - Google 官方文件明示 Google Apps Script 部署實際授權包含 `entryPoints[].webApp.entryPointConfig.access` 與 `executeAs`，以 Google `projects.deployments.get` 回傳才算部署 Readback 證據。CLASP upstream issue `google/clasp#1115` 指出 `clasp deploy` 不能理所當然地視為已套用 manifest 網頁存取權限。
 - 新增 `deployment-readback.cjs` 與 `deployment-readback.test.cjs`，12 項合成部署回讀檢查已離線 PASS：只接受 MYSELF 封閉測試權限、正確的 USER_ACCESSING／USER_DEPLOYING 執行者與兩個不同的部署 ID；任何公開／匿名權限、未知設定或錯誤身分一律拒絕。**真正部署 API 回讀尚未取得。**
 - 前輪 **152 項**離線測試，加上本輪 12 項，共 **164 項離線測試**；另有 **1 次真實 Google Sheets 獨立讀寫＋清理驗證 PASS**，不把它冒充 Apps Script 身分／共用驗收。
-- GitHub Actions 已納入 **13 組**Node 自動回歸測試，但因目前的 GitHub 介面無法取得該次完整 workflow run，**13 組 CI 的執行成功狀態尚未經日誌驗證**。
+- GitHub Actions 已納入 **13 組**Node 自動回歸測試；之後以 commit status `gas-sync-probe/node-regression: success` 完成**實際 Node CI PASS** 驗證。
 
 ### 保持 HOLD 的項目
 - Script API 的 Google OAuth 私密授權及自動化部署；不得索取使用者密碼／Token，不得要求使用者自己寫 Script 或操作終端機。
@@ -130,5 +130,5 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - 同時以公司帳號回讀 Drive metadata：`shared=false`，`permissions` 僅 1 筆 owner。**PASS：目前這份未分享試算表的 Google 原生隔離**。
 - 以上不代表 Apps Script A 使用 Google Session 取得身分或 B 安全轉發成功；**App Script 跨帳號同步仍未實測**，不得提升 GO LIVE。
 - `.github/workflows/gas-notes-offline-tests.yml` 保持對獨立分支 `probe/gas-no-work-20261019` 的 13 組 Node 測試；新增提交狀態回報步驟，使用 GitHub Actions 的臨時 `github.token` 並限定 `contents:read` 和 `statuses:write`，只寫回 `gas-sync-probe/node-regression` 這個 commit status context。
-- **設定完成不等於實際測試 PASS。** 首次查詢最新提交 `5bc4f16cdf15f90c7d6d912569ef186aa97e4d1c` 的 statuses 為空，應繼續透過 status readback 查找實際 Node 結果；無法取得實際 status 時維持 CI UNVERIFIED。不能要求使用者開 GitHub 工具截圖或貼 terminal。
+- **實際 Node.js CI 已回報 PASS。** GitHub 回讀提交 `ff22866553365655a1f63e1367c4f35fa6bf7148` 的 `gas-sync-probe/node-regression` 狀態為 `success`；這表示該提交的 GitHub Actions 13 組 Node.js 測試已跑完並由 workflow 回報成功。先前的 statuses 空值為執行尚未完成時的暫時狀態。此項可列為 **NODE CI PASS**，但不是 Google Apps Script 真實部署。
 - 這個改動沒有使用 Google OAuth、Google Apps Script API 部署憑證、Work 模式，也沒有修改正式 CRM main 或原本記事。
