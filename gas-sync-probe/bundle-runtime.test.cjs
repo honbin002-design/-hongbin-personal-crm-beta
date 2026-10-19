@@ -92,13 +92,27 @@ try{
    return {getResponseCode:()=>200,getContentText:()=>serverResponse.getContentText()};
   }},
  });
- const call=(kind,payload)=>apiA.gasNoteCall(kind,payload);
+ const mutableActions=['CREATE_GROUP','SET_MEMBER','CREATE_NOTE','UPDATE_NOTE','DELETE_NOTE'];
+ const call=(kind,payload)=>{
+   var params=Object.assign({},payload||{});
+   if(mutableActions.includes(kind))params.__expectedGoogleAccount=principal;
+   return apiA.gasNoteCall(kind,params);
+ };
  const who=(name,fn)=>{principal=name;return fn()};
  check('A/B compile and both default owner-only until verified release',()=>{
   assert.equal(userManifest.webapp.access,'MYSELF');
   assert.equal(dataManifest.webapp.access,'MYSELF');
   assert.equal(typeof apiA.gasNoteCall,'function');
   assert.equal(typeof coreB.doPost,'function');
+ });
+ check('A rejects a stale different-account mutation before backend signing',()=>{
+  who('bob@example.test',()=>fail('GOOGLE_ACCOUNT_SWITCHED',()=>apiA.gasNoteCall(
+   'CREATE_NOTE',{operationId:'staleAcc000001',scope:'PRIVATE',content:'ALICE_NOTE',
+    __expectedGoogleAccount:'alice@example.test'})));
+ });
+ check('A rejects missing expectedAccount on writes',()=>{
+  who('alice@example.test',()=>fail('EXPECTED_ACCOUNT_REQUIRED',()=>apiA.gasNoteCall(
+   'CREATE_NOTE',{operationId:'noAccount00123',scope:'PRIVATE',content:'draft'})));
  });
  check('Blank Google identity rejected before data service call',()=>{
   const before=sheets.UsedNonces.rows.length;
