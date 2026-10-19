@@ -228,6 +228,14 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('button[data-tab="calendar"]').click();
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
  check((await page.locator('#todoList').innerText()).includes('舊版未排日期事項'),'舊版未指定日期待辦仍可看到');
+ check(await page.evaluate(()=>{
+  const btn=document.getElementById('newTodo'),grid=document.getElementById('calendarGrid');
+  return !!btn&&document.querySelectorAll('#newTodo').length===1&&
+    !!(btn.compareDocumentPosition(grid)&Node.DOCUMENT_POSITION_FOLLOWING)&&
+    btn.closest('.calendarQuickAdd')!==null;
+ }),'新增當日待辦按鈕位於月曆上方，不再落在清單最底部');
+ check((await page.locator('#todoList .todo-time.unscheduled').first().innerText())==='未設定時間',
+  '舊版未排日期待辦仍保留且清楚顯示未設定時間');
 
  const originalSelected=(await page.locator('#selectedDayTitle').innerText()).slice(0,7);
  await page.locator('#nextMonth').click();
@@ -263,6 +271,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#tCustomer').fill('測試甲公司');
  await page.locator('#saveTodo').click();
  check((await page.locator('#todoList').innerText()).includes('14:30'),'行事曆正確顯示時間');
+ check(await page.locator('#todoList .task .todo-time').filter({hasText:'14:30'}).first().evaluate(el=>{
+   const cs=getComputedStyle(el),name=el.closest('.todo-task-main').querySelector('.listTitle');
+   return el.textContent==='時間：14:30'&&parseFloat(cs.fontSize)>=17&&
+     Number(cs.fontWeight)>=700&&el.getBoundingClientRect().bottom<name.getBoundingClientRect().top;
+ }),'待辦時間獨立顯示且文字較大、加粗，與事項分行排列');
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.time==='14:30')),'待辦時間持久保存');
  check((await page.locator('#todoList').innerText()).includes('R74行事曆事項'),'待辦儲存並顯示在選定日期');
  check((await page.locator('#todoList').innerText()).includes('14:30'),'待辦時間頁面不需要備份即可查看');
