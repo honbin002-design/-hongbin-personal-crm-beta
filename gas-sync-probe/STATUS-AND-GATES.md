@@ -121,3 +121,14 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - 目前 Script A、B 的 `MYSELF` 封閉存取**不支援跨帳號共用**。未經真實 A→B 存取與身分驗證前不得提升公開權限。
 - 兩支不同 iPhone／不同 Google 帳號的私人隔離、角色／撤銷與同步驗收；**沒有實際 PASS**。
 - 正式 CRM `main`、原本 `hongbin_crm_quick_notes_r73` 和所有 ERP／報價資料保持原狀；本測試試算表不含正式資料。
+
+## 2026-10-19｜跨帳號 Google 原生 ACL 實測與 GitHub Node.js CI 回報
+
+- 使用公司 Google 帳號建立的**隔離測試工作表**已直接以另一個已連線的 Google 個人帳號進行 2 次真實 API 負向驗證：
+  1. Personal Google 帳號請求 Google Sheets metadata → **HTTP 403 PERMISSION_DENIED**。
+  2. Personal Google 帳號請求 `Events!A1:C1` → **HTTP 403 PERMISSION_DENIED**。
+- 同時以公司帳號回讀 Drive metadata：`shared=false`，`permissions` 僅 1 筆 owner。**PASS：目前這份未分享試算表的 Google 原生隔離**。
+- 以上不代表 Apps Script A 使用 Google Session 取得身分或 B 安全轉發成功；**App Script 跨帳號同步仍未實測**，不得提升 GO LIVE。
+- `.github/workflows/gas-notes-offline-tests.yml` 保持對獨立分支 `probe/gas-no-work-20261019` 的 13 組 Node 測試；新增提交狀態回報步驟，使用 GitHub Actions 的臨時 `github.token` 並限定 `contents:read` 和 `statuses:write`，只寫回 `gas-sync-probe/node-regression` 這個 commit status context。
+- **設定完成不等於實際測試 PASS。** 首次查詢最新提交 `5bc4f16cdf15f90c7d6d912569ef186aa97e4d1c` 的 statuses 為空，應繼續透過 status readback 查找實際 Node 結果；無法取得實際 status 時維持 CI UNVERIFIED。不能要求使用者開 GitHub 工具截圖或貼 terminal。
+- 這個改動沒有使用 Google OAuth、Google Apps Script API 部署憑證、Work 模式，也沒有修改正式 CRM main 或原本記事。
