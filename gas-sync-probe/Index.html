@@ -119,6 +119,27 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   return ['GOOGLE_ACCOUNT_SWITCHED','GOOGLE_IDENTITY_UNAVAILABLE',
     'UNVERIFIED_IDENTITY','EXPECTED_ACCOUNT_REQUIRED'].some(function(x){return code.includes(x)});
  };
+ var isRevokedAccess=function(code){
+  return ['FORBIDDEN_PRIVATE','FORBIDDEN_SHARED','FORBIDDEN_ADMIN',
+   'FORBIDDEN_WRITE','FORBIDDEN_DELETE','GROUP_NOT_FOUND'].some(function(x){
+    return code.includes(x);
+   });
+ };
+ var hideRevokedSharedView=function(){
+  // An existing Google identity does NOT imply continuing group membership.
+  // Immediately hide already rendered content after server denies a role.
+  accountEpoch++;notes=[];groups=[];activeGroup='';
+  suspendedDraft=null;editing=null;pendingSave=null;pendingDelete=null;pendingAdminOp=null;
+  byId('items').replaceChildren();byId('memberList').replaceChildren();
+  byId('groupId').replaceChildren();byId('noteTitle').value='';byId('noteContent').value='';
+  byId('memberEmail').value='';byId('editor').hidden=true;
+  byId('groupMembers').hidden=true;byId('groupCreate').hidden=true;
+  byId('newNote').disabled=true;byId('manageGroup').hidden=true;
+  byId('refresh').disabled=false;byId('saveNote').disabled=false;
+  byId('deleteNote').disabled=false;adminBusy=false;running=false;
+  status('共用群組的存取或管理權限已變更：先前顯示的共用記事已隱藏。請重新選擇群組；不能沿用舊版草稿寫入。');
+ };
+
  var hidePrivateView=function(){
   // Never keep previous Google user's notes or editor visible after mismatch.
   if(account&&!byId('editor').hidden&&(isDirty()||pendingSave||pendingDelete)){
@@ -189,6 +210,10 @@ label{display:block;font-weight:600;margin:10px 0 5px}
    if(epoch!==accountEpoch)return;
    var code=String(err&&err.message||'REMOTE_REQUEST_FAILED');
    if(isIdentityError(code)){hidePrivateView();return}
+   if(isRevokedAccess(code)){
+    if(scope==='SHARED'){hideRevokedSharedView();return}
+    hidePrivateView();return;
+   }
    onFail(err);
   }).gasNoteCall(action,payload);
  };
@@ -216,6 +241,11 @@ label{display:block;font-weight:600;margin:10px 0 5px}
   else if(account)refresh();
  };
  var loadGroups=function(preferredGroupId){
+  // A successful old LIST_NOTES response must not remain on screen while
+  // Google rechecks the current membership and role.
+  accountEpoch++;notes=[];byId('items').replaceChildren();
+  if(!suspendedDraft)byId('editor').hidden=true;
+  byId('newNote').disabled=true;byId('manageGroup').hidden=true;
   var select=byId('groupId');select.replaceChildren();
   if(!window.google||!google.script||!google.script.run){
    status('尚未部署至 Google Apps Script 測試環境');return
