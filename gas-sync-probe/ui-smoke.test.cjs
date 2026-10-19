@@ -267,4 +267,48 @@ succeed('Lost delete ACK reuses original operation ID and does not re-delete rec
  assert.equal(notes.some(n=>n.articleId===firstNote.articleId),false);
  assert.equal(elements.editor.hidden,true);
 });
+
+succeed('Shared group can be created from iPhone without manual group ID',()=>{
+ elements.team.onclick();
+ elements.newGroup.onclick();
+ assert.equal(elements.groupCreate.hidden,false);
+ elements.newGroupName.value='客戶合作群';
+ elements.saveGroup.onclick();
+ assert.equal(elements.groupCreate.hidden,true);
+ assert.equal(elements.groupId.value.startsWith('test-group-'),true);
+ assert.equal(elements.manageGroup.hidden,false);
+ const request=calls.filter(x=>x.action==='CREATE_GROUP').at(-1).args;
+ assert.equal(request.__expectedGoogleAccount,'alice@example.test');
+ assert.match(request.operationId,/^operation_[a-f0-9]{32}$/);
+});
+succeed('Only ADMIN may open member management and see group members',()=>{
+ elements.manageGroup.onclick();
+ assert.equal(elements.groupMembers.hidden,false);
+ assert.ok(elements.memberList.children.some(x=>x.children[0].textContent==='alice@example.test'));
+});
+succeed('Member email must be valid before network request',()=>{
+ const before=calls.filter(x=>x.action==='SET_MEMBER').length;
+ elements.memberEmail.value='not-email';
+ elements.memberRole.value='EDITOR';
+ elements.addMember.onclick();
+ assert.equal(calls.filter(x=>x.action==='SET_MEMBER').length,before);
+});
+succeed('ADMIN can add a VIEWER without sending an invitation email',()=>{
+ elements.memberEmail.value='member@example.test';
+ elements.memberRole.value='VIEWER';
+ elements.addMember.onclick();
+ const request=calls.filter(x=>x.action==='SET_MEMBER').at(-1).args;
+ assert.equal(request.memberId,'member@example.test');
+ assert.equal(request.role,'VIEWER');
+ assert.equal(members.find(x=>x.memberId==='member@example.test').status,'ACTIVE');
+});
+succeed('ADMIN can revoke shared membership from phone',()=>{
+ const row=elements.memberList.children.find(x=>x.children[0].textContent==='member@example.test');
+ assert.ok(row);
+ row.children[2].onclick();
+ const request=calls.filter(x=>x.action==='SET_MEMBER').at(-1).args;
+ assert.equal(request.status,'REVOKED');
+ assert.equal(members.find(x=>x.memberId==='member@example.test').status,'REVOKED');
+});
+
 console.log('IPHONE SYNC NOTE UI MOCK PASS',pass);
