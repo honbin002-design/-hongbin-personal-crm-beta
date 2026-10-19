@@ -178,3 +178,18 @@ Google 官方清單文件：`https://developers.google.com/apps-script/manifest/
 - GitHub 提交 `829c09b9fb1dc0815ed943060ce10cc4a57cb101` 的 `gas-sync-probe/node-regression` 實際狀態 **success**；這意味隔離分支的 **15 組 Node.js CI PASS**（UI 測試 19 項亦在其中）。
 - **此結果仍不是**真實 iPhone Safari、Google Session 跨帳號切換或 GAS 雲端部署的驗收。個人帳號對私人 Sheets 的實際 403 只驗證 Google 原生檔案權限；不代表共用記事服務完成。
 - 正式 CRM `main`、既有 `hongbin_crm_quick_notes_r73` 與 ERP/報價資料沒有改動；不接入正式服務直到 Google OAuth／跨帳號部署及真機測試安全通過。
+
+
+## 2026-10-19｜不用工程操作的共用群組管理完成（隔離測試分支）
+
+本輪目標是讓使用者在 iPhone 上直接管理共用記事，而不是靠手動群組 ID 或 Google Sheet 後台操作。
+
+- \`Index.html\` 已增加「建立共用群組」「管理成員」、Google Email 輸入、ADMIN / EDITOR / VIEWER 角色、加入／變更權限及撤銷權限。群組 ID 由後端產生，使用者無須輸入。畫面明確註記：**加入成員不代表系統寄出邀請 Email**。
+- 只向有效 ADMIN 顯示管理功能；後端 \`event-service.cjs\` 仍是最終權限檢查者，VIEWER / EDITOR 無法自行添加成員。只有最後一位 ADMIN 時禁止撤銷其管理權限。
+- 使用者輸入的成員 Email 在伺服器端額外檢查格式（長度、@、網域），不合格不寫入事件紀錄。這是**格式**驗證，並不代表 Google 已驗證該電子郵件存在；真正使用者必須經 Google Session 授權才可讀取。
+- 成員管理經 \`gasNoteCall\` 經 Google Session 的 \`__expectedGoogleAccount\` 比對，操作 ID 在未收到 ACK 時沿用，不冒充已儲存，也不儲存任何客戶資料。
+- \`ui-smoke.test.cjs\` 增加 iPhone 建立群組、管理者讀取成員、阻擋無效 Email、加入 VIEWER、撤銷權限五種操作；現有 UI 合成案例共 **24 項**。額外在 \`event-service.test.cjs\` 測試 Email 不能亂填、合法別名正規化。
+- GitHub commit \`5e532b7a6a418f8df9a1599bda0ef2428c1b7159\` 的 \`gas-sync-probe/node-regression\` 已回報 **success**，對應 **15 組 Node.js CI PASS**。中間一次測試假設群組只能有三位成員而 FAIL，已調整為依實際角色驗證，修正後重跑成功。
+- **正式 Google Apps Script 授權與部署仍未完成。** 官方 API \`projects.create\` 要求 \`script.projects\` scope，\`projects.deployments.create\` 要求 \`script.deployments\` scope；目前已連接的 Drive/Sheets 工具並不提供這些管理操作。不能把既有 Drive 權限冒稱為 Script 部署權限。
+- Script A / B 設為 \`MYSELF\` 的封閉程式包，不能直接讓不同 Google 帳號共用；真正的 A→B 授權傳輸、真實帳號隔離、雙 iPhone 實測仍為 HOLD。
+- 施工全部保留在 GitHub \`probe/gas-no-work-20261019\`，**正式 CRM main、R73/R74 既有記事及 ERP 客戶、報價、交易資料都不改動、不上傳、不重置**。未取得安全授權工具前不要求使用者操作 Codespaces、Terminal 或貼 Script。
