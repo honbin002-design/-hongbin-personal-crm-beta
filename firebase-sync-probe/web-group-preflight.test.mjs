@@ -50,6 +50,6 @@ test('Safari Popup initiated inside direct click handler',()=>{
 });
 test('Permission error fails closed in UI',()=>{
  assert.match(source,/permission-denied/);
- assert.match(source,/\$\('groupList'\)\.replaceChildren\(\)/);
+ assert.match(source,/for\(const id of \['groupList','inboxList','memberList','sentList'\]\)\$\(id\)\.replaceChildren\(\)/);
 });
 console.log('HONBIN_FIREBASE_GROUP_UI_STATIC_PASS',count);
