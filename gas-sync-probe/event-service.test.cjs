@@ -40,6 +40,17 @@ test('Group seeds creator as sole ADMIN',()=>{
  group=as(alice,()=>svc.createGroup({operationId:'createGroup001',name:'group'}));
  assert.equal(as(alice,()=>svc.listMembers(group.groupId))[0].role,'ADMIN');
 });
+test('Invalid Google account cannot be granted group access',()=>as(alice,()=>{
+ const before=rows.length;
+ denied('INVALID_MEMBER',()=>svc.setMember({
+  operationId:'invalidMember1',groupId:group.groupId,memberId:'not-an-email',role:'EDITOR'}));
+ assert.equal(rows.length,before);
+}));
+test('Server accepts Google accounts with plus and custom domain',()=>as(alice,()=>{
+ const item=svc.setMember({operationId:'validAlias0001',groupId:group.groupId,
+  memberId:'User+work@Example.ORG',role:'VIEWER'});
+ assert.equal(item.memberId,'user+work@example.org');
+}));
 test('Unknown person cannot grant access',()=>as(bob,()=>denied('FORBIDDEN_ADMIN',
  ()=>svc.setMember({operationId:'badAddMember01',groupId:group.groupId,memberId:carol,role:'EDITOR'}))));
 test('Sole administrator cannot be revoked',()=>as(alice,()=>denied('LAST_ADMIN',
