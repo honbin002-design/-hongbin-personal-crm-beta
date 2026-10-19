@@ -101,6 +101,11 @@ const fakeService={onSuccess:null,onFailure:null,
 const crypto={getRandomValues:arr=>{const seed=++randomSerial;for(let i=0;i<arr.length;i++)arr[i]=(seed+i*13)&255;return arr}};
 const window={google:{script:{run:fakeService}},crypto,confirm:()=>true};
 vm.runInNewContext(match[1],{window,document,google:window.google,Date,Uint8Array},{timeout:4000});
+succeed('Private mode never misleadingly promises encryption from Sheet owner',()=>{
+ assert.match(html,/id="privacyBoundary"/);
+ assert.match(html,/試算表管理者可存取原始內容/);
+ assert.match(html,/這不是端對端加密/);
+});
 succeed('Verified Google session appears',()=>assert.match(elements.identity.textContent,/alice@example\.test/));
 succeed('Initial private empty list accessible',()=>assert.match(elements.status.textContent,/0 則/));
 succeed('Create note action opens editor',()=>{
