@@ -154,6 +154,14 @@ function createEventService({identity,storage,withLock,clock=()=>new Date().toIS
   function getHistory(articleId){const a=actor(),s=read(),n=s.notes.get(String(articleId));authNote(s,n,a,'view');return copy(s.history.get(n.articleId)||[])}
   function listMembers(groupId){const a=actor(),s=read(),g=String(groupId);requireAdmin(s,g,a);
     return [...s.members.values()].filter(m=>m.groupId===g).map(copy)}
-  return Object.freeze({createGroup,setMember,createNote,updateNote,deleteNote,listNotes,getNote,getHistory,listMembers});
+  function listGroups(){
+    const a=actor(),s=read(),visible=[];
+    for(const [groupId,g] of s.groups){
+      const r=groupRole(s,groupId,a);
+      if(r)visible.push({groupId,name:g.name,role:r,createdAt:g.createdAt});
+    }
+    return visible.map(copy).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+  }
+  return Object.freeze({createGroup,setMember,createNote,updateNote,deleteNote,listNotes,getNote,getHistory,listMembers,listGroups});
 }
 if(typeof module!=='undefined')module.exports={createEventService};
