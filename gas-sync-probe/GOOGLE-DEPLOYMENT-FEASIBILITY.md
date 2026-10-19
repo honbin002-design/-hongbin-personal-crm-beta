@@ -41,3 +41,11 @@
 
 只進行不需 Script OAuth 的原始碼安全修正、部署證據規格與 Google 官方能力查證。若無可執行的授權或可靠的驗證方式，**明確停止宣稱實際同步可用**；不再把增加離線測試數量當成解除部署阻礙。
 
+
+## 2026-10-19 晚間追加裁決｜禁止不安全的身份捷徑與隱私誤導
+
+1. **不採用 Apps Script 臨時使用者金鑰作為永久記事帳號。** Google 官方文件指出 `Session.getTemporaryActiveUserKey()` 每 30 天輪替，且只對個別 Script 唯一；不能當成多手機長期私人記事的永久身分。來源：https://developers.google.com/apps-script/reference/base/session
+2. **不採用前端自報 Email。** 欲使用單一擁有者 Script 加上 Google Identity Services，必須取得 Web OAuth Client ID，後端驗證由 Google 簽署的 ID Token（簽章、aud、iss、exp、sub），且需處理 CSRF。Google 官方建議正式環境用伺服器端 Google API client library，而非僅供開發／偵錯的 tokeninfo；Apps Script 內可安全實作的機制、sandbox iframe 與 iPhone Safari 相容性尚未確認。來源：https://developers.google.com/identity/gsi/web/guides/verify-google-id-token 、https://developers.google.com/apps-script/guides/html/restrictions
+3. **不宣稱私人記事有端對端加密。** 目前試算表由公司 Google 帳號持有，事件列以 JSON 形式記錄標題與本文；擁有原始 Sheet 權限的管理者可看到所有行，雖然一般 CRM 成員受到後端 ACL 限制。若要求資料管理者也不能讀取私人記事，需要另外設計並實測用戶端加密及跨裝置金鑰管理。來源：https://support.google.com/docs/answer/1218656?hl=zh-Hant
+4. **撤銷權限不代表無網路時遠端可消除已讀內容。** 伺服器可以立即拒絕新的共用記事讀寫，但已在裝置上顯示過的內容無法以 API 強制從離線裝置上抹除。測試版已在收到撤銷／降權錯誤時清空畫面、失效化延遲回覆；正式版仍需在 Safari 返回前景、重新連線及重要操作時重新確認授權。
+5. **仍維持 GO LIVE HOLD。** 不能只看 GitHub Node 成功、Google Sheets 403 或合成帳號測試，就宣稱兩帳號跨手機同步已完成。現有 Google Drive 連線不是 Apps Script 部署權限，且使用者不願為未經證實可行的流程消耗 Work 額度。
