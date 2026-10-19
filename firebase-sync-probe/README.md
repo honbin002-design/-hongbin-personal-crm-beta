@@ -71,3 +71,17 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 - Firebase 專用 ChatGPT 連線目前**尚未安裝／連接**，無法操作使用者的 Firebase 雲端專案。先前已提供 Firebase 連線建議；安裝／連接需要使用者親自確認，不能由對話代替。
 - 尚缺 Spark 真實專案存在／方案及 Billing 狀態回讀、Firebase Google Auth 授權網域與 iPhone Safari 使用、群組列表與邀請 UI、兩支手機的實際跨帳號同步與版本衝突驗收。
 - 原有 R73/R74 隨手記禁止未經預覽與使用者同意自動上傳。公司 Google 資料擁有者具備原始雲端資料存取權，**非端對端加密**。正式 CRM main 維持不變。
+
+
+## 2026-10-19｜真正 Spark 專案與 Firebase Web App 已建立（使用者 Safari 畫面核對）
+
+- 使用者透過公司 Google 帳號在 iPhone Safari **親自**建立 Firebase 專案，專案顯示名稱 `HONBIN-CRM-NOTES-SPARK`、Firebase Project ID `honbin-crm-notes-spark`。
+- 使用者在 Firebase「用量與帳單」親自核對畫面為 **Spark｜免付費（月費 US$0）**，沒有升級 Blaze。
+- Authentication 的 Google 登入供應商已顯示「已啟用」，不啟用 SMS 多重驗證。
+- Cloud Firestore Standard `(default)` 資料庫已建立，使用者在安全規則頁讀回 `allow read, write: if false;`，目前所有用戶端讀寫均被拒絕。**此前通過官方模擬器的 47 項 Firestore ACL 規則尚未部署到真實資料庫。**
+- 使用者已註冊 `HONBIN CRM Notes` Web App，已提供 Firebase Web SDK 連線設定。公開網頁 config 現在保存在隔離分支的 `firebase-web-config.mjs`；這是 Firebase 公開專案識別資訊，**不是 OAuth Token、Google 密碼或服務帳戶密鑰**，真正資料存取仍須安全規則。
+- 新增 `firebase-auth-smoke.html`：專用 iPhone Safari Google 彈出式登入測試，驗證 Firebase 登入來源 `google.com`、Google Email Verified、帳號切換與登出；**完全沒有 Firestore 讀寫程式碼**，不會上傳原有記事。
+- 新增 `web-auth-preflight.test.mjs`：GitHub Actions 靜態檢查 Firebase config、Google 登入、無資料庫呼叫／無敏感 Token 顯示、Safari 工作階段安全；**不代表真實 iPhone Google OAuth 已通過**。
+- **下一個實際必要步驟**：Firebase Console → Authentication → 設定 → 已授權網域，確認／新增 `honbin002-design.github.io`（不含 `https://`、專案路徑）；這只是允許網頁來源發起 Google 登入，**不會開啟 Firestore 資料權限**。
+- **真機仍 HOLD**：目前 `firebase-auth-smoke.html` 只有存於隔離 GitHub 分支，**尚未發佈可在 iPhone Safari 執行的 HTTPS 測試網址**。GitHub Pages 正式 CRM 的 `main` 完全未修改。不得把 GitHub blob 原始碼頁當成能直接執行的 Firebase 網頁，也不能聲稱已完成兩支手機測試。
+- 完全免費的硬限制維持：不綁信用卡、不連結 Billing、不升級 Blaze、不開 Cloud Functions／付費備份／付費 Hosting；Spark 額度耗盡可停用，不得為了不中斷而付費。
