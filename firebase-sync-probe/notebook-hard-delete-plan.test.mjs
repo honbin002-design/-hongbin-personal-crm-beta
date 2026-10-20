@@ -17,7 +17,7 @@ test('Manifest includes all notes',()=>assert.deepEqual(manifest().counts.notes,
 test('Manifest includes revoked membership record',()=>assert.ok(paths().includes('groups/book_a/members/revoked_uid')));
 test('Manifest includes sent invitation directory',()=>assert.ok(paths().includes('groups/book_a/sentInvites/i1')));
 test('Manifest includes exact recipient inbox invitation',()=>assert.ok(paths().includes('inboxes/a@example.test/invites/i1')));
-test('Manifest includes owner index pointer',()=>assert.ok(paths().includes('users/owner_uid/groupIndex/book_a')));
+test('Manifest retains owner pointer for recovery, not as a cleanup delete',()=>{assert.ok(!paths().includes('users/owner_uid/groupIndex/book_a'));assert.equal(manifest().retainedOwnerPointerPath,'users/owner_uid/groupIndex/book_a')});
 test('Manifest includes revoked user index pointer',()=>assert.ok(paths().includes('users/revoked_uid/groupIndex/book_a')));
 test('Private note path never in manifest',()=>assert.ok(paths().every(x=>!x.includes('/notes/')||x.startsWith('groups/'))));
 test('Global approved account path never in manifest',()=>assert.ok(paths().every(x=>!x.startsWith('approvedAccounts/'))));
@@ -53,7 +53,7 @@ test('Other deletion epoch rejected',()=>{let b=base();b.group.deletionId='delet
 test('Missing notes scan fails closed',()=>{let b=base();b.inventory.notes.complete=false;deny(()=>planNotebookHardDelete(b),'NOTES_SCAN_INCOMPLETE')});
 test('Missing member scan fails closed',()=>{let b=base();b.inventory.members.complete=false;deny(()=>planNotebookHardDelete(b),'MEMBERS_SCAN_INCOMPLETE')});
 test('Missing sent invites scan fails closed',()=>{let b=base();b.inventory.sentInvites.complete=false;deny(()=>planNotebookHardDelete(b),'SENT_INVITES_SCAN_INCOMPLETE')});
-test('Empty group still includes owner pointer',()=>{let b=base();b.inventory.notes.items=[];b.inventory.members.items=[];b.inventory.sentInvites.items=[];assert.deepEqual(planNotebookHardDelete(b).counts,{notes:0,members:0,sentInvites:0,inboxInvites:0,indexPointers:1})});
+test('Empty group retains only owner pointer outside manifest',()=>{let b=base();b.inventory.notes.items=[];b.inventory.members.items=[];b.inventory.sentInvites.items=[];assert.deepEqual(planNotebookHardDelete(b).counts,{notes:0,members:0,sentInvites:0,inboxInvites:0,indexPointers:0})});
 test('Verified cleanup proof authorizes application root-finality proposal',()=>{
  const m=manifest(),r=qualifyFinalHardDelete({manifest:m,readback:finalProof(),actorUid:'owner_uid',deletionId:'delete_001'});
  assert.equal(r.eligible,true);assert.equal(r.rootPath,'groups/book_a');
