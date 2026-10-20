@@ -33,6 +33,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate iPhone Firebase Google sign-in test has no Firestore data writes
         run: npm run test:web
+      - name: Validate Drive member identities from accepted invitations
+        run: node firebase-drive-member-directory.test.mjs
       - name: Run real Firebase Firestore rules engine
         run: |
           set -o pipefail
