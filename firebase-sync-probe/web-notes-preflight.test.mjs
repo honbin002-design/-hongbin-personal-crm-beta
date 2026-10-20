@@ -69,6 +69,34 @@ check('Version conflict keeps draft and shows latest version number',()=>{
  assert.match(script,/e\.remote\?\.version/);
  assert.match(script,/remember\(\)/);
 });
+check('Conflict UI compares cloud and phone text without interpreting HTML',()=>{
+ const review=readFileSync('firebase-conflict-review.mjs','utf8');
+ parse(review);
+ assert.match(html,/id="conflictPanel"/);
+ assert.match(html,/id="cloudTitle"/);
+ assert.match(html,/id="cloudContent"/);
+ assert.match(html,/id="takeCloud"/);
+ assert.match(html,/id="saveCopy"/);
+ assert.match(script,/\$\('cloudContent'\)\.textContent=/);
+ assert.match(script,/\$\('cloudTitle'\)\.textContent=/);
+ assert.match(script,/showConflict\(e\)/);
+});
+check('Save-as-copy uses different ID and pre-saves nonce before cloud',()=>{
+ assert.match(script,/buildSaveNewCopy\(latest,newId\)/);
+ assert.match(script,/const newId=notes\.newId\(target\)/);
+ assert.match(script,/await persistBeforeCloud\(\); \/\/ Save fixed copy ID/);
+ assert.match(script,/await notes\.create\(\{\.\.\.target,\.\.\.plan\}\)/);
+});
+check('Remote restoration requires explicit confirmation and no write',()=>{
+ assert.match(script,/buildRemoteRestore\(review\)/);
+ assert.match(script,/window\.confirm\('確定放棄這支手機尚未上傳的草稿/);
+ assert.match(script,/await dropDraft\(draftContext\(\)\)/);
+});
+check('Changing account or scope invalidates conflict review',()=>{
+ assert.match(script,/state\.account!==account\|\|state\.mode!==mode/);
+ assert.match(script,/state\.groupId!==\(selectedGroup\?\.id\|\|null\)/);
+ assert.match(script,/function hideConflict\(\)/);
+});
 check('Membership revocation refresh hides formerly visible note editor',()=>{
  assert.match(script,/if\(selectedGroup&&!result\.some\(group=>group\.id===selectedGroup\.id\)\)/);
  assert.match(script,/\$\('title'\)\.value='';\$\('content'\)\.value=''/);
