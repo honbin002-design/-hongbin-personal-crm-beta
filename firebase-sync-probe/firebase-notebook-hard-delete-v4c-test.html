@@ -162,6 +162,32 @@ $('resume').addEventListener('click',()=>run(async()=>{
  progress('已核對清理結果：'+result.stage+'。下一步需到 Firebase Console 刪除主文件。');
  await ownedList();
 }));
+$('copyRootPath').addEventListener('click',async()=>{
+ if(!verifiedReceipt||!selected)return;
+ const path='groups/'+selected.id;
+ try{
+  if(!navigator.clipboard||!window.isSecureContext)throw Error('UNSUPPORTED_CLIPBOARD');
+  await navigator.clipboard.writeText(path);
+  progress('已複製主文件路徑：'+path);
+ }catch(e){progress('請手動複製畫面上的主文件路徑：'+path)}
+});
+$('confirmRootRemoved').addEventListener('click',()=>run(async()=>{
+ if(!verifiedReceipt||!selected)throw Error('CLEANUP_RECEIPT_REQUIRED');
+ if($('typedFinal').value!=='我已刪除記事簿主文件'){
+  progress('請先在 Firebase Console 刪除指定文件，再輸入完整確認文字。');return;
+ }
+ if(!window.confirm('將核對主文件真的不存在，成功後只移除你的最後索引。確定嗎？'))return;
+ const id=selected.id;
+ const outcome=await service.confirmConsoleRootRemoved(id,{
+  cleanupReceipt:verifiedReceipt,typedPhrase:$('typedFinal').value
+ });
+ if(!outcome.rootPhysicallyDeleted||!outcome.ownerIndexCleared)
+  throw Error('FINAL_REMOVAL_UNVERIFIED');
+ selected=null;verifiedReceipt=null;
+ $('finalizeArea').hidden=true;$('selectedArea').hidden=true;
+ msg('已從伺服器確認指定主文件不存在，建立者索引清除。其他裝置已保存的副本無法遠端抹除。');
+ await ownedList();
+}));
 $('refresh').addEventListener('click',async()=>{if(busy||!service)return;
  busy=true;buttons();try{await ownedList()}catch(e){deny(e)}finally{busy=false;buttons()}
 });
