@@ -37,8 +37,8 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 <h2>記事模式</h2>
 <div class="actions"><button id="privateMode" type="button">私人記事</button><button id="sharedMode" type="button" class="secondary">共用記事</button></div>
 <div id="groupsBox" hidden>
-<label for="groupSelect">選擇已授權群組</label><select id="groupSelect"></select>
-<p class="muted" id="groupRole">請先選擇共用群組。</p>
+<label for="groupSelect">選擇共用記事簿（每本成員獨立）</label><select id="groupSelect"></select>
+<p class="muted" id="groupRole">每本記事簿由自己的管理員指定成員與權限。</p>
 </div>
 <div class="actions"><button id="refresh" class="secondary">重新讀取記事</button></div>
 <label for="search">搜尋標題或內容</label><input id="search" type="search" autocomplete="off" placeholder="輸入關鍵字">
@@ -84,6 +84,7 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 import {firebaseConfig,firestoreReadyForRealData} from './firebase-web-config.mjs';
 import {noteService} from './firebase-note-service.mjs';
 import {groupService} from './firebase-group-service.mjs';
+import {resolveNotebookSelection,notebookCapabilities,notebookRoleLabel} from './firebase-notebook-scope.mjs';
 import {makeDraftStore} from './firebase-offline-drafts.mjs';
 import {conflictReview,buildSaveNewCopy,buildRemoteRestore} from './firebase-conflict-review.mjs';
 const $=id=>document.getElementById(id);
@@ -182,7 +183,7 @@ async function loadDraft(){
   draftMessage('無法讀取本機草稿，請檢查 Safari 儲存權限。');}
 }
 function restore(){
- const canEdit=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
+ const canEdit=mode==='PRIVATE'||notebookCapabilities(selectedGroup?.role).canWrite;
  const v=canEdit?drafts.get(key()):null;
  active=v?.active||null;pendingCreateId=v?.pendingCreateId||null;editorDirty=Boolean(v);
  $('title').value=v?.title||'';$('content').value=v?.content||'';
@@ -209,8 +210,8 @@ function buttons(){
  $('login').disabled=!ready||busy||Boolean(auth?.currentUser);
  $('logout').disabled=!ready||busy||!auth?.currentUser;
  for(const el of $('workspace').querySelectorAll('button,input,textarea,select'))el.disabled=busy;
- const mayWrite=mode==='PRIVATE'||(selectedGroup&&selectedGroup.role!=='VIEWER');
- const mayDelete=mode==='PRIVATE'||selectedGroup?.role==='ADMIN';
+ const mayWrite=mode==='PRIVATE'||notebookCapabilities(selectedGroup?.role).canWrite;
+ const mayDelete=mode==='PRIVATE'||notebookCapabilities(selectedGroup?.role).canDeleteSharedNote;
  $('title').readOnly=!mayWrite;
  $('content').readOnly=!mayWrite;
  $('save').disabled=busy||!mayWrite;
@@ -255,7 +256,7 @@ async function execute(work){
 }
 async function loadGroups(){
  const epoch=generation;
- const result=await groups.listGroups();
+ const result=resolveNotebookSelection(await groups.listGroups(),selectedGroup?.id).items;
  if(epoch!==generation)return;
  // Losing membership must hide the previously rendered shared article
  // even when the next group index refresh returns an empty list (no 403).
@@ -270,15 +271,15 @@ async function loadGroups(){
  groupOptions=result;
  const select=$('groupSelect');select.replaceChildren();
  for(const group of result){
-  const o=node('option',group.name+'（'+group.role+'）');o.value=group.id;select.append(o);
+  const o=node('option',group.name+'（'+notebookRoleLabel(group.role)+'）');o.value=group.id;select.append(o);
  }
  if(!result.length){
-  selectedGroup=null;$('groupRole').textContent='目前沒有可存取的共用群組。';
+  selectedGroup=null;$('groupRole').textContent='目前沒有可存取的共用記事簿。請由記事簿管理員邀請。';
   return;
  }
  selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
  select.value=selectedGroup.id;
- $('groupRole').textContent='已驗證角色：'+selectedGroup.role;
+ $('groupRole').textContent='目前記事簿：'+selectedGroup.name+'｜身分：'+notebookRoleLabel(selectedGroup.role)+'｜共 '+result.length+' 本可存取記事簿。各本成員獨立。';
  if(selectedGroup.role==='VIEWER'){
   // A former editor's offline group draft must never be displayed to an
   // account whose CURRENT server-verified role is only VIEWER.
