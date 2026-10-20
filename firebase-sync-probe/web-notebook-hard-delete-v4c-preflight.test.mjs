@@ -66,4 +66,21 @@ check('Shows per-stage progress without silently hiding incomplete cleanup',()=>
  assert.match(js,/請保持頁面開啟；中斷可稍後接續/);
  assert.match(service,/report\('VERIFY',1,1\)/);
 });
+check('V4D root-finalizer requires cleaned receipt and explicit console confirmation',()=>{
+ assert.match(html,/id="finalizeArea" hidden/);
+ assert.match(html,/id="rootPath"/);
+ assert.match(html,/id="copyRootPath"/);
+ assert.match(html,/id="typedFinal"/);
+ assert.match(js,/verifiedReceipt=outcome/);
+ assert.match(js,/service\.confirmConsoleRootRemoved\(id/);
+ assert.match(js,/outcome\.rootPhysicallyDeleted/);
+ assert.match(service,/FIREBASE_ROOT_DOCUMENT_STILL_EXISTS/);
+});
+check('Safari reload exposes scoped orphan index removal without fabricated audit',()=>{
+ assert.match(js,/if\(!snap\.exists\(\)\)\{/);
+ assert.match(js,/service\.removeOwnOrphanedPointer\(pointer\.id/);
+ assert.match(js,/只清除我的失效索引/);
+ assert.match(service,/allChildCollectionsIndependentlyAudited:false/);
+ assert.doesNotMatch(js,/firebase\.deploy|deleteCollection|recursiveDelete/);
+});
 console.log('NOTEBOOK_HARD_DELETE_V4C_UI_HOLD_PASS',n);
