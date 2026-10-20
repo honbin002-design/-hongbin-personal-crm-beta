@@ -69,6 +69,19 @@ try{
    return true;
   });
  });
+ await check('Phone B explicit save-as-new copy preserves remote V2',async()=>{
+  const newNoteId=phone2.newId(P);
+  if(newNoteId===personal)throw Error('DUPLICATE_COPY_ID');
+  const made=await phone2.create({...P,noteId:newNoteId,
+    title:'手機草稿另存新記事',content:'舊草稿獨立留存'});
+  if(made.version!==1)throw Error('COPY_NOT_CREATED');
+  const remote=await sdk.getDoc(sdk.doc(a,'users','alice-n','notes',personal));
+  if(remote.data().version!==2||remote.data().content!=='新內容')
+    throw Error('COPY_OVERWROTE_ORIGINAL');
+  const copy=await sdk.getDoc(sdk.doc(a,'users','alice-n','notes',newNoteId));
+  if(!copy.exists()||copy.data().content!=='舊草稿獨立留存')
+    throw Error('MISSING_COPY');
+ });
  await check('Create replay after subsequent edit fails safely',()=>assert.rejects(
   phone2.create({...P,noteId:personal,title:'測試標題',content:'手機 A 的記事內容'}),
   /NOTE_VERSION_CONFLICT/));
@@ -141,13 +154,22 @@ try{
    deleted:true,version:3
   })
  ));
+ await check('Shared EDITOR can save separate copy instead of overwriting V2',async()=>{
+  const otherId=bob.newId(S);
+  if(otherId===shared)throw Error('COPY_ID_COLLISION');
+  await bob.create({...S,noteId:otherId,title:'共用衝突另存',content:'獨立備份'});
+  const original=await sdk.getDoc(sdk.doc(a,'groups',G,'notes',shared));
+  if(original.data().version!==2||original.data().content!=='第二版')
+    throw Error('COPY_OVERWROTE_SHARED');
+ });
  await check('VIEWER cannot modify valid newer shared note',()=>assertFails(
   carol.update({...S,noteId:shared,expectedVersion:2,
    title:'檢視者不許編輯',content:'禁止'})
  ));
  await check('Downgraded EDITOR can still read but not update',async()=>{
   await assertSucceeds(sdk.updateDoc(sdk.doc(a,'groups',G,'members','bob-n'),{role:'VIEWER'}));
-  assert.equal((await bob.list(S)).length,1);
+  const current=await bob.list(S);
+  assert.ok(current.some(note=>note.id===shared));
   await assertFails(bob.update({...S,noteId:shared,expectedVersion:2,
    title:'已降權',content:'禁止'}));
  });
@@ -158,7 +180,7 @@ try{
  await check('Shared owner soft deletes and all authorized lists omit note',async()=>{
   const result=await alice.softDelete({...S,noteId:shared,expectedVersion:2});
   assert.equal(result.version,3);
-  assert.equal((await alice.list(S)).length,0);
+  assert.ok(!(await alice.list(S)).some(note=>note.id===shared));
  });
  await check('Firestore rules prohibit EDITOR reviving deleted shared note',()=>assertFails(
   sdk.updateDoc(sdk.doc(b,'groups',G,'notes',shared),{
