@@ -105,6 +105,7 @@ check('Cloud writes pin original UID and Firebase service after awaited local dr
  assert.match(script,/await session\.service\.create\(/);
  assert.match(script,/await session\.service\.softDelete\(/);
  assert.match(script,/await session\.service\.update\(/);
+ assert.match(script,/verifyNoteSession\(session\);\n clearEditor\(\);await loadNotes\(\)/);
 });
 check('Membership revocation refresh hides formerly visible note editor',()=>{
  assert.match(script,/if\(selectedGroup&&!result\.some\(group=>group\.id===selectedGroup\.id\)\)/);
@@ -137,7 +138,7 @@ check('Revoked group triggers local draft removal',()=>{
 });
 check('Local create ID persisted BEFORE Firestore transaction',()=>{
  const idx=script.indexOf('await persistBeforeCloud();');
- const sent=script.indexOf('await notes.create(');
+ const sent=script.indexOf('await session.service.create(');
  assert.ok(idx>=0&&sent>idx);
 });
 check('No forbidden billing or third-party endpoints',()=>{
