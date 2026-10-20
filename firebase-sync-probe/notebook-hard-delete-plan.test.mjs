@@ -24,6 +24,18 @@ test('Global approved account path never in manifest',()=>assert.ok(paths().ever
 test('Operations never contain root group document',()=>assert.ok(!paths().includes('groups/book_a')));
 test('Root deletion disabled in cleanup manifest',()=>assert.equal(manifest().rootDeletionAuthorized,false));
 test('Deterministic order for safe resume',()=>assert.deepEqual(paths(),paths()));
+test('Reordered server snapshot pages preserve every operation ID and order',()=>{
+ const shuffled=base();
+ shuffled.inventory.notes.items.reverse();
+ shuffled.inventory.members.items.reverse();
+ shuffled.inventory.sentInvites.items.reverse();
+ assert.deepEqual(planNotebookHardDelete(shuffled).operations,manifest().operations);
+});
+test('Replaying same deletion manifest preserves operation identities',()=>{
+ const a=manifest(),b=manifest();
+ assert.deepEqual(a.operations.map(x=>x.id),b.operations.map(x=>x.id));
+});
+
 test('Member UID must be safe path segment',()=>{let b=base();b.inventory.members.items[0].uid='../leak';deny(()=>planNotebookHardDelete(b),'INVALID_MEMBER_UID')});
 test('Note ID cannot escape notebook',()=>{let b=base();b.inventory.notes.items[0].id='../notes';deny(()=>planNotebookHardDelete(b),'INVALID_NOTE_SCOPE')});
 test('Notes from other group fail-closed',()=>{let b=base();b.inventory.notes.items[1].groupId='book_b';deny(()=>planNotebookHardDelete(b),'INVALID_NOTE_SCOPE')});
