@@ -40,6 +40,8 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 <form id="newNotebookForm"><label for="newNotebookName">建立新共用記事簿</label><input id="newNotebookName" maxlength="120" autocomplete="off" required placeholder="例如：業務部記事"><div class="actions"><button type="submit">建立記事簿</button></div></form>
 <label for="groupSelect">選擇共用記事簿（每本成員獨立）</label><select id="groupSelect"></select>
 <p class="muted" id="groupRole">每本記事簿由自己的管理員指定成員與權限。</p>
+<div class="actions"><button id="archiveNotebook" class="danger" type="button" hidden>封存這本記事簿（只有建立者可操作）</button></div>
+<div id="archivedNotebookArea" hidden><h3>已封存的記事簿（可恢復）</h3><div id="archivedNotebookList" aria-live="polite"></div></div>
 <form id="notebookInviteForm" hidden><label for="notebookInviteEmail">邀請此記事簿的 Google Email</label><input id="notebookInviteEmail" type="email" autocomplete="email" required><label for="notebookInviteRole">邀請權限</label><select id="notebookInviteRole"><option value="VIEWER">檢視者（唯讀）</option><option value="EDITOR">編輯者</option><option value="ADMIN">管理員</option></select><div class="actions"><button type="submit">邀請加入這本記事簿</button></div><p class="muted">不會自動寄送 Email；對方登入後可在邀請清單接受。</p></form>
 <div class="actions"><button id="refreshNotebookInbox" type="button" class="secondary">查看收到的記事簿邀請</button></div><div id="notebookInbox" aria-live="polite"></div>
 </div>
@@ -206,6 +208,7 @@ function clearSensitive(){
  active=null;pendingCreateId=null;$('title').value='';$('content').value='';
  $('list').replaceChildren();$('groupSelect').replaceChildren();
  $('notebookInbox').replaceChildren();$('notebookInviteForm').hidden=true;
+ $('archiveNotebook').hidden=true;$('archivedNotebookArea').hidden=true;$('archivedNotebookList').replaceChildren();
  $('newNotebookForm').reset();$('notebookInviteForm').reset();
  $('workspace').hidden=true;$('groupsBox').hidden=true;$('conflict').hidden=true;
  $('delete').hidden=true;$('editTitle').textContent='新增記事';hideConflict();
@@ -279,13 +282,19 @@ async function loadGroups(){
  for(const group of result){
   const o=node('option',group.name+'（'+notebookRoleLabel(group.role)+'）');o.value=group.id;select.append(o);
  }
+ await renderArchivedNotebooks();
+ if(epoch!==generation)return;
  if(!result.length){
+  $('archiveNotebook').hidden=true;
   selectedGroup=null;$('notebookInviteForm').hidden=true;$('groupRole').textContent='目前沒有可存取的共用記事簿。可自行建立，或接受邀請。';
   return;
  }
  selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
  select.value=selectedGroup.id;
  $('groupRole').textContent='目前記事簿：'+selectedGroup.name+'｜身分：'+notebookRoleLabel(selectedGroup.role)+'｜共 '+result.length+' 本可存取記事簿。各本成員獨立。';
+ // Group ADMIN may manage members; only notebook creator can archive it.
+ $('archiveNotebook').hidden=!(await groups.isNotebookOwner(selectedGroup.id));
+ if(epoch!==generation)return;
  if(selectedGroup.role==='VIEWER'){
   // A former editor's offline group draft must never be displayed to an
   // account whose CURRENT server-verified role is only VIEWER.
@@ -298,6 +307,45 @@ async function loadGroups(){
  }
  buttons();
 }
+async function renderArchivedNotebooks(){
+ const epoch=generation,uid=account;
+ const archived=await groups.listArchivedNotebooks();
+ if(epoch!==generation||uid!==account)return;
+ const root=$('archivedNotebookList');root.replaceChildren();
+ $('archivedNotebookArea').hidden=!archived.length;
+ for(const item of archived){
+  const row=node('div');row.className='entry';
+  row.append(node('strong',item.name));
+  const restore=node('button','恢復這本記事簿');restore.type='button';restore.className='secondary';
+  restore.addEventListener('click',()=>{
+   if(!window.confirm('確認恢復「'+item.name+'」？原本的成員權限也會恢復。'))return;
+   execute(async()=>{
+    const session=noteSession();
+    await groups.restoreNotebook(item.id);verifyNoteSession(session);
+    await loadGroups();return '已恢復「'+item.name+'」，成員可再次依權限存取。';
+   });
+  });
+  row.append(restore);root.append(row);
+ }
+}
+$('archiveNotebook').addEventListener('click',()=>{
+ if(!selectedGroup||mode!=='SHARED'||busy)return;
+ if(editorDirty||$('title').value||$('content').value){
+  msg('請先儲存或放棄目前草稿，再封存記事簿。');return;
+ }
+ const current={...selectedGroup};
+ if(!window.confirm('確定封存「'+current.name+'」？所有成員會立刻無法存取這本記事簿；資料不會被永久刪除。'))return;
+ if(!window.confirm('第二次確認：要封存「'+current.name+'」嗎？之後只有建立者可以恢復。'))return;
+ execute(async()=>{
+  const session=noteSession();
+  if(!await groups.isNotebookOwner(current.id))throw Error('NOTEBOOK_OWNER_REQUIRED');
+  verifyNoteSession(session);
+  await groups.archiveNotebook(current.id);verifyNoteSession(session);
+  selectedGroup=null;shown=[];$('list').replaceChildren();
+  await loadGroups();await loadNotes();
+  return '已封存「'+current.name+'」，不會刪除記事，可在已封存清單恢復。';
+ });
+});
 async function loadNotebookInbox(){
  const epoch=generation,uid=account;
  const inbox=await groups.listInbox();
