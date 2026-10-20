@@ -129,7 +129,8 @@ await test('Resume after failure permanently clears group descendants and refs',
  assert.equal(result.stage,'CONTENT_CLEANED_ROOT_LOCKED');
  const paths=[...x.store.keys()];
  assert.ok(paths.every(p=>!p.startsWith('groups/book_a/')));
- assert.ok(paths.every(p=>!p.includes('/groupIndex/book_a')));
+ assert.ok(paths.filter(p=>p.includes('/groupIndex/book_a')).every(p=>p==='users/owner_uid/groupIndex/book_a'));
+ assert.equal(paths.includes('users/owner_uid/groupIndex/book_a'),true);
  assert.ok(paths.every(p=>!p.startsWith('inboxes/')));
  assert.equal(x.store.get('groups/book_a').deleteState,'DELETING');
 });
@@ -151,10 +152,12 @@ await test('Every membership is removed with its index in ONE batch',async()=>{
    'groups/book_a/members/'+uid,'users/'+uid+'/groupIndex/book_a'].sort());
  }
 });
-await test('Owner index is removed only after member cleanup',async()=>{
+await test('Owner index stays as safe resume pointer until separate trusted root finalizer',async()=>{
  const x=fake();await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
- await x.service.runCleanup('book_a',epoch);
- const last=x.history.at(-1);assert.deepEqual(last,['users/owner_uid/groupIndex/book_a']);
+ const result=await x.service.runCleanup('book_a',epoch);
+ assert.equal(x.store.has('users/owner_uid/groupIndex/book_a'),true);
+ assert.equal(result.ownerPointerRetained,true);
+ assert.ok(x.history.every(batch=>!batch.includes('users/owner_uid/groupIndex/book_a')));
 });
 await test('Other notebook and private records remain untouched',async()=>{
  const x=fake();await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
@@ -208,5 +211,15 @@ await test('Cache-only inventory blocks any cleanup writes',async()=>{
  x.setCached(true);
  await fails(()=>x.service.runCleanup('book_a',epoch),'CACHED_READBACK_NOT_ACCEPTABLE');
  assert.equal(x.history.length,0);
+});
+await test('Owner can still discover locked root and safely resume after completed cleanup',async()=>{
+ const x=fake();await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ await x.service.runCleanup('book_a',epoch);
+ assert.ok(x.store.has('users/owner_uid/groupIndex/book_a'));
+ const pointer=x.store.get('users/owner_uid/groupIndex/book_a');
+ assert.equal(pointer.groupId,'book_a');
+ const result=await x.service.runCleanup('book_a',epoch);
+ assert.equal(result.rootPhysicalDeletion,false);
+ assert.equal(result.ownerPointerRetained,true);
 });
 console.log('NOTEBOOK_HARD_DELETE_V4C_CONTROLLER_MOCK_PASS',n);
