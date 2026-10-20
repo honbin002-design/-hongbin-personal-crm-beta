@@ -81,6 +81,11 @@ check('Conflict UI compares cloud and phone text without interpreting HTML',()=>
  assert.match(script,/\$\('cloudTitle'\)\.textContent=/);
  assert.match(script,/showConflict\(e\)/);
 });
+check('Keep-draft choice leaves remote comparison visible for manual merge',()=>{
+ assert.match(script,/\$\('keepDraft'\)\.addEventListener\('click'/);
+ assert.match(script,/\$\('conflictPanel'\)\.hidden=false/);
+ assert.match(script,/雲端比較內容仍可查看/);
+});
 check('Save-as-copy uses different ID and pre-saves nonce before cloud',()=>{
  assert.match(script,/buildSaveNewCopy\(latest,newId\)/);
  assert.match(script,/const newId=session\.service\.newId\(target\)/);
