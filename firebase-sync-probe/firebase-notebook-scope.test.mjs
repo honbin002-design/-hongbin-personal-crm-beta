@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {resolveNotebookSelection,notebookCapabilities,notebookRoleLabel} from './firebase-notebook-scope.mjs';
+let count=0;
+function test(name,run){run();count++;console.log('PASS notebook '+count+': '+name)}
+const a={id:'a',name:'業務記事',role:'ADMIN'};
+const b={id:'b',name:'家庭記事',role:'EDITOR'};
+const c={id:'c',name:'專案記事',role:'VIEWER'};
+test('multiple notebooks are independently listed',()=>assert.equal(resolveNotebookSelection([a,b,c]).items.length,3));
+test('notebooks are sorted for Traditional Chinese UI',()=>assert.deepEqual(resolveNotebookSelection([a,b,c]).items.map(x=>x.id),['c','b','a'].sort((x,y)=>[a,b,c].find(t=>t.id===x).name.localeCompare([a,b,c].find(t=>t.id===y).name,'zh-TW'))));
+test('previously selected notebook is retained only when authorized',()=>assert.equal(resolveNotebookSelection([a,b,c],'b').selected.id,'b'));
+test('revoked notebook is never returned as selection',()=>assert.notEqual(resolveNotebookSelection([a,c],'b').selected?.id,'b'));
+test('empty list selects no notebook',()=>assert.equal(resolveNotebookSelection([]).selected,null));
+test('invalid directory rejected',()=>assert.throws(()=>resolveNotebookSelection(null),/NOTEBOOK_DIRECTORY_REQUIRED/));
+test('duplicate group ID is not duplicated',()=>assert.equal(resolveNotebookSelection([a,{...a,name:'偽造'}]).items.length,1));
+test('invalid role never enters notebook directory',()=>assert.equal(resolveNotebookSelection([{...a,role:'OWNER'}]).items.length,0));
+test('blank name never enters directory',()=>assert.equal(resolveNotebookSelection([{...a,name:'   '}]).items.length,0));
+test('path traversal group ID excluded',()=>assert.equal(resolveNotebookSelection([{...a,id:'../x'}]).items.length,0));
+test('group name trims whitespace',()=>assert.equal(resolveNotebookSelection([{...a,name:'  業務  '}]).items[0].name,'業務'));
+test('ADMIN can manage and delete shared note',()=>{const x=notebookCapabilities('ADMIN');assert.equal(x.canManageMembers,true);assert.equal(x.canDeleteSharedNote,true)});
+test('EDITOR can edit but cannot manage or delete shared note',()=>{const x=notebookCapabilities('EDITOR');assert.equal(x.canWrite,true);assert.equal(x.canManageMembers,false);assert.equal(x.canDeleteSharedNote,false)});
+test('VIEWER cannot edit or delete',()=>{const x=notebookCapabilities('VIEWER');assert.equal(x.canRead,true);assert.equal(x.canWrite,false);assert.equal(x.canDeleteSharedNote,false)});
+test('unknown role is denied',()=>assert.equal(notebookCapabilities('OWNER').canRead,false));
+test('Drive attachment upload remains HOLD for all roles',()=>{for(const r of ['ADMIN','EDITOR','VIEWER','OWNER'])assert.equal(notebookCapabilities(r).canUploadAttachment,false)});
+test('role label is human readable',()=>assert.equal(notebookRoleLabel('VIEWER'),'檢視者'));
+test('returned role capabilities are immutable',()=>assert.equal(Object.isFrozen(notebookCapabilities('ADMIN')),true));
+console.log('NOTEBOOK_DIRECTORY_POLICY_PASS '+count);
