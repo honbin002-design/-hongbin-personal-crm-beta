@@ -81,7 +81,23 @@ async function ownedList(){
   try{
    const snap=await sdk.getDocFromServer(sdk.doc(db,'groups',pointer.id));
    if(myEpoch!==epoch)return;
-   if(!snap.exists()||snap.data().ownerUid!==uid)continue;
+   if(!snap.exists()){
+    const orphan=el('div');orphan.className='item';
+    orphan.append(el('strong','主文件已不存在：'+pointer.id+'（只剩自己的失效索引）'));
+    const clear=el('button','清理我的失效索引');clear.type='button';
+    clear.addEventListener('click',async()=>{
+     if(busy)return;
+     if(!window.confirm('只會移除你自己的失效索引，不能證明所有歷史子集合都曾完整清理。確定嗎？'))return;
+     busy=true;buttons();
+     try{
+      await service.removeOwnOrphanedPointer(pointer.id,{typedPhrase:'只清除我的失效索引'});
+      msg('已確認主文件不存在並移除自己的失效索引；歷史內容仍須以原清理紀錄為準。');
+      await ownedList();
+     }catch(e){deny(e)}finally{busy=false;buttons()}
+    });
+    orphan.append(clear);root.append(orphan);continue;
+   }
+   if(snap.data().ownerUid!==uid)continue;
    const book={id:pointer.id,...snap.data()},item=el('div');item.className='item';
    const title=el('strong',book.name+(book.deleteState?'（正在清理）':''));
    const choose=el('button','選擇這本');choose.type='button';
@@ -93,7 +109,8 @@ async function ownedList(){
 }
 async function chooseBook(book){
  if(busy)return;
- selected=book;$('selectedArea').hidden=false;
+ selected=book;verifiedReceipt=null;$('finalizeArea').hidden=true;$('typedFinal').value='';
+ $('selectedArea').hidden=false;
  $('selectedName').textContent='目前選擇：'+book.name;
  $('newDelete').hidden=!!book.deleteState;$('resumeBox').hidden=book.deleteState!=='DELETING';
  progress('');
@@ -131,14 +148,18 @@ $('lock').addEventListener('click',()=>run(async()=>{
  const result=await service.lock(book.id,{typedName:name,deletionId});
  progress('刪除鎖定已建立。即將逐批清理；若中斷可重新登入後續刪。');
  const outcome=await service.runCleanup(book.id,result.deletionId,{onProgress:cleanupProgress});
- progress('記事與關聯資料清理完成；主文件仍留不可恢復的鎖定紀錄，並未宣稱物理根刪除。'+outcome.stage);
+ verifiedReceipt=outcome;$('finalizeArea').hidden=false;
+ $('rootPath').textContent='groups/'+book.id;
+ progress('記事與關聯資料清理完成；下一步須到 Firebase Console 手動刪除指定主文件。'+outcome.stage);
  await ownedList();
 }));
 $('resume').addEventListener('click',()=>run(async()=>{
  const book={...selected};if(book.deleteState!=='DELETING'||typeof book.deletionId!=='string')throw Error('INVALID_RESUME_LOCK');
  if(!window.confirm('確定繼續清理「'+book.name+'」剩餘資料嗎？'))return;
  const result=await service.runCleanup(book.id,book.deletionId,{onProgress:cleanupProgress});
- progress('已接續清理，結果：'+result.stage+'。主文件尚未實體刪除。');
+ verifiedReceipt=result;$('finalizeArea').hidden=false;
+ $('rootPath').textContent='groups/'+book.id;
+ progress('已核對清理結果：'+result.stage+'。下一步需到 Firebase Console 刪除主文件。');
  await ownedList();
 }));
 $('refresh').addEventListener('click',async()=>{if(busy||!service)return;
