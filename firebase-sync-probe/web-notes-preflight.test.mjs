@@ -147,6 +147,29 @@ check('Deletion stays soft-delete, explicit confirmation',()=>{
  assert.match(script,/window\.confirm\('確定刪除/);
  assert.doesNotMatch(script,/deleteDoc\(/);
 });
+check('Notebook archive is creator only, never ordinary ADMIN',()=>{
+ const groups=readFileSync('firebase-group-service.mjs','utf8');parse(groups);
+ assert.match(html,/id="archiveNotebook"/);
+ assert.match(html,/id="archivedNotebookArea"/);
+ assert.match(html,/id="archivedNotebookList"/);
+ assert.match(script,/groups\.isNotebookOwner\(selectedGroup\.id\)/);
+ assert.match(groups,/existing\.data\(\)\.ownerUid!==uid/);
+ assert.match(script,/groups\.archiveNotebook\(current\.id\)/);
+ assert.match(script,/groups\.restoreNotebook\(item\.id\)/);
+});
+check('Archiving requires two confirms and protects unsaved drafts',()=>{
+ const matches=(script.match(/window\.confirm\('.*封存/g)||[]).length;
+ assert.ok(matches>=2,'two confirmation screens required');
+ assert.match(script,/if\(editorDirty\|\|\$\('title'\)\.value\|\|\$\('content'\)\.value\)/);
+ assert.match(script,/await loadGroups\(\);await loadNotes\(\)/);
+});
+check('Archive candidate is reversible; hard-delete never exposed to client',()=>{
+ const groups=readFileSync('firebase-group-service.mjs','utf8');
+ assert.match(groups,/archivedAt:Timestamp\.now\(\)/);
+ assert.match(groups,/archivedAt:sdk\.deleteField\(\)/);
+ assert.doesNotMatch(groups,/deleteDoc\(|deleteGroup\(/);
+ assert.match(groups,/listArchivedNotebooks/);
+});
 check('Persistent drafts are partitioned, manually saved to cloud and never use R73 storage',()=>{
  const local=readFileSync('firebase-offline-drafts.mjs','utf8');
  parse(local);
