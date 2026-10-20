@@ -66,7 +66,7 @@ check('UI never interprets note text as HTML',()=>{
 });
 check('Version conflict keeps draft and shows latest version number',()=>{
  assert.match(script,/NOTE_VERSION_CONFLICT/);
- assert.match(script,/e\.remote\?\.version/);
+ assert.match(script,/review\.remote\.version/);
  assert.match(script,/remember\(\)/);
 });
 check('Conflict UI compares cloud and phone text without interpreting HTML',()=>{
