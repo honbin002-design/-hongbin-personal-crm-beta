@@ -111,21 +111,24 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
     ['groups/'+groupId+'/members/'+m.uid];
    await batchDelete(paths);
   }
-  // Owner is an implicit ADMIN, not listed in /members.
+  // Keep the owner's discovery pointer until a separately trusted final
+  // purge can remove the root. Otherwise an interrupted Safari session can
+  // lose the ONLY way to find a DELETING group and resume cleanup.
+  // The pointer contains no note text; active notebook lists must hide it.
   const own='users/'+uid+'/groupIndex/'+groupId;
-  const ownSnap=ensureServer(await sdk.getDocFromServer(pathRef(own)));
-  if(ownSnap.exists())await batchDelete([own]);
   state=await inventory(groupId,deletionId);
   const pointer=ensureServer(await sdk.getDocFromServer(pathRef(own)));
   guard();
-  if(state.notes.length||state.members.length||state.sentInvites.length||pointer.exists())
+  if(state.notes.length||state.members.length||state.sentInvites.length)
    error('DELETE_CLEANUP_NOT_YET_COMPLETE');
   // The root stays permanently locked: ordinary members have zero access
   // and cannot resurrect notes. Final root removal requires a trusted,
   // separately approved server-side verification protocol.
   return Object.freeze({groupId,deletionId,stage:'CONTENT_CLEANED_ROOT_LOCKED',
-   notesRemaining:0,membersRemaining:0,sentInvitesRemaining:0,ownerPointerRemaining:0,
-   rootPhysicalDeletion:false,rootDeletionAuthorized:false});
+   notesRemaining:0,membersRemaining:0,sentInvitesRemaining:0,
+   ownerPointerRetained:pointer.exists(),rootPhysicalDeletion:false,rootDeletionAuthorized:false,
+   // UI may hide this from ACTIVE notebooks but must keep a resume/history entry.
+   activeNotebook:false});
  }
  return Object.freeze({preview,lock,inventory,runCleanup});
 }
