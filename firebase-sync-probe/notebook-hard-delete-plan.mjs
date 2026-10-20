@@ -41,9 +41,10 @@ export function planNotebookHardDelete({actorUid,group,deletionId,inventory}={})
   put(inviteOps,base+'/sentInvites/'+item.id,'sent-invite');
   put(inboxOps,'inboxes/'+item.recipientEmail+'/invites/'+item.id,'recipient-invite');
  }
- // A member UID may keep a discovery pointer even after revocation. Owner
- // pointer also exists, though the owner isn't stored under members/.
- const uids=new Set([actorUid,...members.map(x=>x.uid)]);
+ // A revoked member may keep an index. The creator's OWN pointer
+ // must survive content cleanup: otherwise reopening Safari cannot find
+ // the locked root to resume. A separate finalizer removes it last.
+ const uids=new Set(members.map(x=>x.uid).filter(uid=>uid!==actorUid));
  for(const uid of [...uids].sort())put(indexOps,'users/'+uid+'/groupIndex/'+gid,'group-pointer');
  const operations=[...notesSorted(noteOps),...notesSorted(inboxOps),...notesSorted(inviteOps),
   ...notesSorted(indexOps),...notesSorted(memberOps)];
@@ -55,7 +56,9 @@ export function planNotebookHardDelete({actorUid,group,deletionId,inventory}={})
    sentInvites:inviteOps.length,inboxInvites:inboxOps.length,indexPointers:indexOps.length}),
   // A root deletion cannot be included in an inventory-phase manifest:
   // if deleted early, leftover child paths become orphaned.
-  rootPath:base,rootDeletionAuthorized:false
+  rootPath:base,
+   retainedOwnerPointerPath:'users/'+actorUid+'/groupIndex/'+gid,
+   rootDeletionAuthorized:false
  });
 }
 function notesSorted(arr){return [...arr].sort((a,b)=>a.path.localeCompare(b.path))}
