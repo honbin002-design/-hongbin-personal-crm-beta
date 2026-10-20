@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<title>HONBIN CRM｜共用群組與邀請隔離候選</title>
+<title>HONBIN CRM｜多本共用記事簿與邀請隔離候選</title>
 <style>
 :root{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;color:#20334d;background:#f4f7fb}
 *{box-sizing:border-box}body{margin:0 auto;max-width:720px;padding:16px 14px 72px}
@@ -25,7 +25,7 @@ label{display:block;font-weight:600;margin:10px 0 6px}
 </style>
 </head>
 <body>
-<h1>HONBIN CRM｜共用群組測試候選</h1>
+<h1>HONBIN CRM｜共用記事簿管理測試候選</h1>
 <p class="note">獨立隔離工程頁，非正式 CRM；沒有發佈或啟用真實 Firestore。</p>
 <p id="gate" class="warn">安全 HOLD：正式 Firebase 仍為拒絕所有用戶端讀寫。本測試頁目前不會連接 Firestore。</p>
 <section>
@@ -36,14 +36,14 @@ label{display:block;font-weight:600;margin:10px 0 6px}
 </section>
 <main id="workspace" hidden>
 <section>
- <h2>我的共用群組</h2>
- <form id="groupForm"><label for="groupName">建立群組名稱</label><input id="groupName" maxlength="120" autocomplete="off" required><div class="actions"><button type="submit">建立群組</button><button id="refreshGroups" type="button" class="secondary">重新整理</button></div></form>
+ <h2>我的共用記事簿</h2>
+ <form id="groupForm"><label for="groupName">建立新記事簿名稱（每本成員獨立）</label><input id="groupName" maxlength="120" autocomplete="off" required><div class="actions"><button type="submit">建立記事簿</button><button id="refreshGroups" type="button" class="secondary">重新整理</button></div></form>
  <div id="groupList" aria-live="polite"></div>
 </section>
 <section id="selected" hidden>
- <h2 id="selectedName">群組</h2><p id="selectedRole" class="note"></p>
+ <h2 id="selectedName">記事簿</h2><p id="selectedRole" class="note"></p>
  <div id="admin" hidden>
-  <h2>邀請成員</h2>
+  <h2>邀請此記事簿的成員</h2>
   <form id="inviteForm">
    <label for="inviteEmail">Google Email</label><input id="inviteEmail" type="email" autocomplete="email" required>
    <label for="inviteRole">邀請權限</label>
@@ -52,7 +52,7 @@ label{display:block;font-weight:600;margin:10px 0 6px}
   </form>
   <p class="note">邀請紀錄儲存在只有群組管理員能存取的索引，重新整理後仍可查詢與撤銷待接受邀請。系統目前不會自動寄送 Email，受邀者須用自己的 Google 帳號查看邀請。</p>
   <div id="sentList"></div>
-  <h2>管理成員</h2>
+  <h2>管理此記事簿的成員</h2>
   <div class="actions"><button id="refreshMembers" type="button" class="secondary">讀取成員</button></div>
   <div id="memberList"></div>
  </div>
