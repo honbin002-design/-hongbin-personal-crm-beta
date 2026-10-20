@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {acceptedMemberEmails} from './firebase-drive-member-directory.mjs';
+import {checkNotebookDriveAcl} from './firebase-drive-attachment-policy.mjs';
 let n=0;const test=(label,fn)=>{fn();n++;console.log('PASS verified member email '+n+': '+label)};
 const gid='bookA';
 const members=()=>[{uid:'userA',role:'VIEWER',status:'ACTIVE',invitationId:'inviteA'},
@@ -24,4 +25,20 @@ test('missing invitations rejected',()=>assert.throws(()=>acceptedMemberEmails({
 test('missing group ID rejected',()=>assert.throws(()=>derive(members(),invites(),''),/MEMBER_DIRECTORY_INCOMPLETE/));
 test('unknown active role rejected',()=>{const m=members();m[0].role='ROOT';assert.throws(()=>derive(m),/INVALID_ACTIVE_MEMBER/)});
 test('stale member status rejected',()=>{const m=members();m[0].status='UNKNOWN';assert.throws(()=>derive(m),/INVALID_ACTIVE_MEMBER/)});
+test('verified accepted members match restricted Drive ACL for this notebook',()=>{
+ const permissions=[{type:'user',role:'owner',emailAddress:'owner@example.com'},
+ {type:'user',role:'reader',emailAddress:'a@example.com'},
+ {type:'user',role:'reader',emailAddress:'b@example.com'}];
+ assert.equal(checkNotebookDriveAcl({permissions,ownerEmail:'owner@example.com',
+  members:derive(),aclComplete:true}).ok,true);
+});
+test('revoking a notebook member requires revoking old Drive permission',()=>{
+ const m=members();m[0].status='REVOKED';
+ const permissions=[{type:'user',role:'owner',emailAddress:'owner@example.com'},
+ {type:'user',role:'reader',emailAddress:'a@example.com'},
+ {type:'user',role:'reader',emailAddress:'b@example.com'}];
+ const result=checkNotebookDriveAcl({permissions,ownerEmail:'owner@example.com',
+  members:derive(m),aclComplete:true});
+ assert.equal(result.ok,false);assert.equal(result.code,'DRIVE_PERMISSION_NOT_AUTHORIZED');
+});
 console.log('DRIVE_VERIFIED_MEMBER_DIRECTORY_PASS',n);
