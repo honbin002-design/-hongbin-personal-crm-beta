@@ -258,4 +258,56 @@ await test('An ACK loss never falsely reports the failed batch completed',async(
  });
  assert.equal(resumed.stage,'CONTENT_CLEANED_ROOT_LOCKED');
 });
+await test('Console finalizer rejects empty or forged cleanup receipt',async()=>{
+ const x=fake();
+ x.store.delete('groups/book_a');
+ await fails(()=>x.service.confirmConsoleRootRemoved('book_a',{
+  cleanupReceipt:null,typedPhrase:'我已刪除記事簿主文件'
+ }),'CLEANUP_RECEIPT_REQUIRED');
+ assert.ok(x.store.has('users/owner_uid/groupIndex/book_a'));
+});
+await test('Console finalizer rejects wrong explicit phrase',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const receipt=await x.service.runCleanup('book_a',epoch);
+ x.store.delete('groups/book_a');
+ await fails(()=>x.service.confirmConsoleRootRemoved('book_a',{
+  cleanupReceipt:receipt,typedPhrase:'永久刪除'
+ }),'EXPLICIT_CONSOLE_DELETE_CONFIRMATION_REQUIRED');
+});
+await test('Console finalizer will not remove owner pointer while root exists',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const receipt=await x.service.runCleanup('book_a',epoch);
+ await fails(()=>x.service.confirmConsoleRootRemoved('book_a',{
+  cleanupReceipt:receipt,typedPhrase:'我已刪除記事簿主文件'
+ }),'FIREBASE_ROOT_DOCUMENT_STILL_EXISTS');
+ assert.ok(x.store.has('users/owner_uid/groupIndex/book_a'));
+});
+await test('Console finalizer verifies missing root then clears ONLY own index',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const receipt=await x.service.runCleanup('book_a',epoch);
+ assert.ok(x.store.has('users/owner_uid/groupIndex/book_a'));
+ x.store.delete('groups/book_a'); // simulated privileged Firebase Console
+ const out=await x.service.confirmConsoleRootRemoved('book_a',{
+  cleanupReceipt:receipt,typedPhrase:'我已刪除記事簿主文件'
+ });
+ assert.equal(out.rootPhysicallyDeleted,true);
+ assert.equal(out.ownerIndexCleared,true);
+ assert.equal(out.allChildCollectionsIndependentlyAudited,false);
+ assert.equal(x.store.has('users/owner_uid/groupIndex/book_a'),false);
+ assert.ok(x.store.has('groups/other_a'));
+ assert.ok(x.store.has('users/owner_uid/notes/private_a'));
+});
+await test('Console finalizer rejects mismatch in owner index UID',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const receipt=await x.service.runCleanup('book_a',epoch);
+ x.store.delete('groups/book_a');
+ x.store.get('users/owner_uid/groupIndex/book_a').uid='other-user';
+ await fails(()=>x.service.confirmConsoleRootRemoved('book_a',{
+  cleanupReceipt:receipt,typedPhrase:'我已刪除記事簿主文件'
+ }),'STALE_INDEX_OWNER_SCOPE_MISMATCH');
+});
 console.log('NOTEBOOK_HARD_DELETE_V4C_CONTROLLER_MOCK_PASS',n);
