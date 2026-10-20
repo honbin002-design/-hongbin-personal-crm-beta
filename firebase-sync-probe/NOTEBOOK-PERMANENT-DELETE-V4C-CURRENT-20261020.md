@@ -22,7 +22,7 @@ GitHub repo `honbin002-design/-hongbin-personal-crm-beta`；
 | `firebase-sync-probe/web-notebook-hard-delete-v4c-preflight.test.mjs` | **12 項 iPhone UI 靜態安全測試 PASS** |
 | `.github/workflows/firebase-notes-emulator-tests.yml` | 舊 Firestore Emulator 142 項、owner allowlist 36 項、archive-v3 33 項等既有通過項也繼續綠燈 |
 
-最近官方模擬器／UI CI：https://github.com/honbin002-design/-hongbin-personal-crm-beta/actions/runs/39374090221
+最近官方模擬器／UI CI：https://github.com/honbin002-design/-hongbin-personal-crm-beta/actions/runs/39374757197
 如無法確認該 run 與最新版 HEAD 一致，需透過 GitHub 最新 HEAD check-runs readback，不依賴以上記錄推論新版本。
 
 ## 尚未完成／不允許宣稱
