@@ -42,8 +42,8 @@ check('Resume uses Firestore-verified stored deletion epoch',()=>{
  assert.match(js,/service\.runCleanup\(book\.id,book\.deletionId,\{onProgress:cleanupProgress\}\)/);
 });
 check('Root tombstone is explicitly not claimed physically deleted',()=>{
- assert.match(html,/主文件.*仍留/);
- assert.match(js,/主文件尚未實體刪除/);
+ assert.match(html,/最後一步｜在 Firebase Console 實體刪除主文件/);
+ assert.match(js,/須到 Firebase Console 手動刪除指定主文件/);
  assert.match(service,/rootPhysicalDeletion:false/);
 });
 check('Synthetic TEST never loads original CRM scripts or localStorage',()=>{
