@@ -7,14 +7,15 @@
     "test:rules": "npm run test:base && npm run test:invites && npm run test:directory && npm run test:outbound && npm run test:workflow && npm run test:notes",
     "test:base": "node firestore.rules.test.mjs",
     "test:invites": "node firestore.invites.test.mjs",
-    "test:web": "node web-auth-preflight.test.mjs && node web-group-preflight.test.mjs && node web-notes-preflight.test.mjs && npm run test:offline && npm run test:hosting-package && npm run test:conflict",
+    "test:web": "node web-auth-preflight.test.mjs && node web-group-preflight.test.mjs && node web-notes-preflight.test.mjs && npm run test:offline && npm run test:hosting-package && npm run test:conflict && npm run test:notebooks",
     "test:directory": "node firestore.group-directory.test.mjs",
     "test:workflow": "node firestore.group-workflow.test.mjs",
     "test:outbound": "node firestore.outbound.test.mjs",
     "test:notes": "node firestore.notes-crud.test.mjs",
     "test:offline": "node firebase-offline-drafts.test.mjs",
     "test:hosting-package": "node firebase-hosting-auth-package.test.mjs",
-    "test:conflict": "node firebase-conflict-review.test.mjs"
+    "test:conflict": "node firebase-conflict-review.test.mjs",
+    "test:notebooks": "node firebase-notebook-scope.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
