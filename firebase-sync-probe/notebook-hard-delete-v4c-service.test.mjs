@@ -38,7 +38,12 @@ function fake(){
    };
   },
   async updateDoc(r,changes){if(offline)throw Error('NETWORK_OFFLINE');store.set(r.path,{...store.get(r.path),...changes})},
-  async deleteDoc(){throw Error('NO_DIRECT_ROOT_DELETE')},
+  async deleteDoc(r){
+   if(offline)throw Error('NETWORK_OFFLINE');
+   if(!r.path.startsWith('users/owner_uid/groupIndex/'))
+    throw Error('NO_DIRECT_ROOT_DELETE');
+   history.push([r.path]);store.delete(r.path);
+  },
   async runTransaction(db,fn){
    const pending=[];
    const tx={get:async r=>snap(r.path),
