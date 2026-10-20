@@ -357,11 +357,14 @@ $('cancel').addEventListener('click',()=>{
  clearEditor();
 });
 $('keepDraft').addEventListener('click',()=>{
- const review=checkedConflict();
- $('conflictPanel').hidden=true;
+ checkedConflict();
+ // Keep remote preview visible while users manually compare or combine
+ // text in their own editor. Do not switch the note version.
+ $('conflictPanel').hidden=false;
  $('conflict').hidden=false;
- $('conflict').textContent='已保留目前草稿。你可以繼續編輯，按下儲存時仍會檢查原始版本，絕不自動覆蓋。';
- msg('你的草稿已保留；沒有寫入 Firestore。');
+ $('conflict').textContent='草稿與雲端版本都保留在畫面。請人工比較；按一般儲存仍會檢查舊版本，絕不自動覆蓋。';
+ $('title').focus();
+ msg('已保留手機草稿，沒有寫入 Firestore；雲端比較內容仍可查看。');
 });
 $('takeCloud').addEventListener('click',()=>execute(async()=>{
  const session=noteSession();
