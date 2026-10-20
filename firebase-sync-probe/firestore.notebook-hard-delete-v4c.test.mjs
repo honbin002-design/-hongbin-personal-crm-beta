@@ -8,7 +8,7 @@ import {
 const rules=readFileSync('firestore.notebook-hard-delete-v4c.rules','utf8')
  .replaceAll('__OWNER_UID__','global-owner');
 const env=await initializeTestEnvironment({
- projectId:'demo-honbin-crm-hard-delete-v4',
+ projectId:'demo-honbin-crm-hard-delete-v4c',
  firestore:{host:'127.0.0.1',port:8080,rules}
 });
 const identity=(uid,email)=>env.authenticatedContext(uid,{
