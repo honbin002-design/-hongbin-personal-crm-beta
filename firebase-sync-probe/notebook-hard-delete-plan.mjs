@@ -24,7 +24,8 @@ export function planNotebookHardDelete({actorUid,group,deletionId,inventory}={})
  const unique=new Set(),noteOps=[],memberOps=[],inviteOps=[],indexOps=[],inboxOps=[];
  const put=(to,path,kind)=>{
   if(unique.has(path))reject('DUPLICATE_DELETE_PATH');
-  unique.add(path);to.push(op(deletionId+':'+unique.size,path,kind));
+  // Stable idempotency identity MUST NOT depend on snapshot page order.
+  unique.add(path);to.push(op(deletionId+':'+path,path,kind));
  };
  for(const item of notes){
   if(!item||!segment(item.id)||item.groupId!==gid)reject('INVALID_NOTE_SCOPE');
