@@ -103,6 +103,10 @@ async function run(task){
  catch(e){deny(e)}
  finally{busy=false;buttons()}
 }
+const cleanupProgress=({stage,processed,total})=>{
+ const titles={NOTES:'清除記事',INVITES:'清除邀請與收件匣',MEMBERS:'清除成員與跨帳號索引',VERIFY:'重新向伺服器核對'};
+ progress((titles[stage]||'清理中')+'：'+processed+' / '+total+'。請保持頁面開啟；中斷可稍後接續。');
+};
 $('lock').addEventListener('click',()=>run(async()=>{
  const name=$('typedName').value,book={...selected};
  if(name!==book.name||$('typedPhrase').value!=='永久刪除'){
@@ -113,14 +117,14 @@ $('lock').addEventListener('click',()=>run(async()=>{
  const deletionId=crypto.randomUUID().replaceAll('-','');
  const result=await service.lock(book.id,{typedName:name,deletionId});
  progress('刪除鎖定已建立。即將逐批清理；若中斷可重新登入後續刪。');
- const outcome=await service.runCleanup(book.id,result.deletionId);
+ const outcome=await service.runCleanup(book.id,result.deletionId,{onProgress:cleanupProgress});
  progress('記事與關聯資料清理完成；主文件仍留不可恢復的鎖定紀錄，並未宣稱物理根刪除。'+outcome.stage);
  await ownedList();
 }));
 $('resume').addEventListener('click',()=>run(async()=>{
  const book={...selected};if(book.deleteState!=='DELETING'||typeof book.deletionId!=='string')throw Error('INVALID_RESUME_LOCK');
  if(!window.confirm('確定繼續清理「'+book.name+'」剩餘資料嗎？'))return;
- const result=await service.runCleanup(book.id,book.deletionId);
+ const result=await service.runCleanup(book.id,book.deletionId,{onProgress:cleanupProgress});
  progress('已接續清理，結果：'+result.stage+'。主文件尚未實體刪除。');
  await ownedList();
 }));
