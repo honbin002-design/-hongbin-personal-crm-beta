@@ -322,7 +322,7 @@ async function renderArchivedNotebooks(){
    execute(async()=>{
     const session=noteSession();
     await groups.restoreNotebook(item.id);verifyNoteSession(session);
-    await loadGroups();return '已恢復「'+item.name+'」，成員可再次依權限存取。';
+    await loadGroups();await loadNotes();return '已恢復「'+item.name+'」，成員可再次依權限存取。';
    });
   });
   row.append(restore);root.append(row);
