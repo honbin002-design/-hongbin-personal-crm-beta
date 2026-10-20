@@ -59,4 +59,11 @@ check('Browser module and service have valid JS syntax',()=>{
   assert.equal(x.status,0,x.stderr);
  }
 });
+check('Shows per-stage progress without silently hiding incomplete cleanup',()=>{
+ assert.match(js,/const cleanupProgress=/);
+ assert.match(js,/INVITES:'清除邀請與收件匣'/);
+ assert.match(js,/onProgress:cleanupProgress/);
+ assert.match(js,/請保持頁面開啟；中斷可稍後接續/);
+ assert.match(service,/report\('VERIFY',1,1\)/);
+});
 console.log('NOTEBOOK_HARD_DELETE_V4C_UI_HOLD_PASS',n);
