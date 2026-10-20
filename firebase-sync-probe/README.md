@@ -176,3 +176,27 @@ Google Firebase 是 **Google 自家服務**，不是額外外包廠商。可使�
 - 不修改 `firestoreReadyForRealData=false`、不動正式 Firestore 雲端 Security Rules／Google Auth 使用者／現有 R73 記事、不部署、不計費、不使用 Work。
 
 **下一階段**：優先處理獨立 Auth-only Hosting 的官方管理授權與 Firebase 已授權網域，僅此 Gate 過關才可請使用者在 iPhone Safari 做 Google 登入真機 PASS。其後才進行合成資料的真正 Firestore ACL 部署及兩帳號／雙手機驗收（都須符合原安全 Gate）；沒有授權時可繼續隔離做版本衝突 UI／模擬器測試，但不得冒稱 HTTPS 或雲端同步已完成。
+
+## 2026-10-20 08 時段｜衝突比較／另存副本／登入切換競態 Gate
+
+**實際工程範圍**：仍僅 GitHub `probe/gas-no-work-20261019` 的 `firebase-sync-probe/`，不動正式 `main`。沿用既有 Google Auth 與 Firestore deny-all 真雲端安全閘。
+
+### 本次完成的程式
+- 新增 `firebase-conflict-review.mjs`：在不連網、不修改 Firestore 的情況下，把手機草稿與最新可見雲端版本形成雙方快照；提供 `KEEP_DRAFT`、`LOAD_REMOTE`、`SAVE_NEW_COPY`。雲端不存在／已被軟刪除時禁用載入雲端。複製必須提供與原文件不同的新 ID，防止誤覆蓋。**不會默默採用任何一方版本**。
+- `firebase-notes-test.html` 新增繁體中文衝突比較區：本機草稿維持在原編輯欄，雲端版本以 `textContent` 純文字顯示（避免惡意 HTML 插入）；使用者可保留草稿並繼續看比較內容、明確確認改為「衝突發生當下」的雲端版本，或將當前草稿另存新記事。另存會先建立新固定 ID 及 IndexedDB 草稿，再呼叫 `runTransaction`；與原文件隔離。若雲端已再更新，普通版本檢查會再次阻擋覆蓋。**尚未有三方 diff 自動合併**，屬人工合併 UX。
+- 加強切換 Google 帳號的競態安全：`noteSession()` 固定原 UID、`generation` 與 noteService 實例，於 IndexedDB `await` 後、真正送出 Firestore 前及雲端回覆後確認同一身分，避免舊登入草稿轉送新帳號，或舊雲端 ACK 把新帳號的編輯欄清空。
+- 衝突評估 `firebase-conflict-review.test.mjs` 為 **16 項**獨立 Node 單元測試：草稿／雲端雙方保留、錯誤版本、被刪除雲端、不得重用 ID、另存內容不混用等，不算 Firebase Emulator 測試。
+- 官方 `firestore.notes-crud.test.mjs` 新增 **2 項真正 Emulator** 測試：私人與共用版本衝突後，原子另存新文件並確認原雲端版本沒被覆蓋；原私人/共用軟刪除檢查改成只驗證「被刪除的原記事消失，另存副本仍在」。官方測試總數：**142 項**，分布 base 33、invites 16、directory 22、outbound 14、group-workflow 21、notes 36。
+- 原 `web-notes-preflight.test.mjs` 調整登入實例固定、衝突對照與保存 ID 前後順序；最後新增「按保留草稿時仍看得見雲端內容」檢查。静態檢查屬原始碼安全門檻，**不是瀏覽器實測**。
+
+### 可查驗證據
+- 提交 `0acca24af6059d02a374497cc0ecf82da72ba5a4`：已從 GitHub Actions 完整 `rules-emulator` job 日誌讀回 `FIRESTORE_EMULATOR_RESULT=success`；全部 **142 項官方 Firestore Emulator**、**19 項 fake-indexeddb**、**10 項 Auth-only Hosting 包**、**16 項 conflict 單元測試**及當時 **29 項 notes UI 靜態檢查** PASS。
+- 尾端介面微調：「保留草稿」仍顯示雲端比較視窗，並加 1 項 UI 靜態檢查；該版提交 `5bcb8d9b018a044d70a15d0ae2531a26b8939d35` 需檢視自己的 CI，不能用 `0acca...` 的 SUCCESS 冒充。
+- CI 曾出現 **測試預期錯誤**：原測試仍假設備份副本不存在、或直接從全域 `notes` 寫入；新情境已更新斷言及程式。沒有將這些先前 FAIL 說成當時 PASS。
+
+### 仍保持 HOLD 的不可逾越事項
+- 尚無已驗證可操作 Firebase 專案的官方管理／部署授權；不能自行部署 Firebase Hosting，也不能修改正式 GitHub Pages 站點以假裝新 HTTPS 入口已上線。Auth-only Spark Hosting 隔離包已建立並有 10 項檢查 PASS，但**本輪仍沒有真實可訪問的測試網址**。
+- Firebase 公開 Web SDK config 仍為原 owner 提供版本，`firestoreReadyForRealData = false`；本輪未部署真實 Firestore Rules、未寫真實記事、未用雙手機驗收、未更動原 CRM R73 記事、未用付費、未使用 Work。
+- 現有離線 IndexedDB 草稿未額外加密。瀏覽器網站資料清除可能遺失。衝突比較顯示的雲端資料是衝突時回報的版本，並非保證沒有進一步變動；實際寫入一律再次進行 Firestore Transaction 版本檢查。
+
+**下一步**：僅在 Firebase Auth-only Hosting 真實發布授權合法可操作後，先讓使用者於 iPhone Safari 做 Google 登入真機測試；再按原既定審核 Gate 測試真實合成 Firestore 雲端資料，最後雙帳號雙手機同步、撤銷、衝突及網站相容性驗收。禁止因缺權限而直接切換原 Pages 部署來源或改 `main`。
