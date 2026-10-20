@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>HONBIN CRM｜共用記事簿永久刪除工程測試</title>
+<style>
+:root{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;color:#1d2e46;background:#f4f7fa}
+*{box-sizing:border-box}body{margin:0 auto;max-width:720px;padding:20px 14px 90px}
+h1{font-size:1.45rem}h2{font-size:1.13rem}section{background:white;border:1px solid #dce2ec;border-radius:15px;padding:17px;margin:16px 0}
+.warn{border-left:5px solid #b94747;padding:10px;background:#fff2f2;color:#822c2c}
+button,input,select{font:inherit;border-radius:10px}button{min-height:44px;border:0;background:#235b9c;color:white;padding:11px 15px;margin:5px 6px 5px 0;font-weight:600}
+button.danger{background:#a13741}button:disabled{opacity:.5}input,select{width:100%;padding:12px;border:1px solid #8ba3ba;background:white}
+label{display:block;font-weight:600;margin:10px 0 5px}
+.item{border-top:1px solid #e0e7ef;padding:12px 0}
+.muted{font-size:14px;color:#526175}#status{overflow-wrap:anywhere;white-space:pre-wrap;padding:12px;background:#e8f0f9;border-radius:10px}
+[hidden]{display:none!important}
+</style></head><body>
+<h1>HONBIN CRM｜永久刪除記事簿（隔離 TEST）</h1>
+<p class="warn">安全 HOLD：此頁仍使用不啟用雲端的測試設定，不能刪除任何真實記事簿。程式完成模擬器測試不等於已通過最終主文件實體刪除。</p>
+<section><h2>Google 身分</h2><p id="identity">尚未登入</p>
+<button id="login" type="button" disabled>使用 Google 登入</button><button id="logout" type="button" disabled>登出</button>
+<p id="status" role="status" aria-live="polite">正式 Firebase V4C 安全規則尚未經授權部署，所有刪除操作保持停用。</p></section>
+<main id="workspace" hidden>
+<section><h2>僅顯示我建立的記事簿</h2><p class="muted">一般群組管理員不能刪除別人建立的記事簿。</p><div id="books" aria-live="polite"></div><button id="refresh" type="button">重新確認記事簿</button></section>
+<section id="selectedArea" hidden><h2 id="selectedName">選擇記事簿</h2>
+<p id="counts"></p><p class="warn">不可逆：會清除這本的共用記事、軟刪除記事、成員、跨帳號索引及邀請。其他私人記事及其他記事簿不會刪除；其他人先前儲存的離線副本無法遠端抹除。</p>
+<div id="newDelete">
+<label for="typedName">請親自輸入記事簿完整名稱以確認</label><input id="typedName" autocomplete="off" spellcheck="false">
+<label for="typedPhrase">再輸入「永久刪除」</label><input id="typedPhrase" autocomplete="off" spellcheck="false">
+<button class="danger" id="lock" type="button">二次確認並鎖定這本記事簿</button></div>
+<div id="resumeBox" hidden><p class="warn">此記事簿已鎖定刪除。可繼續清理尚未完成的資料，不能恢復正常記事模式。</p>
+<button class="danger" id="resume" type="button">接續尚未完成的清理</button></div>
+<p id="progress" role="status" aria-live="polite"></p>
+<p class="muted">最終根文件會留在不可恢復的 DELETING 鎖定狀態，直至可信的伺服器端最終刪除流程完成。不得把 CONTENT_CLEANED_ROOT_LOCKED 當成根文件已物理刪除。</p>
+</section></main>
+<script type="module">
+import {firebaseConfig,firestoreReadyForRealData} from './firebase-web-config.mjs';
+import {notebookHardDeleteV4C} from './notebook-hard-delete-v4c-service.mjs';
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+import {getAuth,GoogleAuthProvider,browserSessionPersistence,setPersistence,signInWithPopup,signOut,onAuthStateChanged,getIdTokenResult} from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js';
+import * as sdk from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
+const $=id=>document.getElementById(id);
+const msg=t=>$('status').textContent=t;
+const progress=t=>$('progress').textContent=t;
+const el=(tag,t)=>{const n=document.createElement(tag);n.textContent=String(t);return n};
+let auth=null,db=null,service=null,selected=null,busy=false,epoch=0;
+function wipe(){
+ selected=null;service=null;$('workspace').hidden=true;$('selectedArea').hidden=true;
+ $('books').replaceChildren();$('counts').textContent='';$('typedName').value='';
+ $('typedPhrase').value='';$('progress').textContent='';
+}
+function buttons(){
+ $('login').disabled=!auth||busy||!!auth.currentUser;
+ $('logout').disabled=!auth||busy||!auth.currentUser;
+ for(const control of $('workspace').querySelectorAll('button,input,select'))control.disabled=busy;
+}
+const deny=e=>{
+ if(e?.code==='permission-denied'){wipe();msg('Firestore 拒絕存取。身份或權限已失效，所有操作已停止。');return}
+ msg('未完成，資料未宣稱已刪除：'+String(e?.code||e?.message||'UNKNOWN'));
+};
+async function ownedList(){
+ const myEpoch=epoch,uid=auth.currentUser?.uid;
+ if(!uid||!service)return;
+ const pointers=await sdk.getDocsFromServer(sdk.collection(db,'users',uid,'groupIndex'));
+ if(myEpoch!==epoch)return;
+ const root=$('books');root.replaceChildren();
+ for(const pointer of pointers.docs){
+  try{
+   const snap=await sdk.getDocFromServer(sdk.doc(db,'groups',pointer.id));
+   if(myEpoch!==epoch)return;
+   if(!snap.exists()||snap.data().ownerUid!==uid)continue;
+   const book={id:pointer.id,...snap.data()},item=el('div');item.className='item';
+   const title=el('strong',book.name+(book.deleteState?'（正在清理）':''));
+   const choose=el('button','選擇這本');choose.type='button';
+   choose.addEventListener('click',()=>chooseBook(book));
+   item.append(title,choose);root.append(item);
+  }catch(e){if(e?.code!=='permission-denied')throw e}
+ }
+ if(!root.children.length)root.append(el('p','沒有可存取、由你建立的記事簿。'));
+}
+async function chooseBook(book){
+ if(busy)return;
+ selected=book;$('selectedArea').hidden=false;
+ $('selectedName').textContent='目前選擇：'+book.name;
+ $('newDelete').hidden=!!book.deleteState;$('resumeBox').hidden=book.deleteState!=='DELETING';
+ progress('');
+ if(book.deleteState==='DELETING'){
+  $('counts').textContent='刪除鎖定已存在。請僅接續這一筆刪除進度。';
+  return;
+ }
+ busy=true;buttons();
+ try{
+  const p=await service.preview(book.id);
+  if(selected?.id!==book.id)return;
+  $('counts').textContent='伺服器盤點：記事 '+p.noteCount+' 筆；成員 '+p.memberCount+' 筆；送出邀請 '+p.invitationCount+' 筆。';
+ }catch(e){deny(e)}
+ finally{busy=false;buttons()}
+}
+async function run(task){
+ if(busy||!selected||!service)return;
+ busy=true;buttons();
+ try{await task()}
+ catch(e){deny(e)}
+ finally{busy=false;buttons()}
+}
+$('lock').addEventListener('click',()=>run(async()=>{
+ const name=$('typedName').value,book={...selected};
+ if(name!==book.name||$('typedPhrase').value!=='永久刪除'){
+  progress('必須輸入記事簿完整名稱及「永久刪除」。');return;
+ }
+ if(!window.confirm('確定要永久清除「'+book.name+'」全部共用記事與成員嗎？不可恢復。'))return;
+ if(!window.confirm('最後確認：這不是封存。鎖定後無法恢復原記事簿。確定繼續嗎？'))return;
+ const deletionId=crypto.randomUUID().replaceAll('-','');
+ const result=await service.lock(book.id,{typedName:name,deletionId});
+ progress('刪除鎖定已建立。即將逐批清理；若中斷可重新登入後續刪。');
+ const outcome=await service.runCleanup(book.id,result.deletionId);
+ progress('記事與關聯資料清理完成；主文件仍留不可恢復的鎖定紀錄，並未宣稱物理根刪除。'+outcome.stage);
+ await ownedList();
+}));
+$('resume').addEventListener('click',()=>run(async()=>{
+ const book={...selected};if(book.deleteState!=='DELETING'||typeof book.deletionId!=='string')throw Error('INVALID_RESUME_LOCK');
+ if(!window.confirm('確定繼續清理「'+book.name+'」剩餘資料嗎？'))return;
+ const result=await service.runCleanup(book.id,book.deletionId);
+ progress('已接續清理，結果：'+result.stage+'。主文件尚未實體刪除。');
+ await ownedList();
+}));
+$('refresh').addEventListener('click',()=>run(ownedList));
+$('login').addEventListener('click',()=>{if(!auth)return;
+ setPersistence(auth,browserSessionPersistence).catch(deny);
+ signInWithPopup(auth,new GoogleAuthProvider()).catch(deny);
+});
+$('logout').addEventListener('click',()=>auth&&signOut(auth).catch(deny));
+async function start(){
+ if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
+ if(firestoreReadyForRealData!==true){msg('永久刪除 TEST 安全 HOLD：未部署 V4C 專用規則及可信最終根文件刪除流程。');return}
+ const app=initializeApp(firebaseConfig);auth=getAuth(app);db=sdk.getFirestore(app);
+ await setPersistence(auth,browserSessionPersistence);
+ onAuthStateChanged(auth,async user=>{
+  const local=++epoch;wipe();
+  if(!user){$('identity').textContent='尚未登入';buttons();return}
+  try{
+   const token=await getIdTokenResult(user);
+   if(user.emailVerified!==true||token.claims.firebase?.sign_in_provider!=='google.com'){
+    await signOut(auth);return;
+   }
+   service=notebookHardDeleteV4C({db,sdk,actor:{uid:user.uid,
+    emailVerified:true,providerId:'google.com',currentUid:()=>auth.currentUser?.uid}});
+   $('identity').textContent='已驗證 Google 帳號：'+user.email;
+   await ownedList();
+   if(local!==epoch)return;
+   $('workspace').hidden=false;msg('僅限建立者與虛構測試資料，請先確認逐項清理預覽。');
+  }catch(e){wipe();deny(e)}
+  finally{buttons()}
+ });
+ buttons();
+}
+start().catch(deny);
+</script></body></html>
