@@ -57,7 +57,7 @@ check('Viewer cannot save or soft delete by UI',()=>{
 });
 check('Cloud note calls include optimistic expectedVersion and fixed new ID',()=>{
  assert.match(script,/expectedVersion:active\.version/);
- assert.match(script,/if\(!active&&!pendingCreateId\)pendingCreateId=notes\.newId\(target\)/);
+ assert.match(script,/if\(!active&&!pendingCreateId\)pendingCreateId=session\.service\.newId\(target\)/);
  assert.match(client,/runTransaction\(db,async tx=>/);
 });
 check('UI never interprets note text as HTML',()=>{
@@ -83,9 +83,9 @@ check('Conflict UI compares cloud and phone text without interpreting HTML',()=>
 });
 check('Save-as-copy uses different ID and pre-saves nonce before cloud',()=>{
  assert.match(script,/buildSaveNewCopy\(latest,newId\)/);
- assert.match(script,/const newId=notes\.newId\(target\)/);
+ assert.match(script,/const newId=session\.service\.newId\(target\)/);
  assert.match(script,/await persistBeforeCloud\(\); \/\/ Save fixed copy ID/);
- assert.match(script,/await notes\.create\(\{\.\.\.target,\.\.\.plan\}\)/);
+ assert.match(script,/await session\.service\.create\(\{\.\.\.target,\.\.\.plan\}\)/);
 });
 check('Remote restoration requires explicit confirmation and no write',()=>{
  assert.match(script,/buildRemoteRestore\(review\)/);
@@ -113,7 +113,7 @@ check('Membership revocation refresh hides formerly visible note editor',()=>{
  assert.match(script,/\$\('list'\)\.replaceChildren\(\)/);
 });
 check('Deletion stays soft-delete, explicit confirmation',()=>{
- assert.match(script,/notes\.softDelete\(/);
+ assert.match(script,/session\.service\.softDelete\(/);
  assert.match(script,/window\.confirm\('確定刪除/);
  assert.doesNotMatch(script,/deleteDoc\(/);
 });
