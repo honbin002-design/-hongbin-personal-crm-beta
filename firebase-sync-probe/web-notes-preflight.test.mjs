@@ -51,7 +51,7 @@ check('Shared empty group does not write to unknown group',()=>{
  assert.match(script,/if\(mode==='SHARED'&&!selectedGroup\)/);
 });
 check('Viewer cannot save or soft delete by UI',()=>{
- assert.match(script,/selectedGroup\.role!=='VIEWER'/);
+ assert.match(script,/notebookCapabilities\(selectedGroup\?\.role\)\.canWrite/);
  assert.match(script,/\$\('delete'\)\.disabled=busy\|\|!mayDelete/);
  assert.match(script,/const mayDelete=mode==='PRIVATE'\|\|notebookCapabilities\(selectedGroup\?\.role\)\.canDeleteSharedNote/);
 });
