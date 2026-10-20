@@ -222,4 +222,40 @@ await test('Owner can still discover locked root and safely resume after complet
  assert.equal(result.rootPhysicalDeletion,false);
  assert.equal(result.ownerPointerRetained,true);
 });
+await test('Progress reports actual successful note/invite/member batches and server verify',async()=>{
+ const x=fake();const events=[];
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ await x.service.runCleanup('book_a',epoch,{onProgress:item=>events.push(item)});
+ for(const stage of ['NOTES','INVITES','MEMBERS','VERIFY']){
+  const matches=events.filter(e=>e.stage===stage);
+  assert.ok(matches.length>0,stage);
+  assert.equal(matches.at(-1).processed,matches.at(-1).total);
+  assert.equal(matches.at(-1).rootPhysicalDeletion,false);
+ }
+ assert.equal(events.filter(e=>e.stage==='NOTES').at(-1).processed,2);
+ assert.equal(events.filter(e=>e.stage==='INVITES').at(-1).processed,2);
+});
+await test('Throwing progress UI callback never cancels an already approved cleanup',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const outcome=await x.service.runCleanup('book_a',epoch,{
+  onProgress:()=>{throw Error('SIMULATED_DOM_RENDER_ERROR')}
+ });
+ assert.equal(outcome.stage,'CONTENT_CLEANED_ROOT_LOCKED');
+ assert.equal(x.store.has('groups/book_a/notes/n1'),false);
+});
+await test('An ACK loss never falsely reports the failed batch completed',async()=>{
+ const x=fake();const events=[];
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ x.loseAckAfter(paths=>paths.some(p=>p.endsWith('/sentInvites/invite_1')));
+ await fails(()=>x.service.runCleanup('book_a',epoch,{
+  onProgress:item=>events.push(item)
+ }),'SIMULATED_ACK_LOSS_AFTER_COMMIT');
+ const inviteProgress=events.filter(e=>e.stage==='INVITES');
+ assert.equal(inviteProgress.at(-1).processed,0);
+ const resumed=await x.service.runCleanup('book_a',epoch,{
+  onProgress:item=>events.push(item)
+ });
+ assert.equal(resumed.stage,'CONTENT_CLEANED_ROOT_LOCKED');
+});
 console.log('NOTEBOOK_HARD_DELETE_V4C_CONTROLLER_MOCK_PASS',n);
