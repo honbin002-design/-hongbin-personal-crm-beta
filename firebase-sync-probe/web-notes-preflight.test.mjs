@@ -53,7 +53,15 @@ check('Shared empty group does not write to unknown group',()=>{
 check('Viewer cannot save or soft delete by UI',()=>{
  assert.match(script,/selectedGroup\.role!=='VIEWER'/);
  assert.match(script,/\$\('delete'\)\.disabled=busy\|\|!mayDelete/);
- assert.match(script,/const mayDelete=mode==='PRIVATE'\|\|selectedGroup\?\.role==='ADMIN'/);
+ assert.match(script,/const mayDelete=mode==='PRIVATE'\|\|notebookCapabilities\(selectedGroup\?\.role\)\.canDeleteSharedNote/);
+});
+check('Notebook selector is per authorized group and enforces role policy',()=>{
+ const policy=readFileSync('firebase-notebook-scope.mjs','utf8');parse(policy);
+ assert.match(html,/每本成員獨立/);
+ assert.match(script,/resolveNotebookSelection\(await groups\.listGroups\(\),selectedGroup\?\.id\)/);
+ assert.match(script,/notebookCapabilities\(selectedGroup\?\.role\)\.canWrite/);
+ assert.match(script,/notebookCapabilities\(selectedGroup\?\.role\)\.canDeleteSharedNote/);
+ assert.match(policy,/canUploadAttachment:false/);
 });
 check('Cloud note calls include optimistic expectedVersion and fixed new ID',()=>{
  assert.match(script,/expectedVersion:active\.version/);
