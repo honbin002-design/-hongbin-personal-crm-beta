@@ -126,6 +126,17 @@ const draftContext=()=>{
  return {uid:account,mode,groupId:mode==='SHARED'?selectedGroup.id:null};
 };
 const draftMessage=text=>$('draftStatus').textContent=text;
+function noteSession(){
+ const session={epoch:generation,uid:account,service:notes};
+ if(!session.uid||!session.service||auth?.currentUser?.uid!==session.uid)
+  throw Error('GOOGLE_ACCOUNT_CHANGED');
+ return session;
+}
+function verifyNoteSession(session){
+ if(session.epoch!==generation||session.uid!==account||
+   session.service!==notes||auth?.currentUser?.uid!==session.uid)
+   throw Error('GOOGLE_ACCOUNT_CHANGED');
+}
 function remember(){
  const context=draftContext();
  if(!context||!editorDirty)return;
@@ -353,9 +364,11 @@ $('keepDraft').addEventListener('click',()=>{
  msg('你的草稿已保留；沒有寫入 Firestore。');
 });
 $('takeCloud').addEventListener('click',()=>execute(async()=>{
+ const session=noteSession();
  const review=checkedConflict(),remote=buildRemoteRestore(review);
  if(!window.confirm('確定放棄這支手機尚未上傳的草稿，改成顯示的雲端版本？'))return '已取消，原草稿仍保留。';
  await dropDraft(draftContext());
+ verifyNoteSession(session);
  active={id:remote.id,version:remote.version};pendingCreateId=null;
  editorDirty=false;$('title').value=remote.title;$('content').value=remote.content;
  $('editTitle').textContent='編輯記事（版本 '+remote.version+'）';
@@ -363,8 +376,9 @@ $('takeCloud').addEventListener('click',()=>execute(async()=>{
  return '已在畫面採用衝突時的雲端版本，尚未執行更新寫入。';
 }));
 $('saveCopy').addEventListener('click',()=>execute(async()=>{
+ const session=noteSession();
  const review=checkedConflict(),target=scope();
- const newId=notes.newId(target);
+ const newId=session.service.newId(target);
  const latest=conflictReview({sourceNoteId:review.sourceNoteId,
    local:snapshotDraft(),remote:review.remote});
  const plan=buildSaveNewCopy(latest,newId);
@@ -372,20 +386,22 @@ $('saveCopy').addEventListener('click',()=>execute(async()=>{
  $('editTitle').textContent='另存新記事';
  $('delete').hidden=true;
  await persistBeforeCloud(); // Save fixed copy ID before attempting a network transaction.
+ verifyNoteSession(session);
  hideConflict();
- const result=await notes.create({...target,...plan});
+ const result=await session.service.create({...target,...plan});
  clearEditor();await loadNotes();
  return '已將你的草稿另存為不同的新記事（版本 '+result.version+'），沒有覆蓋原記事。';
 }));
 $('save').addEventListener('click',()=>execute(async()=>{
- const target=scope(),title=$('title').value,content=$('content').value;
- if(!active&&!pendingCreateId)pendingCreateId=notes.newId(target);
+ const session=noteSession(),target=scope(),title=$('title').value,content=$('content').value;
+ if(!active&&!pendingCreateId)pendingCreateId=session.service.newId(target);
  // Persist the exact create nonce/version BEFORE initiating cloud transaction.
  // Retrying after a lost ACK cannot silently create a second note.
  await persistBeforeCloud();
+ verifyNoteSession(session);
  const result=active?
-  await notes.update({...target,noteId:active.id,expectedVersion:active.version,title,content}):
-  await notes.create({...target,noteId:pendingCreateId,title,content});
+  await session.service.update({...target,noteId:active.id,expectedVersion:active.version,title,content}):
+  await session.service.create({...target,noteId:pendingCreateId,title,content});
  clearEditor();await loadNotes();
  return (result.alreadyCreated?'已確認先前記事存在。':'已收到伺服器交易成功回覆。')+
    '目前版本：'+result.version;
@@ -393,8 +409,10 @@ $('save').addEventListener('click',()=>execute(async()=>{
 $('delete').addEventListener('click',()=>{
  if(!active||!window.confirm('確定刪除此記事？將先標記刪除，不直接移除資料庫文件。'))return;
  execute(async()=>{
+  const session=noteSession(),target=scope(),noteId=active.id,expectedVersion=active.version;
   await persistBeforeCloud();
-  await notes.softDelete({...scope(),noteId:active.id,expectedVersion:active.version});
+  verifyNoteSession(session);
+  await session.service.softDelete({...target,noteId,expectedVersion});
   clearEditor();await loadNotes();return '已由伺服器確認刪除標記。';
  });
 });
