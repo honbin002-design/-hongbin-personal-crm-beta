@@ -19,6 +19,7 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 #status{white-space:pre-wrap;overflow-wrap:anywhere;background:#e8f0fa;border-radius:9px;padding:10px}
 .entry{border-bottom:1px solid #dce3ee;padding:12px 0}.entry:last-child{border-bottom:0}
 .entry strong{overflow-wrap:anywhere}.tiny{color:#596677;font-size:13px}
+.remote-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:190px;overflow:auto;background:#f3f5f9;border:1px solid #dbe3ef;padding:10px;border-radius:8px;font-size:14px}
 [hidden]{display:none!important}
 </style></head>
 <body>
@@ -58,6 +59,19 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 <button id="delete" type="button" class="danger" hidden>刪除記事</button>
 </div>
 <p id="conflict" class="notice" hidden></p>
+<div id="conflictPanel" class="notice" hidden aria-live="polite">
+ <h2>兩個版本需要你確認</h2>
+ <p class="muted">上方編輯欄仍是你這支手機的草稿。以下是發生衝突時的雲端版本，可能已再次更新。</p>
+ <strong>雲端標題</strong><div id="cloudTitle" class="remote-preview"></div>
+ <strong>雲端內容</strong><div id="cloudContent" class="remote-preview"></div>
+ <p id="cloudVersion" class="muted"></p>
+ <div class="actions">
+  <button id="keepDraft" type="button" class="secondary">繼續人工比較草稿</button>
+  <button id="takeCloud" type="button" class="secondary">採用顯示的雲端版本</button>
+  <button id="saveCopy" type="button">將我的文字另存成新記事</button>
+ </div>
+ <p class="muted">系統不會自動覆蓋他人的版本；另存記事會使用新的文件 ID。採用雲端版本會先確認是否放棄你原來的草稿。</p>
+</div>
 </section>
 </main>
 <section class="muted">
@@ -71,14 +85,39 @@ import {firebaseConfig,firestoreReadyForRealData} from './firebase-web-config.mj
 import {noteService} from './firebase-note-service.mjs';
 import {groupService} from './firebase-group-service.mjs';
 import {makeDraftStore} from './firebase-offline-drafts.mjs';
+import {conflictReview,buildSaveNewCopy,buildRemoteRestore} from './firebase-conflict-review.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,value)=>{const e=document.createElement(tag);e.textContent=String(value??'');return e};
 const msg=text=>$('status').textContent=String(text);
 let sdk=null,auth=null,db=null,notes=null,groups=null,account='',mode='PRIVATE';
 let selectedGroup=null,groupOptions=[],shown=[],active=null,pendingCreateId=null;
 let busy=false,ready=false,generation=0,editorDirty=false,revision=0;
-let draftStore=null;
+let draftStore=null,conflictState=null;
 const drafts=new Map();
+function hideConflict(){
+ conflictState=null;$('conflict').hidden=true;$('conflictPanel').hidden=true;
+ $('cloudTitle').textContent='';$('cloudContent').textContent='';$('cloudVersion').textContent='';
+}
+function showConflict(error){
+ const id=active?.id||pendingCreateId;
+ if(!id)return;
+ const review=conflictReview({sourceNoteId:id,local:snapshotDraft(),remote:error.remote});
+ conflictState={review,account,mode,groupId:selectedGroup?.id||null};
+ $('conflict').hidden=false;$('conflictPanel').hidden=false;
+ $('conflict').textContent='雲端版本已變更。手機草稿仍保留，請自行決定處理方式。';
+ $('cloudTitle').textContent=review.remote?.title||'雲端記事不存在或已被刪除';
+ $('cloudContent').textContent=review.remote?.content||'無可讀取的雲端內容';
+ $('cloudVersion').textContent=review.remote?'雲端版本：'+review.remote.version+(review.remote.deleted?'（已刪除）':''):'雲端記事不存在';
+ $('takeCloud').disabled=!review.cloudAvailable;
+}
+function checkedConflict(){
+ const state=conflictState;
+ if(!state||state.account!==account||state.mode!==mode||
+    state.groupId!==(selectedGroup?.id||null)||
+    state.review.sourceNoteId!==(active?.id||pendingCreateId))
+    throw Error('CONFLICT_CONTEXT_CHANGED');
+ return state.review;
+}
 const snapshotDraft=()=>({title:$('title').value,content:$('content').value,
   active:active?{...active}:null,pendingCreateId});
 const key=()=>account+':'+mode+':'+(selectedGroup?.id||'private');
@@ -138,12 +177,12 @@ function restore(){
  $('title').value=v?.title||'';$('content').value=v?.content||'';
  $('editTitle').textContent=active?'編輯記事（版本 '+active.version+'）':'新增記事';
  $('delete').hidden=!active||(mode==='SHARED'&&selectedGroup?.role!=='ADMIN');
- $('conflict').hidden=true;
+ hideConflict();
 }
 function clearEditor(){
  const oldScope=draftContext();editorDirty=false;void dropDraft(oldScope);
  active=null;pendingCreateId=null;$('title').value='';$('content').value='';
- $('delete').hidden=true;$('editTitle').textContent='新增記事';$('conflict').hidden=true;
+ $('delete').hidden=true;$('editTitle').textContent='新增記事';hideConflict();
  draftMessage('已放棄此範圍的本機草稿。');
 }
 function clearSensitive(){
@@ -152,7 +191,7 @@ function clearSensitive(){
  active=null;pendingCreateId=null;$('title').value='';$('content').value='';
  $('list').replaceChildren();$('groupSelect').replaceChildren();
  $('workspace').hidden=true;$('groupsBox').hidden=true;$('conflict').hidden=true;
- $('delete').hidden=true;$('editTitle').textContent='新增記事';
+ $('delete').hidden=true;$('editTitle').textContent='新增記事';hideConflict();
  draftMessage('尚未恢復任何已登入帳號的草稿。');
 }
 function buttons(){
@@ -188,14 +227,15 @@ async function execute(work){
  }catch(e){
   if(token!==generation)return;
   if(e?.code==='NOTE_VERSION_CONFLICT'){
-   $('conflict').hidden=false;
-   $('conflict').textContent='遠端版本：'+(e.remote?.version??'已移除')+
-     '。目前畫面保留你的草稿，請先閱讀最新版本再決定。';
+   try{showConflict(e)}catch{
+    $('conflict').hidden=false;
+    $('conflict').textContent='版本衝突：草稿仍保留，請勿覆蓋雲端版本。';
+   }
    remember();
   }
   if(e?.code==='permission-denied'&&mode==='SHARED'){
    void dropDraft(draftContext());editorDirty=false;
-   selectedGroup=null;groupOptions=[];shown=[];$('list').replaceChildren();
+   hideConflict();selectedGroup=null;groupOptions=[];shown=[];$('list').replaceChildren();
    $('groupsBox').hidden=true;$('title').value='';$('content').value='';
    active=null;pendingCreateId=null;$('delete').hidden=true;
   }
@@ -212,7 +252,7 @@ async function loadGroups(){
   void dropDraft(draftContext());
   active=null;pendingCreateId=null;editorDirty=false;
   $('title').value='';$('content').value='';
-  $('delete').hidden=true;$('conflict').hidden=true;
+  $('delete').hidden=true;hideConflict();
   $('editTitle').textContent='新增記事';
   $('list').replaceChildren();
  }
@@ -234,7 +274,7 @@ async function loadGroups(){
   await dropDraft(draftContext());
   editorDirty=false;active=null;pendingCreateId=null;
   $('title').value='';$('content').value='';
-  $('delete').hidden=true;$('conflict').hidden=true;
+  $('delete').hidden=true;hideConflict();
   $('editTitle').textContent='檢視記事（唯讀）';
   draftMessage('目前是檢視者，舊共用草稿已隱藏並嘗試從本機移除。');
  }
@@ -268,14 +308,14 @@ async function loadNotes(){
    $('title').value=item.title;$('content').value=item.content;
    $('editTitle').textContent='編輯記事（版本 '+item.version+'）';
    $('delete').hidden=mode==='SHARED'&&selectedGroup?.role!=='ADMIN';
-   $('conflict').hidden=true;buttons();
+   hideConflict();buttons();
   });
   e.append(b);root.append(e);
  }
 }
 async function modeChange(next){
  if(mode===next)return;
- remember();mode=next;selectedGroup=null;shown=[];$('list').replaceChildren();
+ remember();hideConflict();mode=next;selectedGroup=null;shown=[];$('list').replaceChildren();
  $('groupsBox').hidden=mode!=='SHARED';
  $('privateMode').className=mode==='PRIVATE'?'':'secondary';
  $('sharedMode').className=mode==='SHARED'?'':'secondary';
@@ -287,7 +327,7 @@ async function modeChange(next){
 $('privateMode').addEventListener('click',()=>modeChange('PRIVATE'));
 $('sharedMode').addEventListener('click',()=>modeChange('SHARED'));
 $('groupSelect').addEventListener('change',()=>{
- remember();selectedGroup=groupOptions.find(x=>x.id===$('groupSelect').value)||null;
+ remember();hideConflict();selectedGroup=groupOptions.find(x=>x.id===$('groupSelect').value)||null;
  restore();execute(async()=>{await loadDraft();await loadNotes();return '已重新讀取群組記事。';});
 });
 $('refresh').addEventListener('click',()=>execute(async()=>{
@@ -305,6 +345,38 @@ $('cancel').addEventListener('click',()=>{
  if(($('title').value||$('content').value)&&!window.confirm('確定放棄目前未儲存的修改？'))return;
  clearEditor();
 });
+$('keepDraft').addEventListener('click',()=>{
+ const review=checkedConflict();
+ $('conflictPanel').hidden=true;
+ $('conflict').hidden=false;
+ $('conflict').textContent='已保留目前草稿。你可以繼續編輯，按下儲存時仍會檢查原始版本，絕不自動覆蓋。';
+ msg('你的草稿已保留；沒有寫入 Firestore。');
+});
+$('takeCloud').addEventListener('click',()=>execute(async()=>{
+ const review=checkedConflict(),remote=buildRemoteRestore(review);
+ if(!window.confirm('確定放棄這支手機尚未上傳的草稿，改成顯示的雲端版本？'))return '已取消，原草稿仍保留。';
+ await dropDraft(draftContext());
+ active={id:remote.id,version:remote.version};pendingCreateId=null;
+ editorDirty=false;$('title').value=remote.title;$('content').value=remote.content;
+ $('editTitle').textContent='編輯記事（版本 '+remote.version+'）';
+ hideConflict();buttons();
+ return '已在畫面採用衝突時的雲端版本，尚未執行更新寫入。';
+}));
+$('saveCopy').addEventListener('click',()=>execute(async()=>{
+ const review=checkedConflict(),target=scope();
+ const newId=notes.newId(target);
+ const latest=conflictReview({sourceNoteId:review.sourceNoteId,
+   local:snapshotDraft(),remote:review.remote});
+ const plan=buildSaveNewCopy(latest,newId);
+ active=null;pendingCreateId=plan.noteId;editorDirty=true;
+ $('editTitle').textContent='另存新記事';
+ $('delete').hidden=true;
+ await persistBeforeCloud(); // Save fixed copy ID before attempting a network transaction.
+ hideConflict();
+ const result=await notes.create({...target,...plan});
+ clearEditor();await loadNotes();
+ return '已將你的草稿另存為不同的新記事（版本 '+result.version+'），沒有覆蓋原記事。';
+}));
 $('save').addEventListener('click',()=>execute(async()=>{
  const target=scope(),title=$('title').value,content=$('content').value;
  if(!active&&!pendingCreateId)pendingCreateId=notes.newId(target);
