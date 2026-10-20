@@ -31,6 +31,18 @@ label{display:block;font-weight:600;margin:10px 0 5px}
 <div id="resumeBox" hidden><p class="warn">此記事簿已鎖定刪除。可繼續清理尚未完成的資料，不能恢復正常記事模式。</p>
 <button class="danger" id="resume" type="button">接續尚未完成的清理</button></div>
 <p id="progress" role="status" aria-live="polite"></p>
+<div id="finalizeArea" hidden>
+<h3>最後一步｜在 Firebase Console 實體刪除主文件</h3>
+<p class="warn">只有記事、成員、邀請均已完成清理，才能進行這一步。請勿刪除整個集合或其他記事簿。</p>
+<p>前往 Firebase Console → Firestore Database → 資料，找到以下<strong>單一文件</strong>，核對完整 ID 後再刪除：</p>
+<code id="rootPath"></code>
+<p><button id="copyRootPath" type="button">一鍵複製主文件路徑</button>
+<a href="https://console.firebase.google.com/project/honbin-crm-notes-spark/" target="_blank" rel="noopener">開啟 Firebase Console</a></p>
+<label for="typedFinal">完成後輸入「我已刪除記事簿主文件」</label>
+<input id="typedFinal" autocomplete="off" spellcheck="false">
+<button id="confirmRootRemoved" class="danger" type="button">核對主文件不存在並清除最後索引</button>
+<p class="muted">Safari 若重新載入而遺失清理證明，只能確認根文件是否消失並清理自己的失效索引；不能假稱全部內容已重新驗證。</p>
+</div>
 <p class="muted">最終根文件會留在不可恢復的 DELETING 鎖定狀態，直至可信的伺服器端最終刪除流程完成。不得把 CONTENT_CLEANED_ROOT_LOCKED 當成根文件已物理刪除。</p>
 </section></main>
 <script type="module">
@@ -43,9 +55,10 @@ const $=id=>document.getElementById(id);
 const msg=t=>$('status').textContent=t;
 const progress=t=>$('progress').textContent=t;
 const el=(tag,t)=>{const n=document.createElement(tag);n.textContent=String(t);return n};
-let auth=null,db=null,service=null,selected=null,busy=false,epoch=0;
+let auth=null,db=null,service=null,selected=null,verifiedReceipt=null,busy=false,epoch=0;
 function wipe(){
- selected=null;service=null;$('workspace').hidden=true;$('selectedArea').hidden=true;
+ selected=null;verifiedReceipt=null;service=null;$('finalizeArea').hidden=true;$('typedFinal').value='';
+ $('workspace').hidden=true;$('selectedArea').hidden=true;
  $('books').replaceChildren();$('counts').textContent='';$('typedName').value='';
  $('typedPhrase').value='';$('progress').textContent='';
 }
