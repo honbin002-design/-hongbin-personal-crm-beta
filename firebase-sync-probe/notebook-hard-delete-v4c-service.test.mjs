@@ -4,7 +4,7 @@ let n=0;async function test(label,fn){await fn();n++;console.log('PASS V4C owner
 const epoch='delete_epoch_00000001';
 function fake(){
  const store=new Map(),history=[];
- let active='owner_uid',offline=false,cached=false,failedOnce=false;
+ let active='owner_uid',offline=false,cached=false,failedOnce=false,loseAckOn=null;
  const doc=(db,...paths)=>({path:paths.join('/')});
  const collection=doc;
  const snap=path=>{
@@ -33,6 +33,7 @@ function fake(){
      if(!paths.length||paths.length>10)throw Error('BATCH_BOUNDS');
      history.push([...paths]);
      for(const path of paths)store.delete(path);
+     if(loseAckOn&&loseAckOn(paths)){loseAckOn=null;throw Error('SIMULATED_ACK_LOSS_AFTER_COMMIT')}
     }
    };
   },
@@ -66,7 +67,8 @@ function fake(){
  const actor={uid:'owner_uid',providerId:'google.com',emailVerified:true,currentUid:()=>active};
  const service=notebookHardDeleteV4C({db:{},sdk,actor});
  return {store,sdk,history,service,actor,setActive:s=>active=s,
-  setOffline:v=>offline=v,setCached:v=>cached=v,failNextBatch:()=>failedOnce=true};
+  setOffline:v=>offline=v,setCached:v=>cached=v,failNextBatch:()=>failedOnce=true,
+  loseAckAfter:predicate=>loseAckOn=predicate};
 }
 const fails=async(fn,code)=>await assert.rejects(fn,e=>e.message===code);
 await test('Reject non-Google identity',async()=>{
@@ -170,5 +172,41 @@ await test('No group root path ever appears in delete batches',async()=>{
  const x=fake();await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
  await x.service.runCleanup('book_a',epoch);
  assert.ok(x.history.every(paths=>!paths.includes('groups/book_a')));
+});
+await test('Lost ACK after successful invite pair is safe to resume',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ x.loseAckAfter(paths=>paths.some(p=>p.endsWith('/sentInvites/invite_1')));
+ await fails(()=>x.service.runCleanup('book_a',epoch),'SIMULATED_ACK_LOSS_AFTER_COMMIT');
+ assert.equal(x.store.has('groups/book_a/sentInvites/invite_1'),false);
+ assert.equal(x.store.has('inboxes/editor@example.test/invites/invite_1'),false);
+ const final=await x.service.runCleanup('book_a',epoch);
+ assert.equal(final.stage,'CONTENT_CLEANED_ROOT_LOCKED');
+});
+await test('Lost ACK after successful member-pointer pair is safe to resume',async()=>{
+ const x=fake();
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ x.loseAckAfter(paths=>paths.some(p=>p.endsWith('/members/editor_uid')));
+ await fails(()=>x.service.runCleanup('book_a',epoch),'SIMULATED_ACK_LOSS_AFTER_COMMIT');
+ assert.equal(x.store.has('groups/book_a/members/editor_uid'),false);
+ assert.equal(x.store.has('users/editor_uid/groupIndex/book_a'),false);
+ const final=await x.service.runCleanup('book_a',epoch);
+ assert.equal(final.stage,'CONTENT_CLEANED_ROOT_LOCKED');
+});
+await test('Large notebook with 501 notes is cleaned in batches no larger than 10',async()=>{
+ const x=fake();
+ for(let i=0;i<501;i++)x.store.set('groups/book_a/notes/n'+String(i+1000),{
+  groupId:'book_a',ownerUid:'editor_uid',deleted:i%7===0});
+ await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ const out=await x.service.runCleanup('book_a',epoch);
+ assert.equal(out.notesRemaining,0);
+ assert.ok(x.history.every(batch=>batch.length<=10));
+ assert.ok(x.history.filter(batch=>batch.some(p=>p.includes('/notes/'))).length>=51);
+});
+await test('Cache-only inventory blocks any cleanup writes',async()=>{
+ const x=fake();await x.service.lock('book_a',{typedName:'測試共用記事簿',deletionId:epoch});
+ x.setCached(true);
+ await fails(()=>x.service.runCleanup('book_a',epoch),'CACHED_READBACK_NOT_ACCEPTABLE');
+ assert.equal(x.history.length,0);
 });
 console.log('NOTEBOOK_HARD_DELETE_V4C_CONTROLLER_MOCK_PASS',n);
