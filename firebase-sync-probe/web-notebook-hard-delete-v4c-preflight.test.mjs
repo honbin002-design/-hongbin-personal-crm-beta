@@ -39,7 +39,7 @@ check('Two irreversible confirmations',()=>{
 });
 check('Resume uses Firestore-verified stored deletion epoch',()=>{
  assert.match(js,/book\.deletionId/);
- assert.match(js,/service\.runCleanup\(book\.id,book\.deletionId\)/);
+ assert.match(js,/service\.runCleanup\(book\.id,book\.deletionId,\{onProgress:cleanupProgress\}\)/);
 });
 check('Root tombstone is explicitly not claimed physically deleted',()=>{
  assert.match(html,/主文件.*仍留/);
