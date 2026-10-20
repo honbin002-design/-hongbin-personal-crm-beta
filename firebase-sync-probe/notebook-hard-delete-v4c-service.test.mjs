@@ -310,4 +310,43 @@ await test('Console finalizer rejects mismatch in owner index UID',async()=>{
   cleanupReceipt:receipt,typedPhrase:'我已刪除記事簿主文件'
  }),'STALE_INDEX_OWNER_SCOPE_MISMATCH');
 });
+await test('Safari orphan cleanup rejects when group root still exists',async()=>{
+ const x=fake();
+ await fails(()=>x.service.removeOwnOrphanedPointer('book_a',{
+  typedPhrase:'只清除我的失效索引'
+ }),'NOTEBOOK_ROOT_STILL_PRESENT');
+ assert.ok(x.store.has('users/owner_uid/groupIndex/book_a'));
+});
+await test('Safari orphan cleanup rejects missing explicit phrase',async()=>{
+ const x=fake();x.store.delete('groups/book_a');
+ await fails(()=>x.service.removeOwnOrphanedPointer('book_a',{
+  typedPhrase:'刪除'
+ }),'ORPHAN_INDEX_CONFIRMATION_REQUIRED');
+});
+await test('After Safari reload, orphan cleanup only removes caller owned pointer',async()=>{
+ const x=fake();
+ x.store.delete('groups/book_a'); // simulated Console privileged action
+ const result=await x.service.removeOwnOrphanedPointer('book_a',{
+  typedPhrase:'只清除我的失效索引'
+ });
+ assert.equal(result.ownerIndexCleared,true);
+ assert.equal(result.cleanupReceiptPresent,false);
+ assert.equal(result.allChildCollectionsIndependentlyAudited,false);
+ assert.equal(x.store.has('users/owner_uid/groupIndex/book_a'),false);
+ assert.equal(x.store.has('users/editor_uid/groupIndex/book_a'),true);
+ assert.equal(x.store.has('groups/other_a'),true);
+});
+await test('Orphan cleanup rejects wrong pointer UID even for owner login',async()=>{
+ const x=fake();x.store.delete('groups/book_a');
+ x.store.get('users/owner_uid/groupIndex/book_a').uid='forged_uid';
+ await fails(()=>x.service.removeOwnOrphanedPointer('book_a',{
+  typedPhrase:'只清除我的失效索引'
+ }),'STALE_INDEX_OWNER_SCOPE_MISMATCH');
+});
+await test('Orphan cleanup fails closed after logged in identity changes',async()=>{
+ const x=fake();x.store.delete('groups/book_a');x.setActive('someone_else');
+ await fails(()=>x.service.removeOwnOrphanedPointer('book_a',{
+  typedPhrase:'只清除我的失效索引'
+ }),'DELETION_GOOGLE_ACCOUNT_CHANGED');
+});
 console.log('NOTEBOOK_HARD_DELETE_V4C_CONTROLLER_MOCK_PASS',n);
