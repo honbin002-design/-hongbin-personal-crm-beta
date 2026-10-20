@@ -4,7 +4,7 @@ import {
  collection,doc,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,Timestamp,deleteField
 } from 'firebase/firestore';
 // All identities/data are synthetic, isolated from the live Spark database.
-const rules=readFileSync('firestore.notebook-hard-delete-v4.rules','utf8')
+const rules=readFileSync('firestore.notebook-hard-delete-v4b.rules','utf8')
  .replaceAll('__OWNER_UID__','global-owner');
 const env=await initializeTestEnvironment({
  projectId:'demo-honbin-crm-hard-delete-v4',
