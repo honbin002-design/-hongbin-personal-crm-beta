@@ -124,7 +124,9 @@ $('resume').addEventListener('click',()=>run(async()=>{
  progress('已接續清理，結果：'+result.stage+'。主文件尚未實體刪除。');
  await ownedList();
 }));
-$('refresh').addEventListener('click',()=>run(ownedList));
+$('refresh').addEventListener('click',async()=>{if(busy||!service)return;
+ busy=true;buttons();try{await ownedList()}catch(e){deny(e)}finally{busy=false;buttons()}
+});
 $('login').addEventListener('click',()=>{if(!auth)return;
  setPersistence(auth,browserSessionPersistence).catch(deny);
  signInWithPopup(auth,new GoogleAuthProvider()).catch(deny);
