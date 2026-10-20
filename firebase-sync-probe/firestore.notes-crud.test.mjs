@@ -94,7 +94,9 @@ try{
  await check('Version-aware soft delete marks private note V3',async()=>{
   const result=await alice.softDelete({...P,noteId:personal,expectedVersion:2});
   assert.equal(result.version,3);assert.equal(result.deleted,true);
-  assert.equal((await alice.list(P)).length,0);
+  const remaining=await alice.list(P);
+  assert.ok(!remaining.some(note=>note.id===personal));
+  assert.ok(remaining.some(note=>note.title==='手機草稿另存新記事'));
   const snap=await sdk.getDoc(sdk.doc(a,'users','alice-n','notes',personal));
   assert.equal(snap.data().deleted,true);
  });
