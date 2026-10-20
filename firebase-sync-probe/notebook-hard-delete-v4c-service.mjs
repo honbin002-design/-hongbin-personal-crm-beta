@@ -188,5 +188,31 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
    allChildCollectionsIndependentlyAudited:false
   });
  }
- return Object.freeze({preview,lock,inventory,runCleanup,confirmConsoleRootRemoved});
+ // Recovery for a Safari tab reloaded AFTER the owner already used the
+ // privileged Firebase Console to remove the root. The prior in-memory
+ // receipt is then unavailable: do NOT claim to have independently audited
+ // old child collections. Only clean the caller's own orphaned pointer.
+ async function removeOwnOrphanedPointer(groupId,{typedPhrase}={}){
+  guard();
+  if(!validId(groupId))error('INVALID_NOTEBOOK_ID');
+  if(typedPhrase!=='只清除我的失效索引')
+   error('ORPHAN_INDEX_CONFIRMATION_REQUIRED');
+  const root=ensureServer(await sdk.getDocFromServer(ref(groupId)));guard();
+  if(root.exists())error('NOTEBOOK_ROOT_STILL_PRESENT');
+  const ownPath='users/'+uid+'/groupIndex/'+groupId,indexRef=pathRef(ownPath);
+  const old=ensureServer(await sdk.getDocFromServer(indexRef));guard();
+  if(old.exists()){
+   if(old.data().uid!==uid||old.data().groupId!==groupId)
+    error('STALE_INDEX_OWNER_SCOPE_MISMATCH');
+   await sdk.deleteDoc(indexRef);guard();
+  }
+  const check=ensureServer(await sdk.getDocFromServer(indexRef));guard();
+  if(check.exists())error('OWNER_STALE_INDEX_REMAINED');
+  return Object.freeze({groupId,rootPhysicallyDeleted:true,
+   ownerIndexCleared:true,cleanupReceiptPresent:false,
+   allChildCollectionsIndependentlyAudited:false,
+   stage:'ROOT_MISSING_OWN_INDEX_CLEARED_NO_CLEANUP_RECEIPT'});
+ }
+ return Object.freeze({preview,lock,inventory,runCleanup,
+   confirmConsoleRootRemoved,removeOwnOrphanedPointer});
 }
