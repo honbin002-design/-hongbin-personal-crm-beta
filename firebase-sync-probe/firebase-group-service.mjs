@@ -41,7 +41,7 @@ export function groupService({db,sdk,identity}) {
    for(const item of snapshots.docs) {
      try {
        const g=await getDoc(path(item.id));
-       if(!g.exists())continue;
+       if(!g.exists()||g.data().archivedAt)continue;
        const role=await myRole(item.id,g);
        if(role)visible.push({id:item.id,name:g.data().name,role});
      }catch(err) {
@@ -54,11 +54,48 @@ export function groupService({db,sdk,identity}) {
  }
  async function myRole(groupId,knownGroup) {
    const g=knownGroup||await getDoc(path(groupId));
-   if(!g.exists())return null;
+   if(!g.exists()||g.data().archivedAt)return null;
    if(g.data().ownerUid===uid)return 'ADMIN';
    const record=await getDoc(member(groupId));
    if(!record.exists()||record.data().status!=='ACTIVE')return null;
    return ROLES.includes(record.data().role)?record.data().role:null;
+ }
+ // Reversible archive is OWNER-only (not every notebook ADMIN).
+ // No client-side hard deletion: Firestore Rules block group/notes access
+ // immediately after archivedAt is committed. Server rules are authority.
+ async function isNotebookOwner(groupId){
+   const snap=await getDoc(path(groupId));
+   return snap.exists() && snap.data().ownerUid===uid && !snap.data().archivedAt;
+ }
+ async function listArchivedNotebooks(){
+   const indices=await getDocs(collection(db,'users',uid,'groupIndex'));
+   const result=[];
+   for(const entry of indices.docs){
+     try{
+       const g=await getDoc(path(entry.id));
+       if(!g.exists()||g.data().ownerUid!==uid||!g.data().archivedAt)continue;
+       result.push({id:entry.id,name:g.data().name,archivedAt:g.data().archivedAt});
+     }catch(error){
+       if(error?.code==='permission-denied'||error?.code==='not-found')continue;
+       throw error;
+     }
+   }
+   return result.sort((a,b)=>a.name.localeCompare(b.name,'zh-TW'));
+ }
+ async function archiveNotebook(groupId){
+   const target=path(groupId),existing=await getDoc(target);
+   if(!existing.exists()||existing.data().ownerUid!==uid)throw Error('NOTEBOOK_OWNER_REQUIRED');
+   if(existing.data().archivedAt)throw Error('NOTEBOOK_ALREADY_ARCHIVED');
+   await updateDoc(target,{archivedAt:Timestamp.now()});
+   return true;
+ }
+ async function restoreNotebook(groupId){
+   const target=path(groupId),existing=await getDoc(target);
+   if(!existing.exists()||existing.data().ownerUid!==uid)throw Error('NOTEBOOK_OWNER_REQUIRED');
+   if(!existing.data().archivedAt)throw Error('NOTEBOOK_NOT_ARCHIVED');
+   if(typeof sdk.deleteField!=='function')throw Error('FIRESTORE_DELETE_FIELD_UNAVAILABLE');
+   await updateDoc(target,{archivedAt:sdk.deleteField()});
+   return true;
  }
  async function sendInvite(groupId,email,role) {
    path(groupId);
@@ -145,6 +182,7 @@ export function groupService({db,sdk,identity}) {
    if(change==='REVOKED')await updateDoc(member(groupId,memberUid),{status:'REVOKED'});
    else await updateDoc(member(groupId,memberUid),{role:change});
  }
- return Object.freeze({createGroup,listGroups,myRole,sendInvite,listSentInvites,listInbox,
+ return Object.freeze({createGroup,listGroups,myRole,isNotebookOwner,listArchivedNotebooks,
+   archiveNotebook,restoreNotebook,sendInvite,listSentInvites,listInbox,
    acceptInvite,revokeInvite,ensureIndex,listMembers,changeMember});
 }
