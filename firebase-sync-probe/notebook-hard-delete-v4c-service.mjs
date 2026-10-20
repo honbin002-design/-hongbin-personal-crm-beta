@@ -85,22 +85,33 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
   for(const p of paths)batch.delete(pathRef(p));
   await batch.commit();guard();
  }
- async function runCleanup(groupId,deletionId){
+ async function runCleanup(groupId,deletionId,{onProgress}={}){
   // Explicit caller action only; never run automatically on page load.
   // Fresh server inventory on every retry. V4C Rules enforce atomic pairs.
   if(!validId(deletionId)||deletionId.length<16)error('INVALID_DELETE_EPOCH');
+  const report=(stage,processed,total)=>{
+   if(typeof onProgress==='function'){
+    try{onProgress(Object.freeze({stage,processed,total,
+      rootPhysicalDeletion:false}));}catch{ /* UI callback cannot affect deletes */ }
+   }
+  };
   let state=await inventory(groupId,deletionId);
+  report('NOTES',0,state.notes.length);
   for(let i=0;i<state.notes.length;i+=10){
    await batchDelete(state.notes.slice(i,i+10).map(n=>'groups/'+groupId+'/notes/'+n.id));
+   report('NOTES',Math.min(i+10,state.notes.length),state.notes.length);
   }
   // Each pair is one Firestore atomic batch: ACK loss cannot separate them.
-  for(const inv of state.sentInvites){
+  report('INVITES',0,state.sentInvites.length);
+  for(const [i,inv] of state.sentInvites.entries()){
    await batchDelete([
     'inboxes/'+inv.recipientEmail+'/invites/'+inv.id,
     'groups/'+groupId+'/sentInvites/'+inv.id
    ]);
+   report('INVITES',i+1,state.sentInvites.length);
   }
-  for(const m of state.members){
+  report('MEMBERS',0,state.members.length);
+  for(const [i,m] of state.members.entries()){
    // Some members may never have completed ensureIndex. Their member
    // document still must be deleted, without fabricating pointer evidence.
    guard();
@@ -110,7 +121,9 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
    const paths=exact.exists()?[pointer,'groups/'+groupId+'/members/'+m.uid]:
     ['groups/'+groupId+'/members/'+m.uid];
    await batchDelete(paths);
+   report('MEMBERS',i+1,state.members.length);
   }
+  report('VERIFY',0,1);
   // Keep the owner's discovery pointer until a separately trusted final
   // purge can remove the root. Otherwise an interrupted Safari session can
   // lose the ONLY way to find a DELETING group and resume cleanup.
@@ -121,6 +134,7 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
   guard();
   if(state.notes.length||state.members.length||state.sentInvites.length)
    error('DELETE_CLEANUP_NOT_YET_COMPLETE');
+  report('VERIFY',1,1);
   // The root stays permanently locked: ordinary members have zero access
   // and cannot resurrect notes. Final root removal requires a trusted,
   // separately approved server-side verification protocol.
