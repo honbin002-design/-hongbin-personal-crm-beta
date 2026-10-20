@@ -144,5 +144,49 @@ export function notebookHardDeleteV4C({db,sdk,actor}={}){
    // UI may hide this from ACTIVE notebooks but must keep a resume/history entry.
    activeNotebook:false});
  }
- return Object.freeze({preview,lock,inventory,runCleanup});
+ // FINAL MANUAL STEP for V4D ONLY: Firebase Console (owner/admin UI)
+ // physically deletes the root AFTER the user confirms content cleanup.
+ // Firestore Rules MUST never grant general client root-delete privileges.
+ // This function can only verify that the root is truly absent and remove
+ // the current owner's now-orphaned index; no Admin token is handled here.
+ async function confirmConsoleRootRemoved(groupId,{cleanupReceipt,typedPhrase}={}){
+  guard();
+  if(!validId(groupId))error('INVALID_NOTEBOOK_ID');
+  if(typedPhrase!=='我已刪除記事簿主文件')
+   error('EXPLICIT_CONSOLE_DELETE_CONFIRMATION_REQUIRED');
+  if(!cleanupReceipt || cleanupReceipt.groupId!==groupId
+      || !validId(cleanupReceipt.deletionId)
+      || cleanupReceipt.stage!=='CONTENT_CLEANED_ROOT_LOCKED'
+      || cleanupReceipt.notesRemaining!==0
+      || cleanupReceipt.membersRemaining!==0
+      || cleanupReceipt.sentInvitesRemaining!==0
+      || cleanupReceipt.rootPhysicalDeletion!==false
+      || cleanupReceipt.rootDeletionAuthorized!==false)
+   error('CLEANUP_RECEIPT_REQUIRED');
+  const root=ensureServer(await sdk.getDocFromServer(ref(groupId)));guard();
+  if(root.exists())error('FIREBASE_ROOT_DOCUMENT_STILL_EXISTS');
+  const indexRef=pathRef('users/'+uid+'/groupIndex/'+groupId);
+  const own=ensureServer(await sdk.getDocFromServer(indexRef));guard();
+  if(own.exists() && (own.data().uid!==uid || own.data().groupId!==groupId))
+   error('STALE_INDEX_OWNER_SCOPE_MISMATCH');
+  // Double-check root while the pointer still exists. V4D grants read of
+  // absent group ONLY while the caller still has their own stale index.
+  const rootDoubleCheck=ensureServer(await sdk.getDocFromServer(ref(groupId)));
+  guard();if(rootDoubleCheck.exists())error('FIREBASE_ROOT_DOCUMENT_REAPPEARED');
+  if(own.exists()){
+   await sdk.deleteDoc(indexRef);guard();
+  }
+  const finalIndex=ensureServer(await sdk.getDocFromServer(indexRef));guard();
+  if(finalIndex.exists())error('OWNER_STALE_INDEX_REMAINED');
+  return Object.freeze({
+   groupId,deletionId:cleanupReceipt.deletionId,
+   stage:'ROOT_PHYSICALLY_REMOVED_AND_OWNER_INDEX_CLEARED',
+   rootPhysicallyDeleted:true,ownerIndexCleared:true,
+   verification:'TWO_FIRESTORE_SERVER_READS_BEFORE_POINTER_REMOVAL',
+   // Console may have been used incorrectly or independently; this is
+   // NOT an admin audit of every unknown collection and retained device.
+   allChildCollectionsIndependentlyAudited:false
+  });
+ }
+ return Object.freeze({preview,lock,inventory,runCleanup,confirmConsoleRootRemoved});
 }
