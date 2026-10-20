@@ -63,6 +63,23 @@ check('Notebook selector is per authorized group and enforces role policy',()=>{
  assert.match(script,/notebookCapabilities\(selectedGroup\?\.role\)\.canDeleteSharedNote/);
  assert.match(policy,/canUploadAttachment:false/);
 });
+check('Shared notebooks can be created and invite members from the same notes UI',()=>{
+ assert.match(html,/id="newNotebookForm"/);
+ assert.match(html,/id="notebookInviteForm"/);
+ assert.match(html,/id="notebookInbox"/);
+ assert.match(script,/groups\.createGroup\(name\)/);
+ assert.match(script,/groups\.sendInvite\(groupId,email,role\)/);
+ assert.match(script,/groups\.acceptInvite\(item\)/);
+ assert.match(script,/groups\.listInbox\(\)/);
+ assert.match(script,/groups\.myRole\(groupId\)/);
+ assert.match(script,/if\(current!=='ADMIN'\)/);
+ assert.match(script,/verifyNoteSession\(session\)/);
+});
+check('Invitation UI never claims automatic email and uses safe text nodes',()=>{
+ assert.match(html,/不會自動寄送 Email/);
+ assert.match(script,/entry\.append\(node\('strong'/);
+ assert.doesNotMatch(script,/innerHTML|document\.write|insertAdjacentHTML/);
+});
 check('Cloud note calls include optimistic expectedVersion and fixed new ID',()=>{
  assert.match(script,/expectedVersion:active\.version/);
  assert.match(script,/if\(!active&&!pendingCreateId\)pendingCreateId=session\.service\.newId\(target\)/);
