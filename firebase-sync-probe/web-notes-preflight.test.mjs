@@ -97,6 +97,15 @@ check('Changing account or scope invalidates conflict review',()=>{
  assert.match(script,/state\.groupId!==\(selectedGroup\?\.id\|\|null\)/);
  assert.match(script,/function hideConflict\(\)/);
 });
+check('Cloud writes pin original UID and Firebase service after awaited local draft',()=>{
+ assert.match(script,/function noteSession\(\)/);
+ assert.match(script,/session\.service!==notes/);
+ assert.match(script,/auth\?\.currentUser\?\.uid!==session\.uid/);
+ assert.match(script,/verifyNoteSession\(session\)/);
+ assert.match(script,/await session\.service\.create\(/);
+ assert.match(script,/await session\.service\.softDelete\(/);
+ assert.match(script,/await session\.service\.update\(/);
+});
 check('Membership revocation refresh hides formerly visible note editor',()=>{
  assert.match(script,/if\(selectedGroup&&!result\.some\(group=>group\.id===selectedGroup\.id\)\)/);
  assert.match(script,/\$\('title'\)\.value='';\$\('content'\)\.value=''/);
