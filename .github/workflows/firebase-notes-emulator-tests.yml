@@ -38,7 +38,7 @@ jobs:
       - name: Run real Firebase Firestore rules engine
         run: |
           set -o pipefail
-          npx firebase emulators:exec --only firestore --project demo-honbin-crm-rules-isolated --non-interactive "npm run test:rules && node firestore.owner-allowlist-v2.test.mjs && node firestore.notebook-archive-v3.test.mjs" 2>&1 | tee firebase-emulator-ci.log
+          npx firebase emulators:exec --only firestore --project demo-honbin-crm-rules-isolated --non-interactive "npm run test:rules && node firestore.owner-allowlist-v2.test.mjs && node firestore.notebook-archive-v3.test.mjs && node firestore.notebook-hard-delete-v4.test.mjs" 2>&1 | tee firebase-emulator-ci.log
       - name: Report real emulator result in GitHub commit status
         if: always()
         env:
