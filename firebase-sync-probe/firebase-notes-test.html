@@ -37,8 +37,11 @@ button:disabled{opacity:.45}button:focus-visible,input:focus-visible,textarea:fo
 <h2>記事模式</h2>
 <div class="actions"><button id="privateMode" type="button">私人記事</button><button id="sharedMode" type="button" class="secondary">共用記事</button></div>
 <div id="groupsBox" hidden>
+<form id="newNotebookForm"><label for="newNotebookName">建立新共用記事簿</label><input id="newNotebookName" maxlength="120" autocomplete="off" required placeholder="例如：業務部記事"><div class="actions"><button type="submit">建立記事簿</button></div></form>
 <label for="groupSelect">選擇共用記事簿（每本成員獨立）</label><select id="groupSelect"></select>
 <p class="muted" id="groupRole">每本記事簿由自己的管理員指定成員與權限。</p>
+<form id="notebookInviteForm" hidden><label for="notebookInviteEmail">邀請此記事簿的 Google Email</label><input id="notebookInviteEmail" type="email" autocomplete="email" required><label for="notebookInviteRole">邀請權限</label><select id="notebookInviteRole"><option value="VIEWER">檢視者（唯讀）</option><option value="EDITOR">編輯者</option><option value="ADMIN">管理員</option></select><div class="actions"><button type="submit">邀請加入這本記事簿</button></div><p class="muted">不會自動寄送 Email；對方登入後可在邀請清單接受。</p></form>
+<div class="actions"><button id="refreshNotebookInbox" type="button" class="secondary">查看收到的記事簿邀請</button></div><div id="notebookInbox" aria-live="polite"></div>
 </div>
 <div class="actions"><button id="refresh" class="secondary">重新讀取記事</button></div>
 <label for="search">搜尋標題或內容</label><input id="search" type="search" autocomplete="off" placeholder="輸入關鍵字">
@@ -202,6 +205,8 @@ function clearSensitive(){
  account='';notes=null;groups=null;selectedGroup=null;groupOptions=[];shown=[];
  active=null;pendingCreateId=null;$('title').value='';$('content').value='';
  $('list').replaceChildren();$('groupSelect').replaceChildren();
+ $('notebookInbox').replaceChildren();$('notebookInviteForm').hidden=true;
+ $('newNotebookForm').reset();$('notebookInviteForm').reset();
  $('workspace').hidden=true;$('groupsBox').hidden=true;$('conflict').hidden=true;
  $('delete').hidden=true;$('editTitle').textContent='新增記事';hideConflict();
  draftMessage('尚未恢復任何已登入帳號的草稿。');
@@ -216,6 +221,7 @@ function buttons(){
  $('content').readOnly=!mayWrite;
  $('save').disabled=busy||!mayWrite;
  $('delete').disabled=busy||!mayDelete;
+ $('notebookInviteForm').hidden=mode!=='SHARED'||!selectedGroup||!notebookCapabilities(selectedGroup.role).canManageMembers;
  if(active)$('delete').hidden=!mayDelete;
 }
 function scope(){
@@ -274,7 +280,7 @@ async function loadGroups(){
   const o=node('option',group.name+'（'+notebookRoleLabel(group.role)+'）');o.value=group.id;select.append(o);
  }
  if(!result.length){
-  selectedGroup=null;$('groupRole').textContent='目前沒有可存取的共用記事簿。請由記事簿管理員邀請。';
+  selectedGroup=null;$('notebookInviteForm').hidden=true;$('groupRole').textContent='目前沒有可存取的共用記事簿。可自行建立，或接受邀請。';
   return;
  }
  selectedGroup=result.find(g=>g.id===selectedGroup?.id)||result[0];
@@ -292,6 +298,57 @@ async function loadGroups(){
  }
  buttons();
 }
+async function loadNotebookInbox(){
+ const epoch=generation,uid=account;
+ const inbox=await groups.listInbox();
+ if(epoch!==generation||uid!==account)return;
+ const root=$('notebookInbox');root.replaceChildren();
+ const pending=inbox.filter(x=>x.status==='PENDING');
+ if(!pending.length){root.append(node('p','目前沒有待接受的記事簿邀請。'));return;}
+ for(const item of pending){
+  const entry=node('div');entry.className='entry';
+  entry.append(node('strong','收到記事簿邀請｜'+notebookRoleLabel(item.role)));
+  const accept=node('button','接受邀請');accept.type='button';accept.className='secondary';
+  accept.addEventListener('click',()=>execute(async()=>{
+   const session=noteSession();
+   const result=await groups.acceptInvite(item);
+   verifyNoteSession(session);
+   await loadGroups();await loadNotebookInbox();
+   return result.indexed?'已接受邀請，記事簿已加入清單。':'已接受邀請，索引尚未完成；請稍後再按接受以修復。';
+  }));
+  entry.append(accept);root.append(entry);
+ }
+}
+$('newNotebookForm').addEventListener('submit',event=>{
+ event.preventDefault();
+ const name=$('newNotebookName').value.trim();
+ if(!name)return;
+ execute(async()=>{
+  const session=noteSession();
+  const created=await groups.createGroup(name);
+  verifyNoteSession(session);
+  remember();selectedGroup=created;restore();
+  $('newNotebookForm').reset();await loadNotes();
+  return '已建立獨立記事簿「'+created.name+'」，目前只有你有權限。';
+ });
+});
+$('notebookInviteForm').addEventListener('submit',event=>{
+ event.preventDefault();
+ const email=$('notebookInviteEmail').value.trim(),role=$('notebookInviteRole').value;
+ const groupId=selectedGroup?.id;
+ if(!groupId||!notebookCapabilities(selectedGroup?.role).canManageMembers)return;
+ execute(async()=>{
+  const session=noteSession(),current=await groups.myRole(groupId);
+  verifyNoteSession(session);
+  if(current!=='ADMIN')throw Error('NOTEBOOK_ADMIN_REQUIRED');
+  await groups.sendInvite(groupId,email,role);
+  verifyNoteSession(session);$('notebookInviteForm').reset();
+  return '已建立此記事簿的邀請，對方登入後可接受；尚未寄送 Email。';
+ });
+});
+$('refreshNotebookInbox').addEventListener('click',()=>execute(async()=>{
+ await loadNotebookInbox();return '已重新讀取此帳號的待接受邀請。';
+}));
 async function loadNotes(){
  const epoch=generation;
  if(mode==='SHARED'){await loadGroups();if(epoch!==generation)return}
@@ -332,7 +389,7 @@ async function modeChange(next){
  $('privateMode').className=mode==='PRIVATE'?'':'secondary';
  $('sharedMode').className=mode==='SHARED'?'':'secondary';
  await execute(async()=>{
-  if(mode==='SHARED')await loadGroups();
+  if(mode==='SHARED'){await loadGroups();await loadNotebookInbox();}
   restore();await loadDraft();await loadNotes();return '已切換記事範圍。';
  });
 }
