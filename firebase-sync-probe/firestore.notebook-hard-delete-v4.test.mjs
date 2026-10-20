@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
 import {
@@ -152,7 +153,7 @@ try{
  await test('Locked note directory now has zero docs',async()=>{const snap=await assertSucceeds(getDocs(collection(owner,group+'/notes')));assert.equal(snap.size,0)});
  await test('Locked member directory now has zero docs',async()=>{const snap=await assertSucceeds(getDocs(collection(owner,group+'/members')));assert.equal(snap.size,0)});
  await test('Locked sent invites directory now has zero docs',async()=>{const snap=await assertSucceeds(getDocs(collection(owner,group+'/sentInvites')));assert.equal(snap.size,0)});
- await test('Recipient inbox record from locked notebook absent',async()=>{const snap=await assertSucceeds(getDoc(doc(owner,inbox('viewer@example.test','pending'))));assert.equal(snap.exists(),false)});
+ await test('Recipient confirms own invited document is absent; owner cross-inbox absence cannot be independently enumerated',async()=>{const snap=await assertSucceeds(getDoc(doc(viewer,inbox('viewer@example.test','pending'))));assert.equal(snap.exists(),false)});
  await test('Owner cross-user pointer from locked notebook absent',async()=>{const snap=await assertSucceeds(getDoc(doc(owner,index('viewer-uid'))));assert.equal(snap.exists(),false)});
  await test('Other notebook invitation still exists',async()=>{const snap=await assertSucceeds(getDoc(doc(owner,inbox('viewer@example.test','keep'))));assert.ok(snap.exists())});
  await test('Other notebook shared note still exists',async()=>{const snap=await assertSucceeds(getDoc(doc(owner,other+'/notes/keep')));assert.ok(snap.exists())});
