@@ -389,6 +389,7 @@ $('saveCopy').addEventListener('click',()=>execute(async()=>{
  verifyNoteSession(session);
  hideConflict();
  const result=await session.service.create({...target,...plan});
+ verifyNoteSession(session);
  clearEditor();await loadNotes();
  return '已將你的草稿另存為不同的新記事（版本 '+result.version+'），沒有覆蓋原記事。';
 }));
@@ -402,6 +403,7 @@ $('save').addEventListener('click',()=>execute(async()=>{
  const result=active?
   await session.service.update({...target,noteId:active.id,expectedVersion:active.version,title,content}):
   await session.service.create({...target,noteId:pendingCreateId,title,content});
+ verifyNoteSession(session);
  clearEditor();await loadNotes();
  return (result.alreadyCreated?'已確認先前記事存在。':'已收到伺服器交易成功回覆。')+
    '目前版本：'+result.version;
@@ -413,6 +415,7 @@ $('delete').addEventListener('click',()=>{
   await persistBeforeCloud();
   verifyNoteSession(session);
   await session.service.softDelete({...target,noteId,expectedVersion});
+  verifyNoteSession(session);
   clearEditor();await loadNotes();return '已由伺服器確認刪除標記。';
  });
 });
