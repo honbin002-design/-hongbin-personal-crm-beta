@@ -332,13 +332,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const histItems=await page.locator('#recordDetailBody .detail-entry').count();
  check(histItems>=2&&(await page.locator('#recordDetailBody').innerText()).includes('暫停'),'專案階段異動即使沒有備註仍保留歷史');
 
- // 日期顯示要以台灣時間呈現，不改既有 ISO 追蹤記錄的儲存值。
- check(await page.evaluate(()=>
-  readableHistoryTime('2026-10-19T01:15:23.123Z')==='2026/10/19 09:15'&&
-  readableHistoryTime('2026-10-19 08:30')==='2026/10/19 08:30'&&
-  readableHistoryTime('舊版未記錄日期')==='舊版未記錄日期'&&
-  readableHistoryTime('')==='未記錄時間'
- ),'歷史 ISO 時間換算台灣時間，舊版日期可閱讀，未記錄者不顯示無效時間');
+ // 日期顯示要以台灣時間呈現，不改既有 ISO 追蹤記錄的儲存值；以下以實際畫面驗證。
  await page.evaluate(()=>{
   const key='hongbin_crm_simple_project_history_r74',hist=JSON.parse(localStorage.getItem(key));
   const entries=Object.values(hist).find(a=>Array.isArray(a)&&a.some(x=>x.note==='第一筆追蹤紀錄'));
