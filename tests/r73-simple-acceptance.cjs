@@ -508,6 +508,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#erpPreviewImport').click();
  check((await page.locator('#erpImportStatus').innerText()).includes('驗證失敗')&&await page.locator('#erpApplyImport').isDisabled(),
   '拒絕來源不明的匯入檔，禁止直接寫入主資料');
+ await page.locator('#erpImportFile').setInputFiles({name:'mixed-cost.json',mimeType:'application/json',
+  buffer:Buffer.from(JSON.stringify({...erpFixture,supplierPrices:[{supplierName:'虛構供應商',price:70}]}))});
+ await page.locator('#erpPreviewImport').click();
+ check((await page.locator('#erpImportStatus').innerText()).includes('禁止匯入共用主資料')&&
+  await page.locator('#erpApplyImport').isDisabled(),'含供應商進價的混合檔不得進入共用 CRM 主資料');
  const beforeErp=await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'));
  await page.locator('#erpImportFile').setInputFiles({name:'erp-synthetic.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(erpFixture))});
  await page.locator('#erpPreviewImport').click();
