@@ -149,6 +149,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await printPage.emulateMedia({media:'screen'});
   await printPage.reload();
   await printPage.locator('[data-quote="77"]').click();
+  await printPage.locator('#recordDetailEdit').click();
   await printPage.locator('#previewQuote').click();
   check(await printPage.locator('#printRoot .legacy-sheet-shell').count()===2,'五筆品項按既有四項一頁規則拆成兩張紙');
   await printPage.emulateMedia({media:'print'});
