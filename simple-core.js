@@ -492,9 +492,20 @@ async function restore(){
 
 /* R73 one-time private import. Do NOT bundle customer/price data in the public source. */
 let erpPending=null;
+// Shared CRM master may contain customer selling prices, never supplier purchase costs.
+function containsSupplierCost(value){
+ if(!value||typeof value!=='object')return false;
+ return Object.entries(value).some(([key,item])=>
+  /supplier(?:Price|Cost)|purchase(?:Price|Cost)|costPrice|進價|採購價|採購價格|供應商價格/i.test(key)
+  ||(key==='price'&&!Array.isArray(value)&&
+    (Object.prototype.hasOwnProperty.call(value,'supplierName')||Object.prototype.hasOwnProperty.call(value,'supplierShortName'))&&
+    !Object.prototype.hasOwnProperty.call(value,'customerName'))
+  ||containsSupplierCost(item));
+}
 function validateErpData(x){
  if(!x||x.format!=='hongbin-crm-erp-master-import'||x.schema!==1||x.source?.fileId!=='13dQzpVerN4XhCiYItoQWZU7GDFO6AVhI')
   throw Error('檔案不是本次指定的 ERP 主資料匯入格式');
+ if(containsSupplierCost(x))throw Error('此檔含供應商進價，禁止匯入共用主資料；請改用無進價版本');
  for(const [k,max] of [['customers',10000],['suppliers',1000],['products',20000],['customerPrices',30000]]){
   if(!Array.isArray(x[k])||!x[k].length||x[k].length>max)throw Error(k+' 筆數不合理');
  }
