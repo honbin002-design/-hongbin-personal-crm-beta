@@ -237,6 +237,9 @@
 .crmCloudLink:focus-visible{outline:3px solid #e5a650;outline-offset:3px}
 .nav .cloudTab{display:flex;align-items:center;justify-content:center;border-radius:7px;min-height:53px;padding:5px 2px;background:#dcebe5;color:#195c42;border:1px solid #89b49b;text-align:center;text-decoration:none;font-size:15px;font-weight:700;line-height:1.2}
 .nav .cloudTab:focus-visible{outline:3px solid #e5a650;outline-offset:2px}
+.nav .cloudTab.active{background:#1d557d;color:#fff;border-color:#1d557d}
+.cloudWorkspace{width:100%;height:min(78dvh,900px);min-height:540px;border:1px solid #b9cbd8;border-radius:12px;background:#f5f7fb;display:block}
+@media(max-width:640px){.cloudWorkspace{height:calc(100dvh - 180px);min-height:480px}}
 </style>
 </head>
 <body><div class="app">
@@ -250,7 +253,7 @@
 <button type="button" data-tab="products">產品資料</button>
 <button type="button" data-tab="notes">隨手記</button>
 <button type="button" data-tab="backup">備份</button>
-<a class="cloudTab" href="/honbin-crm-auth-test/workspace-v2.html">雲端記事與任務</a>
+<button type="button" data-tab="cloud" class="cloudTab">雲端記事與任務</button>
 </nav>
 <main>
 <section id="recordDetail" class="record-detail" hidden aria-label="唯讀詳細資料">
@@ -380,6 +383,14 @@
     <div class="actions"><button id="saveNote" type="button">儲存隨手記</button>
       <button id="cancelNote" type="button" class="secondary">取消</button></div>
   </div>
+</section>
+<section class="panel" id="panel-cloud" hidden>
+ <div class="card"><h2>雲端記事與任務</h2>
+  <p class="muted">與 CRM 共用同一個操作入口；雲端資料依原有 Firebase 帳號及群組權限保存。原 CRM 的本機隨手記與備份仍各自保留。</p>
+  <p class="muted">iPhone 鎖定畫面通知需從主畫面開啟獨立的記事 App；在此頁可處理一般記事及任務。</p>
+  <a class="crmCloudLink" href="/honbin-crm-auth-test/workspace-v2.html">在完整畫面開啟記事 App</a>
+ </div>
+ <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽雲端記事與任務" loading="lazy" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1"></iframe>
 </section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
