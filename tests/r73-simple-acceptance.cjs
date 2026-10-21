@@ -16,7 +16,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
  await page.addInitScript(data=>{if(sessionStorage.getItem('__r73_skip_fixtures_after_reset')==='1')return;for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
- check(await page.locator('.nav button').count()===8,'七個既有功能與隨手記共八個主選單');
+ check(await page.locator('.nav button').count()===9,'原八個主選單與雲端記事任務第九頁');
+ check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
+ await page.locator('[data-tab="cloud"]').click();
+ check(await page.locator('#panel-cloud').isVisible()&&
+  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1',
+  '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
+ await page.locator('[data-tab="quotes"]').click();
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
 
  check(await page.locator('#backToTop').isHidden(),'頁面最上方時回頂端按鈕不遮擋操作');
