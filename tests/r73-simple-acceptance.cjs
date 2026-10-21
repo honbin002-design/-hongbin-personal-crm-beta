@@ -525,7 +525,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   return m.suppliers.length===1&&m.suppliers[0].name==='虛構供應商有限公司'&&
     m.products.some(p=>p.model==='P-001')&&m.customerPrices.length===1&&m.customerPrices[0].price===1234.5;
  }), '確認後在本機建立供應商、產品及每客戶獨立售價');
- check(await page.evaluate(()=>localStorage.getItem('hongbin_crm_erp_master_before_import_v1')===beforeErp),
+ check(await page.evaluate(v=>localStorage.getItem('hongbin_crm_erp_master_before_import_v1')===v,beforeErp),
   '第一次匯入前自動保留本機原主資料檢查點');
  check(await page.evaluate(()=>Array.isArray(JSON.parse(localStorage.getItem('hongbin_crm_formal_quotes_r73')))),
   'ERP 主資料匯入不修改已驗收的報價陣列');
