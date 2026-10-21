@@ -233,6 +233,8 @@
  #printRoot .legacy-quote .q-letterhead-img{height:auto!important;max-height:none!important}
  #printRoot .legacy-quote .q-title{font-size:20pt!important}
 }
+.crmCloudLink{display:inline-flex;align-items:center;justify-content:center;min-height:48px;max-width:100%;padding:10px 16px;border-radius:9px;background:#1c527b;color:#fff;font-weight:700;text-decoration:none;text-align:center;overflow-wrap:anywhere}
+.crmCloudLink:focus-visible{outline:3px solid #e5a650;outline-offset:3px}
 </style>
 </head>
 <body><div class="app">
@@ -353,6 +355,11 @@
 </div><div class="actions"><button id="saveProduct" type="button">儲存產品</button><button id="cancelProduct" type="button" class="secondary">取消</button></div>
 </div></section>
 <section class="panel" id="panel-notes" hidden>
+  <div class="card" id="cloudNotebookEntry">
+    <h2>雲端共用記事與任務</h2>
+    <p class="muted">使用既有 Google 帳號開啟多人共用記事與任務。下方原有隨手記仍保存在本機與 CRM 備份中；兩邊資料不會自動合併或覆蓋。</p>
+    <a class="crmCloudLink" href="/honbin-crm-auth-test/workspace-v2.html">開啟雲端記事與任務 TEST</a>
+  </div>
   <div class="card" id="noteListCard">
     <h2>隨手記</h2>
     <p class="muted">快速記下想法、電話重點或臨時事項。資料只存在這台 iPhone 的 CRM，並包含在 CRM 備份檔中。</p>
