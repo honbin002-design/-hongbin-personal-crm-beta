@@ -122,6 +122,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await printPage.addInitScript(data=>{for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
   await printPage.goto(base,{waitUntil:'load'});
   await printPage.locator('[data-quote="77"]').click();
+  await printPage.locator('#recordDetailEdit').click();
   await printPage.locator('#previewQuote').click();
   await printPage.locator('#quotePreviewPages .q-letterhead-img').first().evaluate(img=>img.decode());
   const paperPrintStyles=await printPage.evaluate(()=>{
