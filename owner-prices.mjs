@@ -42,7 +42,7 @@ async function start(){
  // its existing browserLocalPersistence session is reused on this origin.
  const app=appSdk.getApps()[0]||appSdk.initializeApp(firebaseConfig);
  const auth=authSdk.getAuth(app),db=fs.getFirestore(app);
- let allowed=false,pending=null,rows=[];
+ let allowed=false,pending=null,rows=[],visibleCount=20;
  const status=msg=>{$('ownerPriceStatus').textContent=msg};
  const guard=()=>{
   const u=auth.currentUser;
@@ -53,21 +53,23 @@ async function start(){
   const q=clean($('ownerPriceSearch').value).toLocaleLowerCase(),target=$('ownerPriceList');
   target.replaceChildren();
   const matching=rows.filter(v=>(v.supplierName+' '+v.partNo+' '+v.productName).toLocaleLowerCase().includes(q));
-  if(!matching.length){target.textContent='沒有符合的供應商進價。';return}
-  for(const v of matching){
+  if(!matching.length){target.textContent='沒有符合的供應商進價。';$('ownerPriceMore').hidden=true;return}
+  for(const v of matching.slice(0,visibleCount)){
    const item=document.createElement('div');item.className='listItem';
    const title=document.createElement('div');title.className='listTitle';title.textContent=v.supplierName+'｜'+v.partNo;
    const detail=document.createElement('div');detail.className='sub';
    detail.textContent=(v.productName||'未命名產品')+'　'+v.price.toLocaleString('zh-TW')+'／'+(v.unit||'單位');
    item.append(title,detail);target.append(item);
   }
+  const more=$('ownerPriceMore');more.hidden=matching.length<=visibleCount;
+  more.textContent='再顯示 20 筆（共 '+matching.length+' 筆）';
  };
  const refresh=async()=>{
   guard();
   const snap=await fs.getDocsFromServer(fs.query(fs.collection(db,path),fs.limit(401)));
   guard();
   if(snap.size>400)throw Error('進價筆數超過讀取上限，已停止顯示');
-  rows=snap.docs.map(d=>d.data()).filter(x=>typeof x.price==='number');
+  rows=snap.docs.map(d=>d.data()).filter(x=>typeof x.price==='number');visibleCount=20;
   rows.sort((a,b)=>(a.supplierName+'|'+a.partNo).localeCompare(b.supplierName+'|'+b.partNo,'zh-Hant'));
   show();status('伺服器已讀取 '+rows.length+' 筆，僅最高權限帳號可見。');
  };
@@ -80,7 +82,8 @@ async function start(){
    allowed=true;panel.hidden=false;await refresh();
   }catch{panel.hidden=true;allowed=false}
  });
- $('ownerPriceSearch').addEventListener('input',show);
+ $('ownerPriceSearch').addEventListener('input',()=>{visibleCount=20;show()});
+ $('ownerPriceMore').addEventListener('click',()=>{visibleCount+=20;show()});
  $('ownerPriceFile').addEventListener('change',()=>{pending=null;$('ownerPriceImport').disabled=true;status('請先預覽進價檔。')});
  $('ownerPricePreview').addEventListener('click',async()=>{
   pending=null;$('ownerPriceImport').disabled=true;
