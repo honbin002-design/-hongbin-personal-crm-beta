@@ -145,7 +145,7 @@ async function makePdf(data){
    }
   }
   fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244);
-  text(page,'第 '+(pageIndex+1)+'／'+pages.length+' 頁',right-84,43,14);
+  // Deliberately no lower-right page index in customer quotation PDF.
  });
  const result=await pdf.save({useObjectStreams:true});
  return new Blob([result],{type:'application/pdf'});
