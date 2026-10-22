@@ -64,7 +64,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const headers=await oldPaper.locator('.q-table th').allTextContents();
  check(headers.join('|')==='品名|品號|規格|單價 (NT)|最低訂購量','原本報價單五欄標題與順序完全相同');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
- check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth>0),'原版鴻繽公司抬頭圖片正常載入');
+ check(await oldPaper.locator('.q-mark svg').count()===1 && (await oldPaper.locator('.q-company-cn').innerText())==='鴻繽科技有限公司','公司抬頭已改為可縮放向量商標及清晰文字');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
 
@@ -77,10 +77,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
      underlineContent:under.content,underlineDistance:parseFloat(under.marginTop),sizes};
  });
  check(expectedFont(20,quoteTypography.titlePx)&&quoteTypography.decoration==='none'&&
-  quoteTypography.underlineContent!=='none'&&quoteTypography.underlineDistance>=7,
+  quoteTypography.underlineContent!=='none'&&quoteTypography.underlineDistance>=1.7&&quoteTypography.underlineDistance<=2.2,
   '標題字體為 20pt，底線分離且不與文字重疊');
- check(quoteTypography.sizes.every(x=>expectedFont(16,x.px)),
-  '報價預覽中除標題及公司抬頭圖片外，資料、表格、條款、備註、業務代表、頁碼全為 16pt');
+ check(quoteTypography.sizes.every(x=>expectedFont(
+ ['.q-terms','.q-notes','.q-notes span','.q-sales','.q-page-no'].includes(x.selector)?14:16,x.px)),
+ '報價明細 16pt，交貨日期起所有條款、備註、業務代表與頁碼縮為 14pt');
 
 
  // iOS Safari/WebKit 使用 print media 時，首張報價必須留 25mm 安全高度，
@@ -102,10 +103,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const printFonts=await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
   const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales','.q-page-no'];
   return {title:parseFloat(getComputedStyle(el.querySelector('.q-title')).fontSize),
-   sizes:names.map(s=>parseFloat(getComputedStyle(el.querySelector(s)).fontSize))};
+   sizes:names.map(s=>({selector:s,px:parseFloat(getComputedStyle(el.querySelector(s)).fontSize)}))};
  });
- check(expectedFont(20,printFonts.title)&&printFonts.sizes.every(x=>expectedFont(16,x)),
-  'Safari 列印版標題 20pt，其餘文字（包括頁碼）統一為 16pt');
+ check(expectedFont(20,printFonts.title)&&printFonts.sizes.every(x=>expectedFont(
+ ['.q-terms','.q-notes','.q-sales','.q-page-no'].includes(x.selector)?14:16,x.px)),
+ 'Safari 列印版條款至頁碼同為 14pt，其他明細 16pt');
 
  check(webkitPrint.shellCount===1&&webkitPrint.shellHeight<1040&&webkitPrint.paperHeight<1030,
   'Safari A4 報價紙張預留足夠列印安全高度');
@@ -124,7 +126,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await printPage.locator('[data-quote="77"]').click();
   await printPage.locator('#recordDetailEdit').click();
   await printPage.locator('#previewQuote').click();
-  await printPage.locator('#quotePreviewPages .q-letterhead-img').first().evaluate(img=>img.decode());
+  check(await printPage.locator('#quotePreviewPages .q-mark svg').count()===1,'列印使用向量商標而非掃描抬頭');
   const paperPrintStyles=await printPage.evaluate(()=>{
    const shell=document.querySelector('#printRoot .legacy-sheet-shell');return {previewPages:document.querySelectorAll('#printRoot .legacy-sheet-shell').length,shellExists:!!shell}
   });
@@ -158,8 +160,12 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  }finally{await printBrowser.close()}
 
 
- await page.addScriptTag({path:require.resolve('html2canvas/dist/html2canvas.min.js')});
- await page.addScriptTag({path:require.resolve('jspdf/dist/jspdf.umd.min.js')});
+ await page.addScriptTag({path:require.resolve('pdf-lib/dist/pdf-lib.min.js')});
+ await page.addScriptTag({path:require.resolve('@pdf-lib/fontkit/dist/fontkit.umd.min.js')});
+ // Serve the pinned open-source CJK font from locally installed test package:
+ // no GitHub Pages PDF output is dependent on the network during regression.
+ await page.route('**/noto-sans-tc-chinese-traditional-400-normal.woff2',route=>
+  route.fulfill({path:require.resolve('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff2'),contentType:'font/woff2'}));
  // 模擬 iPhone 支援 Web Share Files 時，按一下下載就直接送出 PDF。
  await page.evaluate(()=>{
    window.__sharePdf=null;
@@ -176,6 +182,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.waitForFunction(()=>window.__sharePdf!==null,{timeout:20000});
  const sharedPdf=await page.evaluate(()=>window.__sharePdf);
  check(sharedPdf.header==='%PDF-'&&sharedPdf.tail.includes('%%EOF')&&sharedPdf.size>10000,'分享選單收到真正 PDF 二進位檔');
+ const cleanTextPdf=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
+ check(!Buffer.from(cleanTextPdf).includes(Buffer.from('/Subtype /Image')),
+   '向量 PDF 不含整頁 JPEG 或任何嵌入圖片');
+ check(!/html2canvas|canvas\.toDataURL\('image\/jpeg'/.test(await page.evaluate(()=>window.honbinVectorQuotePdf?.toString()||'')),
+   '列印流程不再使用整頁圖片轉換');
  check(sharedPdf.name==='報價單_QTEST-001.pdf'&&sharedPdf.type==='application/pdf','PDF 以原報價編號命名並傳遞正確檔案類型');
  check(await page.locator('#pdfNotice a').count()===0,'按下載 PDF 不再顯示小字開啟／下載連結');
  check(pdfPopups.length===0,'按下載 PDF 不會開啟新分頁或新視窗');
