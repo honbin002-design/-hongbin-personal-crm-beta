@@ -22,31 +22,53 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#panel-cloud').isVisible()&&
   (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-single-top',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
- // Simulate its independent scrollport in the same-origin iframe to
- // verify one existing outer button handles both page and cloud content.
+ // The cloud iframe is now auto-sized to its real contents, leaving just
+ // one continuous iPhone viewport, no nested swipe-to-bottom handoff.
+ // Fulfill its same-origin HTML with a stable long document, without Firebase.
+ await page.route('**/honbin-crm-auth-test/workspace-v2.html**',route=>route.fulfill({
+  status:200,contentType:'text/html',
+  body:'<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>'+
+   '<body style="margin:0"><main id="cloudLongContent" style="height:2400px">雲端共用記事長頁面</main>'+
+   '<button type="button" id="refreshCloud" onclick="this.dataset.didRefresh=\'yes\'">重新整理</button></body></html>'
+ }));
+ // Update source after page.route is active, then trigger iframe navigation.
  await page.locator('#cloudWorkspace').evaluate(frame=>{
-  frame.srcdoc='<!doctype html><html><body style="height:2800px;margin:0">嵌入記事捲動驗證</body></html>';
+  frame.src='about:blank';frame.removeAttribute('src');
+  frame.src=frame.dataset.src;
  });
  await page.waitForFunction(()=>{
   const frame=document.querySelector('#cloudWorkspace');
-  return frame?.contentDocument?.body?.textContent?.includes('嵌入記事捲動驗證');
- });
+  return frame?.contentDocument?.getElementById('cloudLongContent')&&frame.clientHeight>2350;
+ },{timeout:8000});
+ check(await page.locator('#refreshCloudOuter').isVisible(),
+  '雲端浮動重新整理在 CRM 外層顯示，內頁不重複顯示');
+ check(await page.locator('#cloudWorkspace').evaluate(frame=>{
+  const own=frame.contentWindow;
+  return frame.clientHeight>=2400&&own.scrollY===0;
+ }), '雲端記事 iframe 已依內容自動展開，不再產生第二個獨立捲動區');
+ await page.locator('#refreshCloudOuter').click();
+ check(await page.locator('#cloudWorkspace').evaluate(frame=>
+   frame.contentDocument.getElementById('refreshCloud').dataset.didRefresh==='yes'),
+  '外層浮動重新整理可以觸發雲端記事的原本更新功能');
  await page.evaluate(()=>{
-  window.scrollTo(0,0);
-  document.querySelector('#cloudWorkspace').contentWindow.scrollTo(0,850);
+  const f=document.querySelector('#cloudWorkspace');
+  window.scrollTo(0,f.getBoundingClientRect().top+1600+window.scrollY);
  });
  await page.waitForFunction(()=>!document.querySelector('#backToTop').hidden);
- check(await page.locator('#backToTop').isVisible(),
-  '雲端記事內部向下捲動時只使用 CRM 的既有回頂端按鈕');
+ check(await page.evaluate(()=>window.scrollY>600&&
+   document.querySelector('#cloudWorkspace').contentWindow.scrollY===0),
+  '下滑雲端記事長內容，只有 CRM 主頁捲動、無內外交界卡頓');
  await page.locator('#backToTop').click();
- await page.waitForFunction(()=>{
-  const f=document.querySelector('#cloudWorkspace');
-  return window.scrollY<10&&f.contentWindow.scrollY<10;
- });
- check(await page.evaluate(()=>document.querySelector('#cloudWorkspace').contentWindow.scrollY<10),
-  'CRM 回頂端可讓內嵌雲端記事與主頁面同時回到頂部');
- await page.locator('#cloudWorkspace').evaluate(frame=>frame.removeAttribute('srcdoc'));
+ await page.waitForFunction(()=>window.scrollY<10);
+ check(await page.evaluate(()=>window.scrollY<10),
+  '唯一回頂端按鈕將整個 CRM 與共用記事畫面一起帶回頁首');
+ await page.locator('#cloudWorkspace').evaluate(frame=>
+  frame.contentDocument.getElementById('cloudLongContent').style.height='700px');
+ await page.waitForFunction(()=>document.querySelector('#cloudWorkspace').clientHeight<900);
+ check(await page.locator('#cloudWorkspace').evaluate(frame=>frame.clientHeight>=480&&frame.clientHeight<900),
+  '記事內容收合後，嵌入頁面也能縮回正確高度，避免多餘空白');
  await page.locator('[data-tab="quotes"]').click();
+
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
 
  check(await page.locator('#backToTop').isHidden(),'頁面最上方時回頂端按鈕不遮擋操作');
