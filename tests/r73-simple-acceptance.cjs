@@ -17,11 +17,20 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.addInitScript(data=>{if(sessionStorage.getItem('__r73_skip_fixtures_after_reset')==='1')return;for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
  check(await page.locator('.nav button').count()===9,'原八個主選單與雲端記事任務第九頁');
+ check(await page.locator('header.head h1').innerText()==='鴻繽科技 CRM' &&
+  await page.locator('header.head .muted,header.head .test').count()===0,
+  '僅保留鴻繽科技 CRM 主標題，撤除功能介紹與多餘標籤');
+ check(await page.locator('header.head').evaluate(el=>el.getBoundingClientRect().height<65),
+  'iPhone 主標題高度壓縮至 65px 以下，增加內容可用空間');
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
   (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-smoothscroll',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
+ check(await page.locator('#panel-cloud .cloud-panel-title').evaluate(el=>
+  el.getBoundingClientRect().height<60&&
+  getComputedStyle(el.querySelector('h2')).fontSize==='18px'),
+  '雲端記事與任務標題縮為緊湊區塊，不再浪費上下高度');
  // The cloud iframe is now auto-sized to its real contents, leaving just
  // one continuous iPhone viewport, no nested swipe-to-bottom handoff.
  // Fulfill its same-origin HTML with a stable long document, without Firebase.
