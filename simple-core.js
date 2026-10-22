@@ -182,7 +182,7 @@ function validateQuote(x){if(!x.fields.qdCustomer){alert('請輸入報價客戶'
 function saveQuote(){const data=quoteData();if(!validateQuote(data))return;const list=getQuotes(),i=list.findIndex(x=>editQuoteId!=null&&String(x.id)===String(editQuoteId));const duplicate=list.some((x,j)=>j!==i&&norm(x.fields?.qdNo)===norm(data.fields.qdNo));if(duplicate&&(i<0||norm(list[i]?.fields?.qdNo)!==norm(data.fields.qdNo))){alert('報價編號已存在。為保護舊資料，請使用不同編號。');return}
  const existing=i>=0?list[i]:null;const next={...(existing||{}),id:existing?.id??uniqueId(),fields:data.fields,items:data.items};if(i>=0)list[i]=next;else list.unshift(next);if(!store(KEYS.quotes,list))return;editQuoteId=next.id;renderQuotes();toast('正式報價已儲存');if(editorFromRecord?.kind==='quote')finishRecordEdit(next.id)}
 /* R73 confirmed paper markup; originally in rollback branch (five columns, unchanged business wording). */
-const LEGACY_QUOTE_PAPER="<div class=\"quote-paper\" >\n      <div class=\"q-letterhead\"><img class=\"q-letterhead-img\" src=\"quote-letterhead.jpg\" alt=\"鴻繽科技有限公司標準報價單抬頭\"></div>\n      <div class=\"q-title\">報價單</div>\n      <div class=\"q-party\">\n        <div><div class=\"q-party-row\"><span class=\"q-party-label\">Messers.</span><b id=\"qpCustomer\"></b></div><div class=\"q-party-row\"><span></span><span>TEL： <span id=\"qpTel\"></span></span></div><div class=\"q-party-row\"><span></span><span>FAX： <span id=\"qpFax\"></span></span></div></div>\n        <div><div>NO： <span id=\"qpNo\"></span></div><div>DATE： <span id=\"qpDate\"></span></div><div>聯絡人： <span id=\"qpContact\"></span></div></div>\n      </div>\n      <table class=\"q-table\"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id=\"qpItems\"></tbody></table>\n      <div class=\"q-terms\">交貨日期：<span id=\"qpDelivery\"></span><br>付款條件：<span id=\"qpPayment\"></span><br>交貨地點：<span id=\"qpPlace\"></span><br>有效期限：<span id=\"qpValid\"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>\n      <div class=\"q-notes\">備　註：<br><span id=\"qpNotes\"></span></div>\n      <div class=\"q-sales\">業務代表：　<span id=\"qpSales\"></span> <span id=\"qpSalesTel\"></span></div><div class=\"q-page-no\"></div>\n    </div>";
+const LEGACY_QUOTE_PAPER="<div class=\"quote-paper\" >\n      <div class=\"q-letterhead\"><div class=\"q-mark\"><svg xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"HON BOND 鴻繽商標\" viewBox=\"0 0 90 90\"><path fill=\"#9b2832\" d=\"M4 4H31V30H59V4H86V76H59V50H31V76H4Z\"/><path fill=\"#fff\" d=\"M32 36C46 32 62 34 73 40C61 47 46 47 32 43Z\"/><ellipse fill=\"#9b2832\" cx=\"35\" cy=\"40\" rx=\"12\" ry=\"5\"/></svg><div>HON BOND</div></div><div class=\"q-company\"><div class=\"q-company-cn\">鴻繽科技有限公司</div><div class=\"q-company-en\">HONBIN TECHNOLOGY CO., LTD.</div><div class=\"q-company-address\">台南市安南區安西二街108號</div><div class=\"q-company-enaddr\">No.108, Anxi 2nd St., Annan Dist., Tainan City 70958, Taiwan (R.O.C.)</div><div class=\"q-company-contact\">TEL: +886-6-2453737　 FAX: +886-6-2463328</div></div></div>\n      <div class=\"q-title\">報價單</div>\n      <div class=\"q-party\">\n        <div><div class=\"q-party-row\"><span class=\"q-party-label\">Messers.</span><b id=\"qpCustomer\"></b></div><div class=\"q-party-row\"><span></span><span>TEL： <span id=\"qpTel\"></span></span></div><div class=\"q-party-row\"><span></span><span>FAX： <span id=\"qpFax\"></span></span></div></div>\n        <div><div>NO： <span id=\"qpNo\"></span></div><div>DATE： <span id=\"qpDate\"></span></div><div>聯絡人： <span id=\"qpContact\"></span></div></div>\n      </div>\n      <table class=\"q-table\"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id=\"qpItems\"></tbody></table>\n      <div class=\"q-terms\">交貨日期：<span id=\"qpDelivery\"></span><br>付款條件：<span id=\"qpPayment\"></span><br>交貨地點：<span id=\"qpPlace\"></span><br>有效期限：<span id=\"qpValid\"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>\n      <div class=\"q-notes\">備　註：<br><span id=\"qpNotes\"></span></div>\n      <div class=\"q-sales\">業務代表：　<span id=\"qpSales\"></span> <span id=\"qpSalesTel\"></span></div><div class=\"q-page-no\"></div>\n    </div>";
 function quoteSheets(data){
  const f=data.fields||{},raw=Array.isArray(data.items)?data.items:[],all=raw.length?raw:[{}],pages=[];
  for(let i=0;i<all.length;i+=4)pages.push(all.slice(i,i+4));
@@ -228,22 +228,11 @@ async function pdfQuote(mode='download'){
  try{
   // 下載不必先開啟預覽，也不會另開 PDF 視窗。
   $('printRoot').innerHTML=quoteSheets(data);
-  await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',()=>!!window.html2canvas);
-  await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',()=>!!window.jspdf);
-  const pdf=new window.jspdf.jsPDF({format:'a4',unit:'mm',orientation:'portrait'});
-  const pages=[...$('printRoot').querySelectorAll('.sheet')];
-  for(let i=0;i<pages.length;i++){
-   const clone=pages[i].cloneNode(true);
-   clone.style.cssText='width:794px!important;max-width:794px!important;position:fixed;left:-10000px;top:0;margin:0;';
-   document.body.appendChild(clone);
-   let canvas;
-   try{canvas=await window.html2canvas(clone,{scale:2,backgroundColor:'#fff',useCORS:true})}
-   finally{clone.remove()}
-   if(i)pdf.addPage();
-   pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',0,0,210,297);
-  }
-  const blob=pdf.output('blob');
-  const safeNo=String(data.fields.qdNo||'未編號').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').trim();
+  await loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',()=>!!window.PDFLib);
+   await loadScript('https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',()=>!!window.fontkit);
+   if(typeof window.honbinVectorQuotePdf!=='function')throw Error('向量 PDF 產生器尚未載入，請重新整理 CRM');
+   const blob=await window.honbinVectorQuotePdf(data);
+   const safeNo=String(data.fields.qdNo||'未編號').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').trim();
   const filename='報價單_'+safeNo+'.pdf';
   // iPhone Safari：優先一次叫出原生分享選單，讓使用者選「儲存到檔案」。
   // 若瀏覽器因為 PDF 非同步生成而失去 user activation，會自動改用下載，
