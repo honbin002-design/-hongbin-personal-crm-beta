@@ -182,14 +182,15 @@ function validateQuote(x){if(!x.fields.qdCustomer){alert('請輸入報價客戶'
 function saveQuote(){const data=quoteData();if(!validateQuote(data))return;const list=getQuotes(),i=list.findIndex(x=>editQuoteId!=null&&String(x.id)===String(editQuoteId));const duplicate=list.some((x,j)=>j!==i&&norm(x.fields?.qdNo)===norm(data.fields.qdNo));if(duplicate&&(i<0||norm(list[i]?.fields?.qdNo)!==norm(data.fields.qdNo))){alert('報價編號已存在。為保護舊資料，請使用不同編號。');return}
  const existing=i>=0?list[i]:null;const next={...(existing||{}),id:existing?.id??uniqueId(),fields:data.fields,items:data.items};if(i>=0)list[i]=next;else list.unshift(next);if(!store(KEYS.quotes,list))return;editQuoteId=next.id;renderQuotes();toast('正式報價已儲存');if(editorFromRecord?.kind==='quote')finishRecordEdit(next.id)}
 /* R73 confirmed paper markup; originally in rollback branch (five columns, unchanged business wording). */
-const LEGACY_QUOTE_PAPER="<div class=\"quote-paper\" >\n      <div class=\"q-letterhead\"><img class=\"q-letterhead-img\" src=\"quote-letterhead.jpg\" alt=\"鴻繽科技原始公司報價抬頭\"></div>\n      <div class=\"q-title\">報價單</div>\n      <div class=\"q-party\">\n        <div><div class=\"q-party-row\"><span class=\"q-party-label\">Messers.</span><b id=\"qpCustomer\"></b></div><div class=\"q-party-row\"><span></span><span>TEL： <span id=\"qpTel\"></span></span></div><div class=\"q-party-row\"><span></span><span>FAX： <span id=\"qpFax\"></span></span></div></div>\n        <div><div>NO： <span id=\"qpNo\"></span></div><div>DATE： <span id=\"qpDate\"></span></div><div>聯絡人： <span id=\"qpContact\"></span></div></div>\n      </div>\n      <table class=\"q-table\"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th><th>最低訂購量</th></tr></thead><tbody id=\"qpItems\"></tbody></table>\n      <div class=\"q-terms\">交貨日期：<span id=\"qpDelivery\"></span><br>付款條件：<span id=\"qpPayment\"></span><br>交貨地點：<span id=\"qpPlace\"></span><br>有效期限：<span id=\"qpValid\"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>\n      <div class=\"q-notes\">備　註：<br><span id=\"qpNotes\"></span></div>\n      <div class=\"q-sales\">業務代表：　<span id=\"qpSales\"></span> <span id=\"qpSalesTel\"></span></div>\n    </div>";
+const LEGACY_QUOTE_PAPER="<div class=\"quote-paper\" >\n      <div class=\"q-letterhead\"><img class=\"q-letterhead-img\" src=\"quote-letterhead.jpg\" alt=\"鴻繽科技原始公司報價抬頭\"></div>\n      <div class=\"q-title\">報價單</div>\n      <div class=\"q-party\">\n        <div><div class=\"q-party-row\"><span class=\"q-party-label\">Messers.</span><b id=\"qpCustomer\"></b></div><div class=\"q-party-row\"><span></span><span>TEL： <span id=\"qpTel\"></span></span></div><div class=\"q-party-row\"><span></span><span>FAX： <span id=\"qpFax\"></span></span></div></div>\n        <div><div>NO： <span id=\"qpNo\"></span></div><div>DATE： <span id=\"qpDate\"></span></div><div>聯絡人： <span id=\"qpContact\"></span></div></div>\n      </div>\n      <table class=\"q-table\"><thead><tr><th>品名</th><th>品號</th><th>規格</th><th>單價 (NT)</th></tr></thead><tbody id=\"qpItems\"></tbody></table>\n      <div class=\"q-terms\">交貨日期：<span id=\"qpDelivery\"></span><br>付款條件：<span id=\"qpPayment\"></span><br>交貨地點：<span id=\"qpPlace\"></span><br>有效期限：<span id=\"qpValid\"></span><br>單筆交易未滿伍仟元整需自行負擔運費<br>報價單價格不含 5% 營業稅</div>\n      <div class=\"q-notes\">備　註：<br><span id=\"qpNotes\"></span></div>\n      <div class=\"q-sales\">業務代表：　<span id=\"qpSales\"></span> <span id=\"qpSalesTel\"></span></div>\n    </div>";
 function quoteSheets(data){
  const f=data.fields||{},raw=Array.isArray(data.items)?data.items:[],all=raw.length?raw:[{}],pages=[];
  for(let i=0;i<all.length;i+=4)pages.push(all.slice(i,i+4));
  const binding={qpCustomer:f.qdCustomer,qpContact:f.qdContact,qpTel:f.qdTel,qpFax:f.qdFax,qpNo:f.qdNo,qpDate:(f.qdDate||'').replaceAll('-','/'),qpDelivery:f.qdDelivery,qpPayment:f.qdPayment,qpPlace:f.qdPlace,qpValid:f.qdValid,qpSales:f.qdSales,qpSalesTel:f.qdSalesTel,qpNotes:f.qdNotes};
  return pages.map((subset,idx)=>{
-   const rows=subset.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.model)+'</td><td>'+esc(x.spec)+'</td><td>'+esc(x.price)+'</td><td>'+esc(x.moq)+'</td></tr>');
-   while(rows.length<4)rows.push('<tr><td>　</td><td></td><td></td><td></td><td></td></tr>');
+   // Keep saved MOQ in CRM source records; the approved original paper template has four columns.
+   const rows=subset.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.model)+'</td><td>'+esc(x.spec)+'</td><td>'+esc(x.price)+'</td></tr>');
+   while(rows.length<4)rows.push('<tr><td>　</td><td></td><td></td><td></td></tr>');
    const page=LEGACY_QUOTE_PAPER.replace('class="quote-paper"','class="sheet quote-paper legacy-quote"')
      .replace('<tbody id="qpItems"></tbody>','<tbody>'+rows.join('')+'</tbody>')
      .replace(/<(b|span) id="([^"]+)"><\/\1>/g,(_,tag,id)=>'<'+tag+'>'+esc(binding[id]||'')+'</'+tag+'>')
@@ -392,7 +393,11 @@ function editNote(id){
  $('noteEditor').hidden=false;
  $('noteEditor').scrollIntoView({block:'start',behavior:'instant'});
  updateFloatingBack();
- if(id==null)$('noteContent').focus();
+ // For both add and edit, reveal the writable field without clearing existing text.
+ requestAnimationFrame(()=>{
+  $('noteEditor').scrollIntoView({block:'start',behavior:'instant'});
+  $('noteContent').focus({preventScroll:true});
+ });
 }
 function cancelNote(){
  if(editorFromRecord?.kind==='note'){finishRecordEdit();return}
@@ -871,6 +876,21 @@ function updateBackToTop(){
  backToTop.hidden=offset<180;
  refreshCloudOuter.hidden=currentTab!=='cloud'||$('panel-cloud').hidden;
 }
+// The cloud iframe has no independent scrollbar on iPhone. An edit click in
+// that frame must move the parent CRM window to the real note input instead.
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==cloudFrame.contentWindow||
+    event.data?.type!=='HONBIN_CLOUD_NOTE_EDITOR'||currentTab!=='cloud')return;
+ const doc=cloudDocument(),editor=doc?.getElementById('noteEditor');
+ if(!editor||editor.hidden)return;
+ queueCloudSize();
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  resizeCloudFrame();
+  const inner=editor.getBoundingClientRect(),outer=cloudFrame.getBoundingClientRect();
+  const target=Math.max(0,window.scrollY+outer.top+inner.top-78);
+  if(Number.isFinite(target))window.scrollTo({top:target,behavior:'smooth'});
+ }));
+});
 cloudFrame.addEventListener('load',observeCloudSize);
 refreshCloudOuter.onclick=()=>{
  const control=cloudDocument()?.getElementById('refreshCloud');
