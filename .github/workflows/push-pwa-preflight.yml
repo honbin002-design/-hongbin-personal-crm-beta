@@ -40,7 +40,9 @@ jobs:
           assert cfg['schemaVersion']==1
           assert cfg['subscriptionsEnabled'] is False
           assert cfg['senderEnabled'] is False
-          assert cfg['publicVapidKey']==''
+          assert isinstance(cfg['publicVapidKey'],str) and len(cfg['publicVapidKey'])==87
+          assert all(c.isalnum() or c in '_-' for c in cfg['publicVapidKey'])
+          assert cfg['environment']=='SPARK_SAFE_HOLD'
           manifest=json.loads(Path('manifest.webmanifest').read_text())
           assert manifest['display']=='standalone'
           assert manifest['scope']=='./'
