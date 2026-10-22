@@ -121,12 +121,12 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const oldPaper=page.locator('#quotePreviewPages .legacy-quote').first();
  check(await oldPaper.count()===1,'報價單已使用原版紙張樣式，不是新版重製格式');
  const headers=await oldPaper.locator('.q-table th').allTextContents();
- check(headers.join('|')==='品名|品號|規格|單價 (NT)|最低訂購量','原本報價單五欄標題與順序完全相同');
+ check(headers.join('|')==='品名|品號|規格|單價 (NT)','參考圖四欄標題與順序一致，MOQ 仍保存在編輯記錄');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
  check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===265&&img.getAttribute('src')==='quote-letterhead.jpg'),'公司抬頭使用未改動的原始 JPEG 檔');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
- check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
+ check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價四欄明細在預覽中水平及垂直置中');
  check(await oldPaper.evaluate(el=>{
    const x=el.querySelector('.q-table').getBoundingClientRect().left;
    const delivery=el.querySelector('.q-terms').getBoundingClientRect().left;
@@ -134,6 +134,18 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
    return Math.abs(x-delivery)<1&&Math.abs(x-notes)<1;
  }), '交貨日期、備註均與表格最左側格線對齊');
 
+ // Reference-sheet alignment and typography: one continuous bottom border,
+ // normal tracking, exact business-representative right edge.
+ check(await oldPaper.evaluate(el=>{
+  const table=el.querySelector('.q-table').getBoundingClientRect();
+  const sign=el.querySelector('.q-sales').getBoundingClientRect();
+  const tracking=['.q-party','.q-table tbody td'].every(q=>
+    getComputedStyle(el.querySelector(q)).letterSpacing==='normal');
+  const rows=[...el.querySelectorAll('.q-table tbody tr')];
+  return Math.abs(table.right-sign.right)<1&&tracking&&rows.length===4&&
+   rows.every(row=>row.children.length===4)&&
+   getComputedStyle(rows[0].children[0]).borderBottomWidth==='0px';
+ }), '原版四欄無內橫線、字距正常及業務代表右側對齊');
  const expectedFont=(pt,px)=>Math.abs(px-pt*96/72)<0.25;
  const quoteTypography=await oldPaper.evaluate(el=>{
    const names=['.q-party','.q-party-row','.q-table th','.q-table td','.q-terms','.q-notes','.q-notes span','.q-sales'];
@@ -164,11 +176,11 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
      appHidden:getComputedStyle(document.querySelector('.app')).display==='none'};
  });
  check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
- check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
+ check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價四欄明細同樣維持置中');
  check(await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
   const left=el.querySelector('.q-table').getBoundingClientRect().left;
   return ['.q-terms','.q-notes'].every(sel=>Math.abs(el.querySelector(sel).getBoundingClientRect().left-left)<1);
- }), 'Safari 列印版從交貨日期起與五欄表格左線平齊');
+ }), 'Safari 列印版從交貨日期起與四欄表格左線平齊');
 
  const printFonts=await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
   const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales'];
