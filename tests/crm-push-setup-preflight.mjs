@@ -8,7 +8,7 @@ assert.equal(validPushPublicConfig({...disabled,subscriptionsEnabled:true,
 let handler=null,requests=0;
 globalThis.window={addEventListener:()=>{},removeEventListener:()=>{},
  navigator:{standalone:false},matchMedia:()=>({matches:false})};
-globalThis.navigator={};
+// Node 22 exposes a readonly built-in navigator; no mutation is needed.
 const button={disabled:true,textContent:'',
  addEventListener:(_name,fn)=>{handler=fn}};
 const status={textContent:''};
