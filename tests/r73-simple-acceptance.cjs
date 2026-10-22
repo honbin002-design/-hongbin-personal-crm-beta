@@ -71,6 +71,20 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>window.scrollY>600&&
    document.querySelector('#cloudWorkspace').contentWindow.scrollY===0),
   '下滑雲端記事長內容，只有 CRM 主頁捲動、無內外交界卡頓');
+ check(await page.evaluate(()=>{
+  const refresh=document.querySelector('#refreshCloudOuter');
+  const top=document.querySelector('#backToTop');
+  const details=document.querySelector('#floatingGoBack');
+  const a=refresh.getBoundingClientRect(),b=top.getBoundingClientRect();
+  const bottomSpace=innerHeight-a.bottom;
+  const placement=el=>getComputedStyle(el).bottom;
+  return !refresh.hidden&&!top.hidden &&
+   Math.abs(a.bottom-b.bottom)<=1 &&
+   bottomSpace>=20&&bottomSpace<=75 &&
+   placement(refresh)===placement(top) &&
+   placement(top)===placement(details) &&
+   a.left>=0&&b.right<=innerWidth;
+ }), 'iPhone 浮動重新整理及回頂端對齊並下移至安全區上方，兩者可點擊');
  await page.locator('#backToTop').click();
  await page.waitForFunction(()=>window.scrollY<10);
  check(await page.evaluate(()=>window.scrollY<10),
