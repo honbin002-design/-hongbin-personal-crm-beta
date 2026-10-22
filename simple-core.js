@@ -142,7 +142,7 @@ function goBackView(){
  updateFloatingBack();
 }
 
-function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src}if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();updateBackToTop()}
+function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src;else queueCloudSize()}if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();updateBackToTop()}
 function customerEntries(){const m=getMaster().customers,c=getCRM().customers,map=new Map();m.forEach(x=>{const key=norm(x.name);if(key)map.set(key,{...x,legacyId:c.find(v=>norm(v.name)===key)?.id})});c.forEach(x=>{const key=norm(x.name);if(key&&!map.has(key))map.set(key,{name:x.name,legacyId:x.id})});return [...map.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh-Hant'))}
 function datalist(id,values){const n=$(id);if(!n)return;n.replaceChildren(...[...new Set(values.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant')).map(s=>{const o=document.createElement('option');o.value=s;return o}))}
 function fillCustomerNames(){
@@ -816,49 +816,80 @@ document.addEventListener('keydown',e=>{
   if(next.matches('input[type="text"],input:not([type])')&&typeof next.select==='function')next.select();
 },true);
 
-/* CRM has one "回頂端" control. Its inner cloud iframe can scroll on
-   its own, so the same outer button returns BOTH scrollports to the top.
-   The embedded workspace hides its duplicate "頁首" button. */
+/* Single continuous iPhone scroll: expand the same-origin cloud frame to
+   its real body height. One CRM scrollport owns all vertical touch gestures.
+   Fixed cloud controls live in the host, never at the bottom of a tall iframe. */
 const backToTop=$('backToTop');
 const cloudFrame=$('cloudWorkspace');
-let observedCloudScroll=null;
-function cloudScrollWindow(){
+const refreshCloudOuter=$('refreshCloudOuter');
+let cloudResizeObserver=null,cloudResizeFrame=0;
+function cloudDocument(){
  if(currentTab!=='cloud'||$('panel-cloud').hidden)return null;
  try{
   const inside=cloudFrame?.contentWindow;
-  // Only access our own GitHub Pages origin; never inspect unknown frames.
-  return inside?.location.origin===location.origin?inside:null;
+  return inside?.location.origin===location.origin?inside.document:null;
  }catch{return null}
 }
+function resizeCloudFrame(){
+ const doc=cloudDocument();
+ if(!doc?.body)return;
+ // Don't use documentElement.scrollHeight: it includes the previous iframe
+ // viewport and can prevent shrinking or create an endless resize loop.
+ const body=doc.body;
+ const natural=Math.max(body.scrollHeight,body.offsetHeight,
+  Math.ceil(body.getBoundingClientRect().height));
+ if(!Number.isFinite(natural)||natural<1)return;
+ const pixels=Math.max(480,Math.min(100000,Math.ceil(natural)+4));
+ if(Math.abs(cloudFrame.getBoundingClientRect().height-pixels)>2)
+  cloudFrame.style.height=pixels+'px';
+}
+function queueCloudSize(){
+ if(cloudResizeFrame)cancelAnimationFrame(cloudResizeFrame);
+ cloudResizeFrame=requestAnimationFrame(()=>{
+  cloudResizeFrame=0;resizeCloudFrame();
+ });
+}
+function observeCloudSize(){
+ if(cloudResizeObserver){cloudResizeObserver.disconnect();cloudResizeObserver=null}
+ const doc=cloudDocument();
+ if(!doc?.body)return;
+ try{
+  doc.documentElement.style.overflowY='hidden';
+  doc.body.style.overflowY='visible';
+  doc.documentElement.style.height='auto';
+  doc.body.style.height='auto';
+ }catch{}
+ if(typeof ResizeObserver==='function'){
+  cloudResizeObserver=new ResizeObserver(queueCloudSize);
+  cloudResizeObserver.observe(doc.body);
+ }
+ doc.fonts?.ready?.then(queueCloudSize).catch(()=>{});
+ queueCloudSize();updateBackToTop();
+}
 function updateBackToTop(){
- const documentOffset=window.scrollY||document.documentElement.scrollTop||0;
- const inner=cloudScrollWindow();
- let cloudOffset=0;
- try{cloudOffset=inner?.scrollY||inner?.document?.scrollingElement?.scrollTop||0}catch{}
- backToTop.hidden=documentOffset<180&&cloudOffset<180;
+ const offset=window.scrollY||document.documentElement.scrollTop||0;
+ backToTop.hidden=offset<180;
+ refreshCloudOuter.hidden=currentTab!=='cloud'||$('panel-cloud').hidden;
 }
-function observeCloudScroll(){
- if(observedCloudScroll){
-  try{observedCloudScroll.removeEventListener('scroll',updateBackToTop)}catch{}
-  observedCloudScroll=null;
+cloudFrame.addEventListener('load',observeCloudSize);
+refreshCloudOuter.onclick=()=>{
+ const control=cloudDocument()?.getElementById('refreshCloud');
+ if(control&&!control.disabled)control.click();
+ else{
+  const status=cloudDocument()?.getElementById('message');
+  if(status)status.textContent='請先登入雲端記事，再使用重新整理功能。';
  }
- const frameWindow=cloudScrollWindow();
- if(frameWindow){
-  frameWindow.addEventListener('scroll',updateBackToTop,{passive:true});
-  observedCloudScroll=frameWindow;
- }
- updateBackToTop();
-}
-cloudFrame.addEventListener('load',observeCloudScroll);
+};
 backToTop.onclick=()=>{
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- const behavior=reduced?'instant':'smooth';
- const inner=cloudScrollWindow();
- try{inner?.scrollTo({top:0,behavior})}catch{}
- window.scrollTo({top:0,behavior});
+ window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
 };
 window.addEventListener('scroll',updateBackToTop,{passive:true});
-window.addEventListener('pageshow',updateBackToTop);
+window.addEventListener('pageshow',()=>{
+ updateBackToTop();
+ if(currentTab==='cloud')queueCloudSize();
+});
+
 
 fillCustomerNames();renderQuotes();openTab('quotes');
 updateBackToTop();
