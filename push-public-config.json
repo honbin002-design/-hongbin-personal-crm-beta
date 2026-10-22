@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "publicVapidKey": "",
+  "subscriptionsEnabled": false,
+  "senderEnabled": false,
+  "environment": "SPARK_SAFE_HOLD"
+}
