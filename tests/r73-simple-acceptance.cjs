@@ -194,7 +194,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const sharedPdf=await page.evaluate(()=>window.__sharePdf);
  check(sharedPdf.header==='%PDF-'&&sharedPdf.tail.includes('%%EOF')&&sharedPdf.size>10000,'分享選單收到真正 PDF 二進位檔');
  const cleanTextPdf=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
- check((Buffer.from(cleanTextPdf).toString('latin1').match(/\\/Subtype \\/Image/g)||[]).length===1,
+ check((Buffer.from(cleanTextPdf).toString('latin1').match(/\/Subtype \/Image/g)||[]).length===1,
    '文件 PDF 僅嵌入原始公司抬頭圖，不將整頁轉成圖片');
  check(!/html2canvas|canvas\.toDataURL\('image\/jpeg'/.test(await page.evaluate(()=>window.honbinVectorQuotePdf?.toString()||'')),
    '列印流程不再使用整頁圖片轉換');
