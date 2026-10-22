@@ -22,6 +22,7 @@ async function send(data){
   waitUntil:promise=>{work=promise}});
  await work;return messages.at(-1);
 }
+(async()=>{
 const sample=await send({kind:'TASK_ASSIGNED',groupId:'group_123',taskId:'task_456',
  email:'hidden@example.test',taskTitle:'Confidential client'});
 assert.equal(sample.title,'有新任務指派');
@@ -49,3 +50,5 @@ assert.match(src,/self.addEventListener\('push'/);
 assert.match(src,/self.addEventListener\('notificationclick'/);
 assert.doesNotMatch(src,/service[_-]?account|VAPID_PRIVATE|customerTitle|customerData/);
 console.log('CRM_MAIN_PWA_PUSH_RECEIVER_SAFE_ROUTING_PASS');
+
+})().catch(error=>{console.error(error);process.exitCode=1});
