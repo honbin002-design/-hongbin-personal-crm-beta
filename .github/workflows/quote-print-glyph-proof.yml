@@ -1,0 +1,32 @@
+name: Real quote PDF glyph print proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - quote-vector-pdf.js
+      - tests/quote-print-glyph-proof.cjs
+      - .github/workflows/quote-print-glyph-proof.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-native-pdf-print:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare independent PDF print renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          curl -fL --retry 3 --retry-delay 2 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/TC/NotoSansTC-Regular.otf' -o /tmp/honbin-print-font.otf
+          test "$(wc -c </tmp/honbin-print-font.otf)" -gt 1000000
+      - name: Install PDF document libraries only (no browser)
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund pdf-lib@1.17.1 @pdf-lib/fontkit@1.1.1
+      - name: Check searchable native text and actual print pixels
+        env:
+          CRM_PRINT_TEST_FONT: /tmp/honbin-print-font.otf
+        run: node tests/quote-print-glyph-proof.cjs
