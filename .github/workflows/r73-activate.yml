@@ -37,7 +37,7 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM</title>' in html
-          assert html.count('src="./simple-core.js?v=r73-push-deeplink-20261022"') == 1
+          assert html.count('src="./simple-core.js?v=20261022-quote-note-scroll"') == 1
           assert 'src="./owner-prices.mjs?v=20261022"' in html
           assert 'id="ownerPricePanel"' in html
           assert '<script src="./r73-fixes.js' not in html
@@ -56,13 +56,15 @@ jobs:
           assert 'function pdfQuote(' in js
           assert 'html2canvas@' not in js
           assert 'quote-vector-pdf.js' in html
+          assert 'HONBIN_CLOUD_NOTE_EDITOR' in js
+          assert "['品名','品號','規格','單價 (NT)']" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'quote-letterhead.jpg' in js
           assert 'q-mark' not in js
           assert "text(page,line,left,y,14)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'subset:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'useObjectStreams:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
-          assert "fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
-          assert 'hongbin-crm-r73-airprint-font-20261022' in sw
+          assert 'right-measure(representative,repSize)' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
+          assert 'hongbin-crm-r73-quote-layout-and-note-edit-20261022' in sw
           assert 'rel="manifest"' in html
           assert 'apple-mobile-web-app-capable' in html
           assert 'pushTab' in js
