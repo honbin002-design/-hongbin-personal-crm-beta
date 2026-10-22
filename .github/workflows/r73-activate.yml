@@ -52,7 +52,7 @@ jobs:
           assert 'html2canvas@' not in js
           assert 'quote-vector-pdf.js' in html
           assert 'q-company-cn' in js
-          assert 'hongbin-crm-r73-unified-notes-20261022' in sw
+          assert 'hongbin-crm-r73-vector-pdf-20261022' in sw
           assert 'simple-core.js' in sw
           assert 'withR73(' not in sw
           print('R73 simplified release safety checks PASS')
