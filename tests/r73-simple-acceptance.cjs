@@ -22,6 +22,30 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#panel-cloud').isVisible()&&
   (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-inapp-notices',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
+ // Simulate its independent scrollport in the same-origin iframe to
+ // verify one existing outer button handles both page and cloud content.
+ await page.locator('#cloudWorkspace').evaluate(frame=>{
+  frame.srcdoc='<!doctype html><html><body style="height:2800px;margin:0">嵌入記事捲動驗證</body></html>';
+ });
+ await page.waitForFunction(()=>{
+  const frame=document.querySelector('#cloudWorkspace');
+  return frame?.contentDocument?.body?.textContent?.includes('嵌入記事捲動驗證');
+ });
+ await page.evaluate(()=>{
+  window.scrollTo(0,0);
+  document.querySelector('#cloudWorkspace').contentWindow.scrollTo(0,850);
+ });
+ await page.waitForFunction(()=>!document.querySelector('#backToTop').hidden);
+ check(await page.locator('#backToTop').isVisible(),
+  '雲端記事內部向下捲動時只使用 CRM 的既有回頂端按鈕');
+ await page.locator('#backToTop').click();
+ await page.waitForFunction(()=>{
+  const f=document.querySelector('#cloudWorkspace');
+  return window.scrollY<10&&f.contentWindow.scrollY<10;
+ });
+ check(await page.evaluate(()=>document.querySelector('#cloudWorkspace').contentWindow.scrollY<10),
+  'CRM 回頂端可讓內嵌雲端記事與主頁面同時回到頂部');
+ await page.locator('#cloudWorkspace').evaluate(frame=>frame.removeAttribute('srcdoc'));
  await page.locator('[data-tab="quotes"]').click();
  check(!await page.locator('button[data-tab="commands"],button[data-tab="ocr"]').count(),'沒有恢復已退出的指令、OCR 複雜模組');
 
