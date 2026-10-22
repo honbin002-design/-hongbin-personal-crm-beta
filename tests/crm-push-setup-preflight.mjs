@@ -23,7 +23,7 @@ assert.equal(button.disabled,false,'readiness button available');
 assert.match(status.textContent,/尚未開放/);
 handler();await new Promise(r=>setTimeout(r,0));
 assert.equal(requests,0,'no implicit Notification.requestPermission call');
-assert.match(status.textContent,/尚未正式啟用/);
+assert.match(status.textContent,/尚未開放/);
 app.destroy();
 const stageButton={disabled:true,textContent:'',addEventListener:()=>{}};
 const stageStatus={textContent:''};
