@@ -45,7 +45,7 @@ function splitToWidth(input,font,size,maxWidth,maxLines=99){
 }
 async function makePdf(data){
  if(!window.PDFLib||!window.fontkit)throw Error('免費 PDF 元件尚未載入');
- const {PDFDocument,rgb}=window.PDFLib;
+ const {PDFDocument,rgb,StandardFonts}=window.PDFLib;
  const pdf=await PDFDocument.create();pdf.registerFontkit(window.fontkit);
  const bytes=await fontBytes();
  let font;
@@ -58,21 +58,39 @@ async function makePdf(data){
   if(!resp.ok)throw Error('完整中文字型載入失敗，已中止列印避免空白報價');
   font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:false});
  }
+ const latinFont=await pdf.embedFont(StandardFonts.TimesRoman);
  const black=rgb(.12,.12,.12),gray=rgb(.33,.33,.33);
+ // Print ASCII letters and digits with normal Latin glyph advances instead of
+ // the CJK font's wide proportional metrics (iOS AirPrint and PDF viewers).
+ const runs=value=>{
+  const groups=[];
+  for(const character of Array.from(txt(value))){
+   const fontForCharacter=/^[\x20-\x7e]$/.test(character)?latinFont:font;
+   const last=groups[groups.length-1];
+   if(last?.font===fontForCharacter)last.value+=character;
+   else groups.push({font:fontForCharacter,value:character});
+  }
+  return groups;
+ };
+ const measure=(value,size)=>runs(value).reduce((sum,run)=>sum+run.font.widthOfTextAtSize(run.value,size),0);
  const W=595.276,H=841.890,left=47,right=W-47,tableWidth=right-left;
  const fields=data?.fields||{},items=Array.isArray(data?.items)?data.items:[],records=items.length?items:[{}];
  const pages=[];for(let i=0;i<records.length;i+=4)pages.push(records.slice(i,i+4));
  function text(page,value,x,y,size=14,opts={}){
   const t=txt(value);if(!t)return;
-  page.drawText(t,{x,y,size,font,color:opts.color||black});
+  let position=x;
+  for(const run of runs(t)){
+   page.drawText(run.value,{x:position,y,size,font:run.font,color:opts.color||black});
+   position+=run.font.widthOfTextAtSize(run.value,size);
+  }
  }
  function fitText(page,value,x,y,size,width,options={}){
   const t=txt(value);if(!t)return;
-  let s=size;while(font.widthOfTextAtSize(t,s)>width&&s>8)s-=.5;
+  let s=size;while(measure(t,s)>width&&s>8)s-=.5;
   text(page,t,x,y,s,options);
  }
  function center(page,value,cx,y,size=14,options={}){
-  const t=txt(value);const w=font.widthOfTextAtSize(t,size);text(page,t,cx-w/2,y,size,options);
+  const t=txt(value);const w=measure(t,size);text(page,t,cx-w/2,y,size,options);
  }
  function rule(page,x1,y1,x2,y2,width=.6,color=gray){
   page.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},thickness:width,color});
@@ -98,7 +116,7 @@ async function makePdf(data){
   let start=y-height/2+(rows.length-1)*step/2-5;
   for(const line of rows){
    if(line){
-    const rendered=font.widthOfTextAtSize(line,size);
+    const rendered=measure(line,size);
     text(page,line,align==='center'?x+(width-rendered)/2:x+4,start,size);
    }
    start-=step;
@@ -113,17 +131,20 @@ async function makePdf(data){
   fitText(page,'NO： '+txt(fields.qdNo),335,631,15,214);
   fitText(page,'DATE： '+txt(fields.qdDate).replace(/-/g,'/'),335,607,15,214);
   fitText(page,'聯絡人： '+txt(fields.qdContact),335,583,15,214);
-  const columns=[.25,.20,.16,.19,.20].map(x=>x*tableWidth);
+  // Exact four-column appearance of the approved original printed template.
+  // MOQ is preserved in CRM records/editor, never erased from saved quotations.
+  const columns=[.18,.28,.18,.36].map(x=>x*tableWidth);
   const starts=[left];for(const width of columns)starts.push(starts.at(-1)+width);
   const top=565,headH=34,rowH=36,bottom=top-headH-rowH*4;
-  for(let i=0;i<=5;i++)rule(page,starts[i],top,starts[i],bottom,.7);
-  for(let i=0;i<=5;i++)rule(page,left,top-(i===0?0:headH+rowH*(i-1)),right,top-(i===0?0:headH+rowH*(i-1)),.7);
-  const headers=['品名','品號','規格','單價 (NT)','最低訂購量'];
-  for(let j=0;j<5;j++)drawRow(page,headers[j],starts[j],top,15,columns[j],headH);
+  for(let i=0;i<=4;i++)rule(page,starts[i],top,starts[i],bottom,.7);
+  // One outer box and one header separator; do not draw lines between items.
+  for(const y of [top,top-headH,bottom])rule(page,left,y,right,y,.7);
+  const headers=['品名','品號','規格','單價 (NT)'];
+  for(let j=0;j<4;j++)drawRow(page,headers[j],starts[j],top,15,columns[j],headH);
   for(let k=0;k<4;k++){
    const row=subset[k]||{};
-   const fields=[row.name,row.model,row.spec,row.price,row.moq];
-   for(let j=0;j<5;j++)drawRow(page,fields[j],starts[j],top-headH-k*rowH,14.8,columns[j],rowH);
+   const cells=[row.name,row.model,row.spec,row.price];
+   for(let j=0;j<4;j++)drawRow(page,cells[j],starts[j],top-headH-k*rowH,14.8,columns[j],rowH);
   }
   let y=bottom-21;
   const details=[
@@ -148,7 +169,10 @@ async function makePdf(data){
     text(page,line,left,y,14);y-=20;
    }
   }
-  fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244);
+  // Align the last printed glyph to the same right x as the table's right border.
+  const representative='業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel);
+  let repSize=14;while(measure(representative,repSize)>tableWidth&&repSize>8)repSize-=.5;
+  text(page,representative,right-measure(representative,repSize),76,repSize);
   // Deliberately no lower-right page index in customer quotation PDF.
  });
  const result=await pdf.save({useObjectStreams:false});
