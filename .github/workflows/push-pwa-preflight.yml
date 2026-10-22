@@ -1,0 +1,57 @@
+name: CRM iPhone Web Push safe-hold checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sw.js'
+      - 'crm-push-setup.mjs'
+      - 'push-public-config.json'
+      - 'manifest.webmanifest'
+      - 'simple-core.js'
+      - 'index.html'
+      - 'tests/crm-push-receiver-preflight.cjs'
+      - 'tests/crm-push-setup-preflight.mjs'
+      - '.github/workflows/push-pwa-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-safe-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax and installed CRM push routes
+        run: |
+          node --check sw.js
+          node --check simple-core.js
+          node --check crm-push-setup.mjs
+          node tests/crm-push-receiver-preflight.cjs
+          node tests/crm-push-setup-preflight.mjs
+      - name: Verify fail-closed activation and PWA details
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          cfg=json.loads(Path('push-public-config.json').read_text())
+          assert cfg['schemaVersion']==1
+          assert cfg['subscriptionsEnabled'] is False
+          assert cfg['senderEnabled'] is False
+          assert cfg['publicVapidKey']==''
+          manifest=json.loads(Path('manifest.webmanifest').read_text())
+          assert manifest['display']=='standalone'
+          assert manifest['scope']=='./'
+          html=Path('index.html').read_text()
+          assert 'rel="manifest"' in html
+          assert 'crm-push-setup.mjs' in html
+          js=Path('simple-core.js').read_text()
+          assert "pushRoute.get('pushTab')" in js
+          assert "openTab('cloud')" in js
+          sw=Path('sw.js').read_text()
+          assert "self.addEventListener('push'" in sw
+          assert "self.addEventListener('notificationclick'" in sw
+          print('CRM_PUSH_PWA_PRECHECK_PASS_SAFE_HOLD')
+          PY
