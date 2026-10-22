@@ -1,6 +1,10 @@
 'use strict';
 const {webkit,chromium,devices}=require('playwright'),assert=require('node:assert/strict');
 const {PDFDocument}=require('pdf-lib');
+const {mkdtempSync,writeFileSync,readFileSync,rmSync}=require('node:fs');
+const {tmpdir}=require('node:os');
+const {join}=require('node:path');
+const {execFileSync}=require('node:child_process');
 const base='http://127.0.0.1:8765/index.html';
 const fixtures={
 'hongbin_crm_master_r70':{customers:[{name:'測試甲公司',contact:'林小姐',tel:'06-0000000',address:'虛構地址'}],products:[{name:'既有產品',customerName:'測試甲公司'}],suppliers:[]},
@@ -228,10 +232,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
 
  await page.addScriptTag({path:require.resolve('pdf-lib/dist/pdf-lib.min.js')});
  await page.addScriptTag({path:require.resolve('@pdf-lib/fontkit/dist/fontkit.umd.min.js')});
- // Serve the pinned open-source CJK font from locally installed test package:
- // no GitHub Pages PDF output is dependent on the network during regression.
- await page.route('**/noto-sans-tc-chinese-traditional-400-normal.woff2',route=>
-  route.fulfill({path:require.resolve('@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff2'),contentType:'font/woff2'}));
+ // Use exact static Traditional-Chinese OpenType; no WOFF2 or subset font.
+ // Downloaded only on temporary CI worker, never committed to project.
+ await page.route('**/Sans/SubsetOTF/TC/NotoSansTC-Regular.otf',route=>
+  route.fulfill({path:process.env.CRM_PRINT_TEST_FONT,contentType:'font/otf'}));
  // 模擬 iPhone 支援 Web Share Files 時，按一下下載就直接送出 PDF。
  await page.evaluate(()=>{
    window.__sharePdf=null;
@@ -249,6 +253,34 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const sharedPdf=await page.evaluate(()=>window.__sharePdf);
  check(sharedPdf.header==='%PDF-'&&sharedPdf.tail.includes('%%EOF')&&sharedPdf.size>10000,'分享選單收到真正 PDF 二進位檔');
  const cleanTextPdf=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
+ // A logo and ruled table can print even when every letter is missing.
+ // Validate native text AND print-raster pixels using independent Poppler.
+ const printDir=mkdtempSync(join(tmpdir(),'honbin-print-'));
+ try{
+  const file=join(printDir,'quote.pdf');
+  writeFileSync(file,Buffer.from(cleanTextPdf));
+  const extracted=execFileSync('pdftotext',['-layout','-enc','UTF-8',file,'-'],
+    {encoding:'utf8',timeout:30000});
+  for(const word of ['報價單','Messers.','測試甲公司','舊報價品項',
+    '交貨日期','付款條件','業務代表']){
+   check(extracted.includes(word),'實際 PDF 文字必須可提取：'+word);
+  }
+  const raster=join(printDir,'proof');
+  execFileSync('pdftoppm',['-f','1','-l','1','-r','72','-gray',
+    '-singlefile',file,raster],{timeout:30000});
+  const pgm=readFileSync(raster+'.pgm');
+  const header=pgm.subarray(0,140).toString('latin1');
+  const match=/^P5\s+(\d+)\s+(\d+)\s+(\d+)\s/.exec(header);
+  check(!!match&&Number(match[3])===255,'可用獨立 PDF 列印引擎解析頁面');
+  const [w,h]=[Number(match[1]),Number(match[2])];
+  const offset=Buffer.byteLength(match[0],'latin1');
+  let dark=0;
+  // Customer contact/name section, below banner but above ruled table.
+  // In the defective physical print this entire region was white.
+  for(let y=199;y<257&&y<h;y++)for(let x=60;x<535&&x<w;x++)
+   if(pgm[offset+y*w+x]<145)dark++;
+  check(dark>110,'PDF 列印呈現客戶與報價文字，不再只剩 LOGO 與表格線');
+ }finally{rmSync(printDir,{recursive:true,force:true})}
  check((Buffer.from(cleanTextPdf).toString('latin1').match(/\/Subtype \/Image/g)||[]).length===1,
    '文件 PDF 僅嵌入原始公司抬頭圖，不將整頁轉成圖片');
  check(!/html2canvas|canvas\.toDataURL\('image\/jpeg'/.test(await page.evaluate(()=>window.honbinVectorQuotePdf?.toString()||'')),
