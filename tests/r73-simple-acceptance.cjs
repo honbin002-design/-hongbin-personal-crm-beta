@@ -20,7 +20,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
-  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-inapp-notices',
+  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-single-top',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
  // Simulate its independent scrollport in the same-origin iframe to
  // verify one existing outer button handles both page and cloud content.
