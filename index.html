@@ -262,6 +262,11 @@
  #panel-cloud{padding:8px 10px 10px}
  #panel-cloud .cloud-panel-title{padding:9px 12px;margin-bottom:8px}
 }
+.cloud-panel-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.cloud-panel-title h2{flex:1 1 130px}
+#pushHostButton{font-size:14px;min-height:40px;padding:6px 10px}
+.cloud-push-status{margin:0 0 7px;color:#52687c;font-size:12px;line-height:1.4}
+.cloud-push-status:empty{display:none}
 /* Single-scroll integration: the cloud document grows with content.
    No independent iframe viewport or touch-scroll boundary on iPhone. */
 .cloudWorkspace{width:100%;height:480px;min-height:0;max-height:none;overflow:hidden;
@@ -426,7 +431,8 @@
   </div>
 </section>
 <section class="panel" id="panel-cloud" hidden>
- <div class="card cloud-panel-title"><h2>雲端記事與任務</h2></div>
+ <div class="card cloud-panel-title"><h2>雲端記事與任務</h2><button id="pushHostButton" type="button" class="secondary" aria-label="檢查或啟用 iPhone 系統通知">檢查手機通知</button></div>
+ <p id="pushHostStatus" class="cloud-push-status" role="status" aria-live="polite"></p>
  <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽 CRM 雲端記事與任務" loading="lazy" scrolling="no" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-notification-fullpage"></iframe>
 </section>
 <section class="panel" id="panel-backup" hidden>
@@ -473,5 +479,13 @@
 <script src="./quote-vector-pdf.js?v=20261022-original-header" defer></script>
 <script src="./simple-core.js?v=r73-push-deeplink-20261022" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
+<script type="module">
+ import {initCRMPush} from './crm-push-setup.mjs?v=20261022-safe-hold';
+ initCRMPush({
+  button:document.getElementById('pushHostButton'),
+  status:document.getElementById('pushHostStatus'),
+  frame:document.getElementById('cloudWorkspace')
+ });
+</script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-push-receiver-20261022').catch(()=>{}))}</script>
 </body></html>
