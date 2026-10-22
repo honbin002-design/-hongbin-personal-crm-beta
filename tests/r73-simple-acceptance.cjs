@@ -20,7 +20,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
-  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-single-top',
+  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-smoothscroll',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
  // The cloud iframe is now auto-sized to its real contents, leaving just
  // one continuous iPhone viewport, no nested swipe-to-bottom handoff.
