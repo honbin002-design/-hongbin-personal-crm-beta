@@ -66,11 +66,12 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
  check(await oldPaper.locator('.q-mark svg').count()===1 && (await oldPaper.locator('.q-company-cn').innerText())==='鴻繽科技有限公司','公司抬頭已改為可縮放向量商標及清晰文字');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
+ check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
 
  const expectedFont=(pt,px)=>Math.abs(px-pt*96/72)<0.25;
  const quoteTypography=await oldPaper.evaluate(el=>{
-   const names=['.q-party','.q-party-row','.q-table th','.q-table td','.q-terms','.q-notes','.q-notes span','.q-sales','.q-page-no'];
+   const names=['.q-party','.q-party-row','.q-table th','.q-table td','.q-terms','.q-notes','.q-notes span','.q-sales'];
    const sizes=names.map(s=>({selector:s,px:parseFloat(getComputedStyle(el.querySelector(s)).fontSize)}));
    const title=el.querySelector('.q-title'),ts=getComputedStyle(title),under=getComputedStyle(title,'::after');
    return {titlePx:parseFloat(ts.fontSize),decoration:ts.textDecorationLine,
@@ -80,8 +81,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   quoteTypography.underlineContent!=='none'&&quoteTypography.underlineDistance>=1.7&&quoteTypography.underlineDistance<=2.2,
   '標題字體為 20pt，底線分離且不與文字重疊');
  check(quoteTypography.sizes.every(x=>expectedFont(
- ['.q-terms','.q-notes','.q-notes span','.q-sales','.q-page-no'].includes(x.selector)?14:16,x.px)),
- '報價明細 16pt，交貨日期起所有條款、備註、業務代表與頁碼縮為 14pt');
+ ['.q-terms','.q-notes','.q-notes span','.q-sales'].includes(x.selector)?14:16,x.px)),
+ '報價明細 16pt，交貨日期起所有條款、備註與業務代表縮為 14pt');
 
 
  // iOS Safari/WebKit 使用 print media 時，首張報價必須留 25mm 安全高度，
@@ -101,13 +102,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
 
  const printFonts=await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
-  const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales','.q-page-no'];
+  const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales'];
   return {title:parseFloat(getComputedStyle(el.querySelector('.q-title')).fontSize),
    sizes:names.map(s=>({selector:s,px:parseFloat(getComputedStyle(el.querySelector(s)).fontSize)}))};
  });
  check(expectedFont(20,printFonts.title)&&printFonts.sizes.every(x=>expectedFont(
- ['.q-terms','.q-notes','.q-sales','.q-page-no'].includes(x.selector)?14:16,x.px)),
- 'Safari 列印版條款至頁碼同為 14pt，其他明細 16pt');
+ ['.q-terms','.q-notes','.q-sales'].includes(x.selector)?14:16,x.px)),
+ 'Safari 列印版條款至業務代表同為 14pt，其他明細 16pt');
 
  check(webkitPrint.shellCount===1&&webkitPrint.shellHeight<1040&&webkitPrint.paperHeight<1030,
   'Safari A4 報價紙張預留足夠列印安全高度');
@@ -188,6 +189,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(!/html2canvas|canvas\.toDataURL\('image\/jpeg'/.test(await page.evaluate(()=>window.honbinVectorQuotePdf?.toString()||'')),
    '列印流程不再使用整頁圖片轉換');
  check(sharedPdf.name==='報價單_QTEST-001.pdf'&&sharedPdf.type==='application/pdf','PDF 以原報價編號命名並傳遞正確檔案類型');
+ check(!/第.*頁/.test(await page.evaluate(()=>document.querySelector('#printRoot')?.innerText||'')),
+  '列印 DOM 不產生頁次文字');
+ check(!/第.*頁/.test(await page.evaluate(()=>document.querySelector('#quotePreviewPages')?.innerText||'')),
+  '報價單預覽未包含頁次');
  check(await page.locator('#pdfNotice a').count()===0,'按下載 PDF 不再顯示小字開啟／下載連結');
  check(pdfPopups.length===0,'按下載 PDF 不會開啟新分頁或新視窗');
  check((await page.locator('#pdfNotice').innerText()).includes('分享選單'),'支援分享選單時顯示正確狀態');
