@@ -60,7 +60,7 @@ jobs:
           assert 'q-mark' not in js
           assert "text(page,line,left,y,14)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert "fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
-          assert 'hongbin-crm-r73-smoothscroll-20261022' in sw
+          assert 'hongbin-crm-r73-push-receiver-20261022' in sw
           assert 'rel="manifest"' in html
           assert 'apple-mobile-web-app-capable' in html
           assert 'pushTab' in js
