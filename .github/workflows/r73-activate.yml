@@ -59,6 +59,8 @@ jobs:
           assert 'quote-letterhead.jpg' in js
           assert 'q-mark' not in js
           assert "text(page,line,left,y,14)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
+          assert 'subset:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
+          assert 'useObjectStreams:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert "fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'hongbin-crm-r73-push-receiver-20261022' in sw
           assert 'rel="manifest"' in html
@@ -75,6 +77,12 @@ jobs:
           PY
       - name: Verify main CRM push receiver, safe payload and scoped notification links
         run: node tests/crm-push-receiver-preflight.cjs && node tests/crm-push-setup-preflight.mjs
+      - name: Prepare independent PDF glyph verification (free tools)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          curl -fL --retry 3 --retry-delay 2 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/TC/NotoSansTC-Regular.otf' -o /tmp/honbin-print-font.otf
+          test "$(wc -c </tmp/honbin-print-font.otf)" -gt 1000000
       - name: Install iPhone WebKit and PDF libraries
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1 pdf-lib@1.17.1 @pdf-lib/fontkit@1.1.1 @fontsource/noto-sans-tc@5.3.0
@@ -84,4 +92,4 @@ jobs:
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/r73-simple-http.log 2>&1 &
           pid=$!
           trap 'kill "$pid" || true' EXIT
-          node tests/r73-simple-acceptance.cjs
+          CRM_PRINT_TEST_FONT=/tmp/honbin-print-font.otf node tests/r73-simple-acceptance.cjs
