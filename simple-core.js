@@ -142,7 +142,7 @@ function goBackView(){
  updateFloatingBack();
 }
 
-function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src}if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack()}
+function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src}if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();updateBackToTop()}
 function customerEntries(){const m=getMaster().customers,c=getCRM().customers,map=new Map();m.forEach(x=>{const key=norm(x.name);if(key)map.set(key,{...x,legacyId:c.find(v=>norm(v.name)===key)?.id})});c.forEach(x=>{const key=norm(x.name);if(key&&!map.has(key))map.set(key,{name:x.name,legacyId:x.id})});return [...map.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh-Hant'))}
 function datalist(id,values){const n=$(id);if(!n)return;n.replaceChildren(...[...new Set(values.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant')).map(s=>{const o=document.createElement('option');o.value=s;return o}))}
 function fillCustomerNames(){
@@ -816,12 +816,46 @@ document.addEventListener('keydown',e=>{
   if(next.matches('input[type="text"],input:not([type])')&&typeof next.select==='function')next.select();
 },true);
 
-/* 全頁共用「回頂端」按鈕，滾動才顯示；避免覆蓋 iPhone Safari 工具列。 */
+/* CRM has one "回頂端" control. Its inner cloud iframe can scroll on
+   its own, so the same outer button returns BOTH scrollports to the top.
+   The embedded workspace hides its duplicate "頁首" button. */
 const backToTop=$('backToTop');
-function updateBackToTop(){backToTop.hidden=(window.scrollY||document.documentElement.scrollTop||0)<180}
+const cloudFrame=$('cloudWorkspace');
+let observedCloudScroll=null;
+function cloudScrollWindow(){
+ if(currentTab!=='cloud'||$('panel-cloud').hidden)return null;
+ try{
+  const inside=cloudFrame?.contentWindow;
+  // Only access our own GitHub Pages origin; never inspect unknown frames.
+  return inside?.location.origin===location.origin?inside:null;
+ }catch{return null}
+}
+function updateBackToTop(){
+ const documentOffset=window.scrollY||document.documentElement.scrollTop||0;
+ const inner=cloudScrollWindow();
+ let cloudOffset=0;
+ try{cloudOffset=inner?.scrollY||inner?.document?.scrollingElement?.scrollTop||0}catch{}
+ backToTop.hidden=documentOffset<180&&cloudOffset<180;
+}
+function observeCloudScroll(){
+ if(observedCloudScroll){
+  try{observedCloudScroll.removeEventListener('scroll',updateBackToTop)}catch{}
+  observedCloudScroll=null;
+ }
+ const frameWindow=cloudScrollWindow();
+ if(frameWindow){
+  frameWindow.addEventListener('scroll',updateBackToTop,{passive:true});
+  observedCloudScroll=frameWindow;
+ }
+ updateBackToTop();
+}
+cloudFrame.addEventListener('load',observeCloudScroll);
 backToTop.onclick=()=>{
  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
+ const behavior=reduced?'instant':'smooth';
+ const inner=cloudScrollWindow();
+ try{inner?.scrollTo({top:0,behavior})}catch{}
+ window.scrollTo({top:0,behavior});
 };
 window.addEventListener('scroll',updateBackToTop,{passive:true});
 window.addEventListener('pageshow',updateBackToTop);
