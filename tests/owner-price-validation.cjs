@@ -1,3 +1,4 @@
+(async()=>{
 // Synthetic-only supplier cost validation. Never commit actual customer or price records.
 const { validateOwnerPriceFile } = await import('../owner-prices.mjs');
 const assert = (condition, reason) => { if (!condition) throw Error(reason); };
@@ -56,3 +57,5 @@ shouldReject('無限大進價', f => { f.prices[0].price = Infinity; });
 shouldReject('過大進價', f => { f.prices[0].price = 1e9; });
 shouldReject('非物件列', f => { f.prices[0] = null; });
 console.log('OWNER_PRICE_VALIDATION_PASS', passed);
+
+})().catch(error=>{console.error(error);process.exitCode=1});
