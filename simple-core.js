@@ -493,14 +493,21 @@ async function restore(){
 /* R73 one-time private import. Do NOT bundle customer/price data in the public source. */
 let erpPending=null;
 // Shared CRM master may contain customer selling prices, never supplier purchase costs.
-function containsSupplierCost(value){
+function containsSupplierCost(value,path=''){
  if(!value||typeof value!=='object')return false;
- return Object.entries(value).some(([key,item])=>
-  /supplier(?:Price|Cost)|purchase(?:Price|Cost)|costPrice|進價|採購價|採購價格|供應商價格/i.test(key)
-  ||(key==='price'&&!Array.isArray(value)&&
-    (Object.prototype.hasOwnProperty.call(value,'supplierName')||Object.prototype.hasOwnProperty.call(value,'supplierShortName'))&&
-    !Object.prototype.hasOwnProperty.call(value,'customerName'))
-  ||containsSupplierCost(item));
+ return Object.entries(value).some(([key,item])=>{
+  const bucket=path.split('.')[0],name=key.toLowerCase();
+  // Fail closed on cost aliases even if the source file uses a different label.
+  if(/supplier(?:_?price|_?cost)|purchase(?:_?price|_?cost)|buy(?:_?price|_?cost)|vendor(?:_?price|_?cost)|(?:unit|base|landed|standard|actual)_?cost|cost|進價|採購價|採購價格|供應商價格|進貨價|進貨成本|成本價/i.test(key))
+   return true;
+  if(name==='price'&&!Array.isArray(value)&&(
+    bucket==='products'||bucket==='suppliers'||
+    ((Object.prototype.hasOwnProperty.call(value,'supplierName')||
+      Object.prototype.hasOwnProperty.call(value,'supplierShortName'))&&
+     !Object.prototype.hasOwnProperty.call(value,'customerName'))))
+   return true;
+  return containsSupplierCost(item,path?path+'.'+key:key);
+ });
 }
 function validateErpData(x){
  if(!x||x.format!=='hongbin-crm-erp-master-import'||x.schema!==1||x.source?.fileId!=='13dQzpVerN4XhCiYItoQWZU7GDFO6AVhI')
