@@ -43,9 +43,24 @@ async function click(url){
   notification:{data:{url},close(){}},waitUntil:p=>{work=p}});
  await work;return opened.at(-1);
 }
+assert.equal(await click(empty.options.data.url),scope,'generic lock-screen push opens CRM home');
 assert.equal(await click('https://malicious.example/steal'),scope);
 assert.equal(await click(sample.options.data.url),sample.options.data.url);
 assert.equal(await click(scope+'?pushTab=Notes&groupId=group_123&noteId=../../etc'),scope);
+// Already-open installed CRM: notification tap should navigate/focus this app
+// instead of launching a second tab. No actual iPhone is controlled by CI.
+const navigated=[],focused=[];
+self.clients={matchAll:async()=>[{
+ url:scope,navigate:async url=>{navigated.push(url)},
+ focus:async()=>{focused.push(true)}
+}],openWindow:async()=>{throw Error('SHOULD_REUSE_EXISTING_CRM')}};
+let existingClick;
+events.get('notificationclick')({notification:{
+ data:{url:empty.options.data.url},close(){}},
+ waitUntil:p=>{existingClick=p}});
+await existingClick;
+assert.deepEqual(navigated,[scope]);
+assert.equal(focused.length,1);
 assert.match(src,/self.addEventListener\('push'/);
 assert.match(src,/self.addEventListener\('notificationclick'/);
 assert.doesNotMatch(src,/service[_-]?account|VAPID_PRIVATE|customerTitle|customerData/);
