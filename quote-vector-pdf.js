@@ -3,9 +3,13 @@
 // Fontsource Noto Sans TC is licensed under SIL OFL 1.1 (pinned free public font).
 (function(){
 'use strict';
+// Apple AirPrint may silently omit glyphs from the old WOFF2/subset-embedded
+// PDF even though Safari's HTML quotation preview is fully readable.
+// Use a static desktop/print-compatible OpenType font, never WOFF2 or a
+// variable font; keep the user's original logo JPEG unchanged.
 const FONT_URLS=[
- 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-tc@5.3.0/files/noto-sans-tc-chinese-traditional-400-normal.woff2',
- 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Regular.otf'
+ 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/TC/NotoSansTC-Regular.otf',
+ 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf'
 ];
 let fontBytesPromise=null;
 async function fontBytes(){
@@ -45,12 +49,14 @@ async function makePdf(data){
  const pdf=await PDFDocument.create();pdf.registerFontkit(window.fontkit);
  const bytes=await fontBytes();
  let font;
- try{font=await pdf.embedFont(bytes,{subset:true})}
- catch(primary){
-  // Some fontkit versions cannot read WOFF2. Fall back to the OpenType edition.
+ try{
+  // Embed the complete, static CFF/OpenType font and Unicode cmap. Avoid
+  // fontkit subsetting, whose CID resource can disappear on some printers.
+  font=await pdf.embedFont(bytes,{subset:false});
+ }catch(primary){
   const resp=await fetch(FONT_URLS[1],{mode:'cors',cache:'force-cache'});
-  if(!resp.ok)throw Error('向量中文字型載入失敗，無法安全輸出文件 PDF');
-  font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:true});
+  if(!resp.ok)throw Error('完整中文字型載入失敗，已中止列印避免空白報價');
+  font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:false});
  }
  const black=rgb(.12,.12,.12),gray=rgb(.33,.33,.33);
  const W=595.276,H=841.890,left=47,right=W-47,tableWidth=right-left;
@@ -145,7 +151,7 @@ async function makePdf(data){
   fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244);
   // Deliberately no lower-right page index in customer quotation PDF.
  });
- const result=await pdf.save({useObjectStreams:true});
+ const result=await pdf.save({useObjectStreams:false});
  return new Blob([result],{type:'application/pdf'});
 }
 window.honbinVectorQuotePdf=makePdf;
