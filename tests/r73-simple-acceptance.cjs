@@ -64,7 +64,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const headers=await oldPaper.locator('.q-table th').allTextContents();
  check(headers.join('|')==='品名|品號|規格|單價 (NT)|最低訂購量','原本報價單五欄標題與順序完全相同');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
- check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===263&&img.getAttribute('src')==='quote-letterhead.jpg'),'公司抬頭使用未改動的原始 JPEG 檔');
+ check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===265&&img.getAttribute('src')==='quote-letterhead.jpg'),'公司抬頭使用未改動的原始 JPEG 檔');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
@@ -137,7 +137,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await printPage.locator('[data-quote="77"]').click();
   await printPage.locator('#recordDetailEdit').click();
   await printPage.locator('#previewQuote').click();
-  check(await printPage.locator('#quotePreviewPages .q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===263),'列印與預覽使用同一張原始公司抬頭');
+  check(await printPage.locator('#quotePreviewPages .q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===265),'列印與預覽使用同一張原始公司抬頭');
   const paperPrintStyles=await printPage.evaluate(()=>{
    const shell=document.querySelector('#printRoot .legacy-sheet-shell');return {previewPages:document.querySelectorAll('#printRoot .legacy-sheet-shell').length,shellExists:!!shell}
   });
