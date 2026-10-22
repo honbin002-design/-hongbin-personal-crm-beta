@@ -52,7 +52,7 @@ async function makePdf(data){
   if(!resp.ok)throw Error('向量中文字型載入失敗，無法安全輸出文件 PDF');
   font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:true});
  }
- const black=rgb(.12,.12,.12),red=rgb(.60,.16,.19),gray=rgb(.33,.33,.33),white=rgb(1,1,1);
+ const black=rgb(.12,.12,.12),gray=rgb(.33,.33,.33);
  const W=595.276,H=841.890,left=47,right=W-47,tableWidth=right-left;
  const fields=data?.fields||{},items=Array.isArray(data?.items)?data.items:[],records=items.length?items:[{}];
  const pages=[];for(let i=0;i<records.length;i+=4)pages.push(records.slice(i,i+4));
@@ -71,22 +71,20 @@ async function makePdf(data){
  function rule(page,x1,y1,x2,y2,width=.6,color=gray){
   page.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},thickness:width,color});
  }
+ // Embed the existing source asset byte-for-byte, without recoloring,
+ // cropping, tracing or rebuilding the client's exact company letterhead.
+ const sourceResponse=await fetch(new URL('quote-letterhead.jpg',document.baseURI),{cache:'no-store'});
+ if(!sourceResponse.ok)throw Error('原始公司抬頭圖載入失敗，已取消 PDF 輸出');
+ const originalJpeg=new Uint8Array(await sourceResponse.arrayBuffer());
+ const banner=await pdf.embedJpg(originalJpeg);
+ const bannerWidth=tableWidth;
+ const bannerHeight=bannerWidth*banner.height/banner.width;
+ if(bannerWidth<=0||bannerHeight>150)throw Error('原始公司抬頭尺寸異常，未產生 PDF');
  function drawBrand(page){
-  // High-resolution vector H emblem, drawn directly as PDF paths.
-  page.drawRectangle({x:47,y:735,width:18,height:63,color:red});
-  page.drawRectangle({x:89,y:735,width:18,height:63,color:red});
-  page.drawRectangle({x:65,y:758,width:25,height:16,color:red});
-  page.drawEllipse({x:84,y:766,xScale:20,yScale:6,color:white});
-  page.drawEllipse({x:65,y:766,xScale:10,yScale:4,color:red});
-  fitText(page,'HON BOND',47,721,9,68,{color:red});
-  fitText(page,'鴻繽科技有限公司',123,781,27,430);
-  fitText(page,'HONBIN TECHNOLOGY CO., LTD.',124,759,15,427,{color:red});
-  fitText(page,'台南市安南區安西二街108號',124,742,11.5,427,{color:red});
-  fitText(page,'No.108, Anxi 2nd St., Annan Dist., Tainan City 70958, Taiwan (R.O.C.)',124,729,9,427,{color:gray});
-  fitText(page,'TEL: +886-6-2453737   FAX: +886-6-2463328',124,714,10.5,427,{color:gray});
-  center(page,'報價單',W/2,683,20);
-  // The title-to-line visual gap is 0.5 mm (1.42 pt), without overlap.
-  rule(page,W/2-43,679.5,W/2+43,679.5,.75,black);
+  page.drawImage(banner,{x:left,y:824-bannerHeight,width:bannerWidth,height:bannerHeight});
+  center(page,'報價單',W/2,662,20);
+  // Short rule below quotation title, without crossing the glyphs.
+  rule(page,W/2-43,658.5,W/2+43,658.5,.75,black);
  }
  function drawRow(page,content,x,y,size,width,height,align='center'){
   const rows=splitToWidth(txt(content),font,size,width-9,3);
@@ -102,16 +100,16 @@ async function makePdf(data){
  }
  pages.forEach((subset,pageIndex)=>{
   const page=pdf.addPage([W,H]);drawBrand(page);
-  fitText(page,'Messers.',left,652,15,83);
-  fitText(page,fields.qdCustomer,left+100,652,16,215);
-  fitText(page,'TEL： '+txt(fields.qdTel),left+100,628,16,215);
-  fitText(page,'FAX： '+txt(fields.qdFax),left+100,604,16,215);
-  fitText(page,'NO： '+txt(fields.qdNo),335,652,15,214);
-  fitText(page,'DATE： '+txt(fields.qdDate).replace(/-/g,'/'),335,628,15,214);
-  fitText(page,'聯絡人： '+txt(fields.qdContact),335,604,15,214);
+  fitText(page,'Messers.',left,631,15,83);
+  fitText(page,fields.qdCustomer,left+100,631,16,215);
+  fitText(page,'TEL： '+txt(fields.qdTel),left+100,607,16,215);
+  fitText(page,'FAX： '+txt(fields.qdFax),left+100,583,16,215);
+  fitText(page,'NO： '+txt(fields.qdNo),335,631,15,214);
+  fitText(page,'DATE： '+txt(fields.qdDate).replace(/-/g,'/'),335,607,15,214);
+  fitText(page,'聯絡人： '+txt(fields.qdContact),335,583,15,214);
   const columns=[.25,.20,.16,.19,.20].map(x=>x*tableWidth);
   const starts=[left];for(const width of columns)starts.push(starts.at(-1)+width);
-  const top=587,headH=34,rowH=36,bottom=top-headH-rowH*4;
+  const top=565,headH=34,rowH=36,bottom=top-headH-rowH*4;
   for(let i=0;i<=5;i++)rule(page,starts[i],top,starts[i],bottom,.7);
   for(let i=0;i<=5;i++)rule(page,left,top-(i===0?0:headH+rowH*(i-1)),right,top-(i===0?0:headH+rowH*(i-1)),.7);
   const headers=['品名','品號','規格','單價 (NT)','最低訂購量'];
@@ -131,17 +129,17 @@ async function makePdf(data){
   for(const [label,value] of details){
    const s=label+'：'+txt(value);
    const wraps=splitToWidth(s,font,14,tableWidth-25,2);
-   for(const line of wraps){text(page,line,left+12,y,14);y-=21}
+   for(const line of wraps){text(page,line,left,y,14);y-=21}
   }
-  text(page,'單筆交易未滿伍仟元整需自行負擔運費',left+12,y,14);y-=21;
-  text(page,'報價單價格不含 5% 營業稅',left+12,y,14);y-=21;
-  text(page,'備　註：',left+12,y-3,14);y-=24;
+  text(page,'單筆交易未滿伍仟元整需自行負擔運費',left,y,14);y-=21;
+  text(page,'報價單價格不含 5% 營業稅',left,y,14);y-=21;
+  text(page,'備　註：',left,y-3,14);y-=24;
   const notes=lines(fields.qdNotes||'').slice(0,8);
   for(const note of notes){
    const wrap=splitToWidth(note,font,14,tableWidth-32,2);
    for(const line of wrap){
     if(y<97)break;
-    text(page,line,left+12,y,14);y-=20;
+    text(page,line,left,y,14);y-=20;
    }
   }
   fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244);
