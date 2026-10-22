@@ -247,8 +247,17 @@
 .nav .cloudTab{display:flex;align-items:center;justify-content:center;border-radius:7px;min-height:53px;padding:5px 2px;background:#dcebe5;color:#195c42;border:1px solid #89b49b;text-align:center;text-decoration:none;font-size:15px;font-weight:700;line-height:1.2}
 .nav .cloudTab:focus-visible{outline:3px solid #e5a650;outline-offset:2px}
 .nav .cloudTab.active{background:#1d557d;color:#fff;border-color:#1d557d}
-.cloudWorkspace{width:100%;height:min(78dvh,900px);min-height:540px;border:1px solid #b9cbd8;border-radius:12px;background:#f5f7fb;display:block}
-@media(max-width:640px){.cloudWorkspace{height:calc(100dvh - 180px);min-height:480px}}
+/* Single-scroll integration: the cloud document grows with content.
+   No independent iframe viewport or touch-scroll boundary on iPhone. */
+.cloudWorkspace{width:100%;height:480px;min-height:0;max-height:none;overflow:hidden;
+ border:1px solid #b9cbd8;border-radius:12px;background:#f5f7fb;display:block;
+ overscroll-behavior:auto}
+#refreshCloudOuter{position:fixed;left:14px;bottom:calc(100px + env(safe-area-inset-bottom,0px));
+ z-index:901;min-height:48px;min-width:110px;padding:10px 14px;display:flex;
+ align-items:center;gap:6px;border:2px solid #fff;border-radius:999px;
+ background:#205a9a;color:#fff;box-shadow:0 5px 15px #102d4380;font-weight:700}
+#refreshCloudOuter[hidden]{display:none!important}
+@media(max-width:640px){.cloudWorkspace{height:480px}}
 </style>
 </head>
 <body><div class="app">
@@ -403,7 +412,7 @@
 </section>
 <section class="panel" id="panel-cloud" hidden>
  <div class="card"><h2>雲端記事與任務</h2></div>
- <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽 CRM 雲端記事與任務" loading="lazy" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-single-top"></iframe>
+ <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽 CRM 雲端記事與任務" loading="lazy" scrolling="no" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261022-single-top"></iframe>
 </section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
@@ -443,6 +452,7 @@
 </div>
 <div id="printRoot" hidden></div><div id="toast" role="status" aria-live="polite"></div><div id="smartSuggestions" role="listbox" hidden aria-label="候選選項"></div>
 <button type="button" id="floatingGoBack" aria-label="回上頁" title="回上頁" hidden><span aria-hidden="true">‹</span> 回上頁</button>
+<button type="button" id="refreshCloudOuter" aria-label="重新整理雲端記事與任務" title="重新整理雲端記事與任務" hidden>↻ 重新整理</button>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
 <script src="./quote-vector-pdf.js?v=20261022-original-header" defer></script>
