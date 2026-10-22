@@ -64,10 +64,16 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const headers=await oldPaper.locator('.q-table th').allTextContents();
  check(headers.join('|')==='品名|品號|規格|單價 (NT)|最低訂購量','原本報價單五欄標題與順序完全相同');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
- check(await oldPaper.locator('.q-mark svg').count()===1 && (await oldPaper.locator('.q-company-cn').innerText())==='鴻繽科技有限公司','公司抬頭已改為可縮放向量商標及清晰文字');
+ check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===263&&img.getAttribute('src')==='quote-letterhead.jpg'),'公司抬頭使用未改動的原始 JPEG 檔');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
+ check(await oldPaper.evaluate(el=>{
+   const x=el.querySelector('.q-table').getBoundingClientRect().left;
+   const delivery=el.querySelector('.q-terms').getBoundingClientRect().left;
+   const notes=el.querySelector('.q-notes').getBoundingClientRect().left;
+   return Math.abs(x-delivery)<1&&Math.abs(x-notes)<1;
+ }), '交貨日期、備註均與表格最左側格線對齊');
 
  const expectedFont=(pt,px)=>Math.abs(px-pt*96/72)<0.25;
  const quoteTypography=await oldPaper.evaluate(el=>{
@@ -100,6 +106,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  });
  check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
  check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
+ check(await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
+  const left=el.querySelector('.q-table').getBoundingClientRect().left;
+  return ['.q-terms','.q-notes'].every(sel=>Math.abs(el.querySelector(sel).getBoundingClientRect().left-left)<1);
+ }), 'Safari 列印版從交貨日期起與五欄表格左線平齊');
 
  const printFonts=await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
   const names=['.q-party','.q-table th','.q-table td','.q-terms','.q-notes','.q-sales'];
@@ -127,7 +137,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   await printPage.locator('[data-quote="77"]').click();
   await printPage.locator('#recordDetailEdit').click();
   await printPage.locator('#previewQuote').click();
-  check(await printPage.locator('#quotePreviewPages .q-mark svg').count()===1,'列印使用向量商標而非掃描抬頭');
+  check(await printPage.locator('#quotePreviewPages .q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===263),'列印與預覽使用同一張原始公司抬頭');
   const paperPrintStyles=await printPage.evaluate(()=>{
    const shell=document.querySelector('#printRoot .legacy-sheet-shell');return {previewPages:document.querySelectorAll('#printRoot .legacy-sheet-shell').length,shellExists:!!shell}
   });
@@ -184,8 +194,8 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const sharedPdf=await page.evaluate(()=>window.__sharePdf);
  check(sharedPdf.header==='%PDF-'&&sharedPdf.tail.includes('%%EOF')&&sharedPdf.size>10000,'分享選單收到真正 PDF 二進位檔');
  const cleanTextPdf=await page.evaluate(()=>Array.from(window.__sharePdfRaw));
- check(!Buffer.from(cleanTextPdf).includes(Buffer.from('/Subtype /Image')),
-   '向量 PDF 不含整頁 JPEG 或任何嵌入圖片');
+ check((Buffer.from(cleanTextPdf).toString('latin1').match(/\\/Subtype \\/Image/g)||[]).length===1,
+   '文件 PDF 僅嵌入原始公司抬頭圖，不將整頁轉成圖片');
  check(!/html2canvas|canvas\.toDataURL\('image\/jpeg'/.test(await page.evaluate(()=>window.honbinVectorQuotePdf?.toString()||'')),
    '列印流程不再使用整頁圖片轉換');
  check(sharedPdf.name==='報價單_QTEST-001.pdf'&&sharedPdf.type==='application/pdf','PDF 以原報價編號命名並傳遞正確檔案類型');
