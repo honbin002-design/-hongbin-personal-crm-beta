@@ -167,16 +167,16 @@
 .detail-entry strong{display:block;margin-bottom:6px}
 .panel.is-editing>.card:not(.editor):not(#quotePreview){display:none!important}
 .panel.is-editing>.editor{margin-top:0!important}
-#floatingGoBack{position:fixed;left:14px;bottom:calc(100px + env(safe-area-inset-bottom,0px));
+#floatingGoBack{position:fixed;left:14px;bottom:calc(24px + env(safe-area-inset-bottom,0px));
   z-index:905;display:flex;align-items:center;gap:6px;min-height:48px;min-width:105px;
   padding:10px 14px;background:#174a6a;color:#fff;border:2px solid #fff;
   border-radius:999px;box-shadow:0 5px 15px #102d4380;font-size:15px;font-weight:700}
 #floatingGoBack[hidden]{display:none!important}
 #floatingGoBack span{font-size:25px;line-height:1}
 @media(max-width:600px){.record-detail{padding:12px}.detail-row{grid-template-columns:90px minmax(0,1fr)}}
-/* 各頁共用 iPhone 友善的返回頂部按鈕；不覆蓋 Safari 底部工具列。 */
+/* 各頁共用 iPhone 友善的返回頂部按鈕；接近底部但避開主畫面手勢安全區。 */
 #backToTop{
- position:fixed;right:14px;bottom:calc(100px + env(safe-area-inset-bottom,0px));z-index:900;
+ position:fixed;right:14px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:900;
  display:flex;align-items:center;justify-content:center;gap:6px;
  width:auto;min-width:108px;min-height:48px;padding:10px 14px;
  background:#22597b;color:#fff;border:2px solid #fff;
@@ -267,12 +267,13 @@
 #pushHostButton{font-size:13px;min-height:44px;padding:6px 8px}
 .cloud-push-status{margin:0 0 7px;color:#52687c;font-size:12px;line-height:1.4}
 .cloud-push-status:empty{display:none}
+/* Floating bottom controls share a 24px + iOS safe-area baseline. */
 /* Single-scroll integration: the cloud document grows with content.
    No independent iframe viewport or touch-scroll boundary on iPhone. */
 .cloudWorkspace{width:100%;height:480px;min-height:0;max-height:none;overflow:hidden;
  border:1px solid #b9cbd8;border-radius:12px;background:#f5f7fb;display:block;
  overscroll-behavior:auto}
-#refreshCloudOuter{position:fixed;left:14px;bottom:calc(100px + env(safe-area-inset-bottom,0px));
+#refreshCloudOuter{position:fixed;left:14px;bottom:calc(24px + env(safe-area-inset-bottom,0px));
  z-index:901;min-height:48px;min-width:110px;padding:10px 14px;display:flex;
  align-items:center;gap:6px;border:2px solid #fff;border-radius:999px;
  background:#205a9a;color:#fff;box-shadow:0 5px 15px #102d4380;font-weight:700}
