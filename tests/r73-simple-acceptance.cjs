@@ -515,6 +515,19 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.waitForFunction(text=>document.querySelector('#erpImportStatus')?.textContent.includes(text),"禁止匯入共用主資料");
  check((await page.locator('#erpImportStatus').innerText()).includes('禁止匯入共用主資料')&&
   await page.locator('#erpApplyImport').isDisabled(),'含供應商進價的混合檔不得進入共用 CRM 主資料');
+ for(const [label,fixture] of [
+   ['suppliers-price',{...erpFixture,suppliers:[{...erpFixture.suppliers[0],price:70}]}],
+   ['products-unitCost',{...erpFixture,products:[{...erpFixture.products[0],unitCost:70}]}],
+   ['products-buyPrice',{...erpFixture,products:[{...erpFixture.products[0],buyPrice:70}] }]
+ ]){
+  await page.locator('#erpImportFile').setInputFiles({name:label+'.json',mimeType:'application/json',
+   buffer:Buffer.from(JSON.stringify(fixture))});
+  await page.locator('#erpPreviewImport').click();
+  await page.waitForFunction(text=>document.querySelector('#erpImportStatus')?.textContent.includes(text),"禁止匯入共用主資料");
+  check(await page.locator('#erpApplyImport').isDisabled()&&
+   (await page.locator('#erpImportStatus').innerText()).includes('禁止匯入共用主資料'),
+   '供應商採購價替代欄位不得進入共用主資料：'+label);
+ }
  const beforeErp=await page.evaluate(()=>localStorage.getItem('hongbin_crm_master_r70'));
  await page.locator('#erpImportFile').setInputFiles({name:'erp-synthetic.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(erpFixture))});
  await page.locator('#erpPreviewImport').click();
