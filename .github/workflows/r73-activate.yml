@@ -9,6 +9,8 @@ on:
       - 'owner-prices.mjs'
       - 'tests/owner-price-validation.cjs'
       - 'sw.js'
+      - 'manifest.webmanifest'
+      - 'tests/crm-push-receiver-preflight.cjs'
       - 'tests/r73-simple-acceptance.cjs'
       - '.github/workflows/r73-activate.yml'
   workflow_dispatch:
@@ -32,7 +34,7 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM</title>' in html
-          assert html.count('src="./simple-core.js?v=r73-smoothscroll-20261022"') == 1
+          assert html.count('src="./simple-core.js?v=r73-push-deeplink-20261022"') == 1
           assert 'src="./owner-prices.mjs?v=20261022"' in html
           assert 'id="ownerPricePanel"' in html
           assert '<script src="./r73-fixes.js' not in html
@@ -56,11 +58,17 @@ jobs:
           assert "text(page,line,left,y,14)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert "fitText(page,'業務代表： '+txt(fields.qdSales)+'  '+txt(fields.qdSalesTel),302,76,14,244)" in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'hongbin-crm-r73-smoothscroll-20261022' in sw
+          assert 'rel="manifest"' in html
+          assert 'apple-mobile-web-app-capable' in html
+          assert 'pushTab' in js
+          assert "self.addEventListener('push'" in sw
           assert 'quote-letterhead.jpg' in sw
           assert 'simple-core.js' in sw
           assert 'withR73(' not in sw
           print('R73 simplified release safety checks PASS')
           PY
+      - name: Verify main CRM push receiver, safe payload and scoped notification links
+        run: node tests/crm-push-receiver-preflight.cjs
       - name: Install iPhone WebKit and PDF libraries
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1 pdf-lib@1.17.1 @pdf-lib/fontkit@1.1.1 @fontsource/noto-sans-tc@5.3.0
