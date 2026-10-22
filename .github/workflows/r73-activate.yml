@@ -5,6 +5,7 @@ on:
     paths:
       - 'index.html'
       - 'simple-core.js'
+      - 'quote-vector-pdf.js'
       - 'owner-prices.mjs'
       - 'tests/owner-price-validation.cjs'
       - 'sw.js'
@@ -20,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check JavaScript
-        run: node --check simple-core.js && node --check owner-prices.mjs && node --check sw.js
+        run: node --check simple-core.js && node --check quote-vector-pdf.js && node --check owner-prices.mjs && node --check sw.js
       - name: Validate owner-only supplier price import (synthetic data only)
         run: node tests/owner-price-validation.cjs
       - name: Verify simplified homepage and old-data protection
@@ -48,6 +49,9 @@ jobs:
           assert 'function renderCalendar(' in js
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
+          assert 'html2canvas@' not in js
+          assert 'quote-vector-pdf.js' in html
+          assert 'q-company-cn' in js
           assert 'hongbin-crm-r73-unified-notes-20261022' in sw
           assert 'simple-core.js' in sw
           assert 'withR73(' not in sw
@@ -55,7 +59,7 @@ jobs:
           PY
       - name: Install iPhone WebKit and PDF libraries
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.56.1 html2canvas@1.4.1 jspdf@2.5.1 pdf-lib@1.17.1
+          npm install --no-save --no-audit --no-fund playwright@1.56.1 pdf-lib@1.17.1 @pdf-lib/fontkit@1.1.1 @fontsource/noto-sans-tc@5.3.0
           npx playwright install --with-deps webkit chromium
       - name: Verify quote original layout, task time, Enter navigation, and seven modules
         run: |
