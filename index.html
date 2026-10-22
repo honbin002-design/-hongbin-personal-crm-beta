@@ -278,6 +278,19 @@
  background:#205a9a;color:#fff;box-shadow:0 5px 15px #102d4380;font-weight:700}
 #refreshCloudOuter[hidden]{display:none!important}
 @media(max-width:640px){.cloudWorkspace{height:480px}}
+/* Approved original printed quotation: four columns, clean Latin spacing, and a
+   signature ending precisely at the rightmost table grid line. Data is unchanged. */
+.legacy-quote .q-party,.legacy-quote .q-party-row,.legacy-quote .q-table td,
+.legacy-quote .q-table th{letter-spacing:normal!important;word-spacing:normal!important}
+.legacy-quote .q-table th:nth-child(1),.legacy-quote .q-table td:nth-child(1){width:18%!important}
+.legacy-quote .q-table th:nth-child(2),.legacy-quote .q-table td:nth-child(2){width:28%!important}
+.legacy-quote .q-table th:nth-child(3),.legacy-quote .q-table td:nth-child(3){width:18%!important}
+.legacy-quote .q-table th:nth-child(4),.legacy-quote .q-table td:nth-child(4){width:36%!important}
+.legacy-quote .q-table tbody td{border-top:0!important;border-bottom:0!important;
+ text-align:center;vertical-align:middle;overflow-wrap:anywhere}
+.legacy-quote .q-table tbody tr:last-child td{border-bottom:1px solid #555!important}
+.legacy-quote .q-sales{margin-right:0!important;padding-right:0!important;text-align:right!important;
+ letter-spacing:normal!important}
 </style>
 </head>
 <body><div class="app">
@@ -476,8 +489,8 @@
 <button type="button" id="refreshCloudOuter" aria-label="重新整理雲端記事與任務" title="重新整理雲端記事與任務" hidden>↻ 重新整理</button>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./quote-vector-pdf.js?v=20261022-airprint-text-fix" defer></script>
-<script src="./simple-core.js?v=r73-push-deeplink-20261022" defer></script>
+<script src="./quote-vector-pdf.js?v=20261022-quote-layout-4col" defer></script>
+<script src="./simple-core.js?v=20261022-quote-note-scroll" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261022-safe-hold';
