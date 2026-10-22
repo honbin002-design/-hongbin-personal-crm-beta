@@ -30,12 +30,16 @@ jobs:
           html=Path('index.html').read_text(encoding='utf-8')
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
-          assert '<title>鴻繽科技 CRM｜R73 簡易版</title>' in html
+          assert '<title>鴻繽科技 CRM</title>' in html
           assert html.count('src="./simple-core.js?v=r73-owner-price-separation-20261022"') == 1
           assert 'src="./owner-prices.mjs?v=20261022"' in html
           assert 'id="ownerPricePanel"' in html
           assert '<script src="./r73-fixes.js' not in html
           assert '<script src="./r70-complete.js' not in html
+          assert '雲端記事與任務' in html
+          assert '雲端記事 TEST' not in html
+          assert 'id="cloudNotebookEntry"' not in html
+          assert '在完整畫面開啟記事 App' not in html
           assert 'navigator.serviceWorker.register' in html
           assert all(html.count('data-tab="'+n+'"') == 1 for n in ['quotes','customers','calendar','projects','suppliers','products','notes','backup'])
           assert 'const KEYS={master:' in js
@@ -44,7 +48,7 @@ jobs:
           assert 'function renderCalendar(' in js
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
-          assert 'hongbin-crm-r73-quick-notes-20261019' in sw
+          assert 'hongbin-crm-r73-unified-notes-20261022' in sw
           assert 'simple-core.js' in sw
           assert 'withR73(' not in sw
           print('R73 simplified release safety checks PASS')
