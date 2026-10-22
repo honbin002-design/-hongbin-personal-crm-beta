@@ -65,7 +65,7 @@ async function start(){
   more.textContent='再顯示 20 筆（共 '+matching.length+' 筆）';
  };
  const refresh=async()=>{
-  guard();
+  guard();status('正在從伺服器讀取進價。');
   const snap=await fs.getDocsFromServer(fs.query(fs.collection(db,path),fs.limit(401)));
   guard();
   if(snap.size>400)throw Error('進價筆數超過讀取上限，已停止顯示');
@@ -80,7 +80,16 @@ async function start(){
    const token=await authSdk.getIdTokenResult(user);
    if(token.claims.firebase?.sign_in_provider!=='google.com'||auth.currentUser?.uid!==ROOT_UID)return;
    allowed=true;panel.hidden=false;await refresh();
-  }catch{panel.hidden=true;allowed=false}
+  }catch(e){
+   allowed=false;pending=null;rows=[];$('ownerPriceList').replaceChildren();
+   $('ownerPriceImport').disabled=true;$('ownerPriceMore').hidden=true;
+   const stillOwner=auth.currentUser?.uid===ROOT_UID&&
+    auth.currentUser.email?.toLowerCase()===ROOT_EMAIL&&auth.currentUser.emailVerified;
+   if(!stillOwner){panel.hidden=true;return}
+   panel.hidden=false;
+   status('進價尚未讀取成功（'+String(e?.code||'連線或權限檢查失敗')+
+    '）。已禁止匯入與顯示舊資料，請核對 Firebase 存取規則及登入狀態。');
+  }
  });
  $('ownerPriceSearch').addEventListener('input',()=>{visibleCount=20;show()});
  $('ownerPriceMore').addEventListener('click',()=>{visibleCount+=20;show()});
