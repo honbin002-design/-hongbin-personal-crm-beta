@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#152435"><title>鴻繽科技 CRM｜R73 簡易版</title>
+<meta name="theme-color" content="#152435"><title>鴻繽科技 CRM</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;font-size:16px;color:#172333;background:#edf2f6}
 *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit;min-height:44px}button{cursor:pointer;border:0;border-radius:9px;padding:10px 15px;background:#1c527b;color:#fff;font-weight:650}button.secondary{background:#e6eef4;color:#213e57;border:1px solid #adbfcd}button.weak{background:#f7f8f9;color:#264761;border:1px solid #bac8d2}button.danger{background:#9b3333}input,select,textarea{width:100%;background:#fff;color:#172333;border:1px solid #aebdca;border-radius:7px;padding:10px;font-size:16px}textarea{min-height:85px;resize:vertical}label{display:block;margin:10px 0 4px;font-weight:600;color:#29425a}h1{font-size:23px;line-height:1.35;margin:2px 0}h2{font-size:20px;margin:0 0 14px}h3{font-size:17px;margin:18px 0 7px}.muted{color:#586a79;font-size:14px;line-height:1.6}.app{max-width:920px;margin:auto;padding:16px 13px 64px}.head{background:#fff;border-bottom:3px solid #cfaf81;padding:17px 17px 12px;border-radius:12px 12px 0 0}.test{font-size:13px;background:#fff6e7;border:1px solid #e4c589;padding:7px 10px;border-radius:6px;color:#7f4e12;display:inline-block;margin-top:9px}.nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:white;padding:10px 7px;border-bottom:1px solid #e0e6ea;position:sticky;top:0;z-index:5;box-shadow:0 4px 12px #0001}.nav button{border-radius:7px;font-size:15px;min-height:53px;padding:5px 2px;background:#e6ecf1;color:#253b50;line-height:1.2}.nav button.active{background:#1d557d;color:white}.panel{padding:16px 0;display:block}.panel[hidden],.editor[hidden],[hidden]{display:none!important}.card{background:#fff;border:1px solid #dce3e8;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px #152a3610}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:11px 0}.row>*{flex:0 0 auto}.row input,.row select{flex:1 1 180px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.wide{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0}.actions button{flex:1 1 140px}.listItem{border-bottom:1px solid #e0e8ed;padding:14px 0}.listItem:last-child{border:0}.listTitle{font-weight:700;font-size:17px}.sub{color:#566777;font-size:14px;margin:4px 0;overflow-wrap:anywhere}.note{border-left:3px solid #c5d5e1;padding:6px 12px;margin:8px 0;background:#f5f8fa}.items{border:1px solid #dbe2e8;border-radius:9px;padding:10px;margin:10px 0}.pill{display:inline-block;background:#edf2f8;color:#254f75;padding:3px 9px;border-radius:99px;font-size:13px}.calendarHead{display:flex;align-items:center;justify-content:space-between;gap:6px}.calendarHead strong{font-size:19px}.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:14px 0}.weekday{text-align:center;font-size:13px;color:#53677b;padding:7px 0}.day{min-width:0;min-height:63px;padding:4px 2px;border:1px solid #d9e2e9;border-radius:9px;background:#fff;color:#192f42;position:relative;font-weight:600}.day.chosen{outline:3px solid #ccad7e}.day.today{border:2px solid #4e789a}.day.dot:after{content:"";display:block;background:#dc8b28;width:7px;height:7px;border-radius:99px;margin:3px auto}.day.empty{background:none;border:0;min-height:44px}.day[aria-pressed="true"]{background:#e1eef7}.task.done .listTitle{text-decoration:line-through;color:#78858c}.hiddenDate{white-space:nowrap}#toast{position:fixed;bottom:17px;left:50%;transform:translateX(-50%);background:#1c3f59;color:white;padding:11px 19px;border-radius:9px;box-shadow:0 4px 20px #0005;z-index:20;display:none}.sheet{background:white;color:#141414;border:1px solid #ddd;width:100%;max-width:794px;margin:15px auto 25px;padding:24px;box-shadow:0 2px 12px #0002;font-family:"Noto Sans TC","PingFang TC",sans-serif;overflow-wrap:anywhere}.letterhead{display:block;width:100%;height:auto;max-height:120px;object-fit:contain}.sheet h2{text-align:center;font-size:22px;letter-spacing:4px}.paperMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;font-size:14px}.paperTbl{border-collapse:collapse;width:100%;table-layout:fixed;margin:12px 0}.paperTbl th,.paperTbl td{border:1px solid #444;padding:7px 5px;text-align:left;font-size:13px;overflow-wrap:anywhere}.paperTbl th{background:#eef1f4}.paperFoot{font-size:13px;white-space:pre-line;line-height:1.55}.paperTotal{text-align:right;font-size:17px;font-weight:bold}.labelLine{font-size:14px;border-bottom:1px solid #ddd;padding:5px 0}.bottomSticky{position:sticky;bottom:0;background:#fffe;padding:8px;border-top:1px solid #dce4e9}.warn{color:#873629;font-size:14px}input[type=checkbox]{width:20px;min-height:20px;height:20px;vertical-align:middle}.taskCheck{display:flex;align-items:center;gap:10px}.taskCheck span{flex:1}details summary{cursor:pointer;font-weight:650;padding:8px}
@@ -243,7 +243,7 @@
 </style>
 </head>
 <body><div class="app">
-<header class="head"><h1>鴻繽科技 CRM</h1><div class="muted">客戶、報價、待辦行事曆、專案追蹤</div><span class="test">R73 本機 CRM 正式使用｜多人記事仍為 TEST</span></header>
+<header class="head"><h1>鴻繽科技 CRM</h1><div class="muted">客戶、報價、待辦行事曆、專案追蹤</div><span class="test">鴻繽科技｜客戶與記事管理</span></header>
 <nav class="nav" aria-label="主要功能">
 <button type="button" data-tab="quotes" class="active">報價單</button>
 <button type="button" data-tab="customers">客戶管理</button>
@@ -253,7 +253,7 @@
 <button type="button" data-tab="products">產品資料</button>
 <button type="button" data-tab="notes">隨手記</button>
 <button type="button" data-tab="backup">備份</button>
-<button type="button" data-tab="cloud" class="cloudTab">雲端記事 TEST</button>
+<button type="button" data-tab="cloud" class="cloudTab">雲端記事與任務</button>
 </nav>
 <main>
 <section id="recordDetail" class="record-detail" hidden aria-label="唯讀詳細資料">
@@ -374,11 +374,6 @@
 </div><div class="actions"><button id="saveProduct" type="button">儲存產品</button><button id="cancelProduct" type="button" class="secondary">取消</button></div>
 </div></section>
 <section class="panel" id="panel-notes" hidden>
-  <div class="card" id="cloudNotebookEntry">
-    <h2>雲端共用記事與任務（TEST）</h2>
-    <p class="muted">使用既有 Google 帳號開啟多人共用記事與任務。此功能仍連接 Firebase TEST，尚未核准正式營運，請勿輸入正式資料。下方原有隨手記仍保存在本機與 CRM 備份中；兩邊資料不會自動合併或覆蓋。</p>
-    <a class="crmCloudLink" href="/honbin-crm-auth-test/workspace-v2.html">開啟雲端記事與任務 TEST</a>
-  </div>
   <div class="card" id="noteListCard">
     <h2>隨手記</h2>
     <p class="muted">快速記下想法、電話重點或臨時事項。資料只存在這台 iPhone 的 CRM，並包含在 CRM 備份檔中。</p>
@@ -398,12 +393,8 @@
   </div>
 </section>
 <section class="panel" id="panel-cloud" hidden>
- <div class="card"><h2>雲端記事與任務</h2>
-  <p class="muted">此區目前連接獨立 Firebase TEST，尚未正式轉營運，請勿輸入正式資料。原 CRM 的本機隨手記與備份仍各自保留，TEST 雲端內容不會自動合併。</p>
-  <p class="muted">iPhone 鎖定畫面通知需從主畫面開啟獨立的記事 App；在此頁可處理一般記事及任務。</p>
-  <a class="crmCloudLink" href="/honbin-crm-auth-test/workspace-v2.html">在完整畫面開啟記事 App</a>
- </div>
- <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽雲端記事與任務" loading="lazy" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1"></iframe>
+ <div class="card"><h2>雲端記事與任務</h2></div>
+ <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽 CRM 雲端記事與任務" loading="lazy" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1"></iframe>
 </section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
@@ -447,5 +438,5 @@
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
 <script src="./simple-core.js?v=r73-owner-price-separation-20261022" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-quick-notes-20261019').catch(()=>{}))}</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-unified-notes-20261022').catch(()=>{}))}</script>
 </body></html>
