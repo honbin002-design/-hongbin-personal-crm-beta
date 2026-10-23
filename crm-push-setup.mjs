@@ -6,8 +6,8 @@ const API_CONFIG='./push-public-config.json';
 const KEY=/^[A-Za-z0-9_-]{80,120}$/;
 const ID=/^[A-Za-z0-9_-]{1,120}$/;
 export function validPushPublicConfig(config){
- // Consent-based enrollment is independent of the server delivery gate.
- // During iPhone acceptance, senderEnabled MUST stay false.
+ // Consent-based enrollment is independent of sender activation.
+ // A verified subscriber may opt in whether safe staging or free live mode.
  return !!config&&config.schemaVersion===1&&
  config.subscriptionsEnabled===true&&typeof config.senderEnabled==='boolean'&&
  typeof config.publicVapidKey==='string'&&/^[A-Za-z0-9_-]{87}$/.test(config.publicVapidKey);
@@ -50,9 +50,9 @@ export function initCRMPush({button,status,frame,fetchConfig=async()=>(
   try{config=await fetchConfig()}catch{config=null}
   const enabled=validPushPublicConfig(config);
   button.disabled=false;
-  button.textContent=enabled?(config.senderEnabled?'啟用 iPhone 通知':'登記這支 iPhone（測試）'):'檢查手機通知';
+  button.textContent=enabled?(config.senderEnabled?'開啟這支 iPhone 通知':'登記這支 iPhone（測試）'):'檢查手機通知';
   say(enabled?(config.senderEnabled?
-   '可由本人授權 iPhone 通知。':
+   '系統背景通知已開通；每支手機由本人同意授權並與自己的 Google 帳號綁定。':
    '可先由本人授權並登記這支 iPhone；發送端仍關閉，現在不會收到系統通知。'):
    '手機推播訂閱尚未開放，現有 CRM 內通知仍可使用。');
   return enabled;
@@ -97,7 +97,7 @@ export function initCRMPush({button,status,frame,fetchConfig=async()=>(
    ]);
    closePending(false);
    if(!confirmed)throw Error('FIRESTORE_SUBSCRIPTION_READBACK_NOT_CONFIRMED');
-   say(config.senderEnabled?'這支 iPhone 已完成通知訂閱，待伺服器新任務通知驗收。':
+   say(config.senderEnabled?'這支 iPhone 已完成通知訂閱並經 Firebase 核對；符合權限的任務與記事將自動發送背景通知，實際送達可能因排程延遲。':
     '這支 iPhone 的訂閱已由 Firebase 伺服器核對成功（測試 PASS）；背景發送仍關閉，尚不會收到通知。');
    return true;
   }catch(error){
