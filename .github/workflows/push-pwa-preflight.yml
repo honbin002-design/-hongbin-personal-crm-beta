@@ -39,10 +39,12 @@ jobs:
           cfg=json.loads(Path('push-public-config.json').read_text())
           assert cfg['schemaVersion']==1
           assert type(cfg['subscriptionsEnabled']) is bool
-          assert cfg['senderEnabled'] is False  # no device delivery in staged phase
+          assert type(cfg['senderEnabled']) is bool
+          assert not cfg['senderEnabled'] or cfg['subscriptionsEnabled'] is True
           assert isinstance(cfg['publicVapidKey'],str) and len(cfg['publicVapidKey'])==87
           assert all(c.isalnum() or c in '_-' for c in cfg['publicVapidKey'])
-          expected = 'SPARK_SUBSCRIPTION_STAGING' if cfg['subscriptionsEnabled'] else 'SPARK_SAFE_HOLD'
+          expected = ('SPARK_LIVE_FREE' if cfg['senderEnabled'] else
+                      ('SPARK_SUBSCRIPTION_STAGING' if cfg['subscriptionsEnabled'] else 'SPARK_SAFE_HOLD'))
           assert cfg['environment']==expected
           manifest=json.loads(Path('manifest.webmanifest').read_text())
           assert manifest['display']=='standalone'
@@ -56,5 +58,5 @@ jobs:
           sw=Path('sw.js').read_text()
           assert "self.addEventListener('push'" in sw
           assert "self.addEventListener('notificationclick'" in sw
-          print('CRM_PUSH_PWA_PRECHECK_PASS_NO_SENDER',expected)
+          print('CRM_PUSH_PWA_PRECHECK_PASS_SAFE_PUBLIC_SWITCH',expected)
           PY
