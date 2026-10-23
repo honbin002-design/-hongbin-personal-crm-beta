@@ -494,12 +494,12 @@
 <script src="./simple-core.js?v=20261022-quote-note-scroll" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module">
- import {initCRMPush} from './crm-push-setup.mjs?v=20261022-subscription-staging';
+ import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
   button:document.getElementById('pushHostButton'),
   status:document.getElementById('pushHostStatus'),
   frame:document.getElementById('cloudWorkspace')
  });
 </script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-push-enrollment-staging-20261022').catch(()=>{}))}</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-live-push-20261023').catch(()=>{}))}</script>
 </body></html>
