@@ -1,5 +1,5 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-r73-iphone-subscription-staging-20261022';
+const CACHE='hongbin-crm-r73-free-live-push-20261023';
 const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead.jpg','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
@@ -30,7 +30,8 @@ self.addEventListener('fetch',event=>{
 
 
 /* iPhone Home Screen CRM Web Push receiver (no secrets or Firebase in SW).
-   Actual subscription and server delivery stay gated until ACL readback. */
+   Live server delivery remains gated by active membership, approvals, and
+   public CRM kill switch; the Apple notification never includes private text. */
 const pushId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,150}$/.test(id);
 const pushKinds=new Set(['TASK_ASSIGNED','TASK_COMPLETED','SHARED_NOTE_CREATED']);
 function safePushEnvelope(payload){
