@@ -33,4 +33,13 @@ assert.equal(await stageApp.readConfig(),true);
 assert.equal(stageButton.textContent,'登記這支 iPhone（測試）');
 assert.match(stageStatus.textContent,/發送端仍關閉/);
 stageApp.destroy();
+const live={...staged,senderEnabled:true};
+const liveButton={disabled:true,textContent:'',addEventListener:()=>{}};
+const liveStatus={textContent:''};
+const liveApp=initCRMPush({button:liveButton,status:liveStatus,frame,
+ fetchConfig:async()=>live});
+assert.equal(await liveApp.readConfig(),true);
+assert.equal(liveButton.textContent,'開啟這支 iPhone 通知');
+assert.match(liveStatus.textContent,/系統背景通知已開通/);
+liveApp.destroy();
 console.log('CRM_PUSH_SAFE_HOLD_AND_STAGED_IPHONE_OPT_IN_NO_SEND_PASS');
