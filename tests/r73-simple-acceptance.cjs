@@ -89,6 +89,36 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.waitForFunction(()=>window.scrollY<10);
  check(await page.evaluate(()=>window.scrollY<10),
   '唯一回頂端按鈕將整個 CRM 與共用記事畫面一起帶回頁首');
+ // Same-origin embedded task editor: after successful publish, the HOST
+ // must return the iPhone to the top of Tasks, not the old editing position.
+ await page.frameLocator('#cloudWorkspace').locator('body').evaluate(body=>{
+  const area=document.getElementById('cloudLongContent');
+  const panel=document.createElement('section');panel.id='tasksPanel';
+  panel.style.cssText='position:absolute;top:1350px;height:500px;width:100%';
+  const form=document.createElement('form');form.id='taskForm';form.hidden=true;
+  panel.append(form);area.append(panel);
+ });
+ await page.evaluate(()=>{
+  const frame=document.querySelector('#cloudWorkspace');
+  window.scrollTo({top:scrollY+frame.getBoundingClientRect().top+1975,behavior:'instant'});
+ });
+ await page.frameLocator('#cloudWorkspace').locator('#tasksPanel').evaluate(()=>
+  window.parent.postMessage({type:'HONBIN_CLOUD_TASK_PUBLISHED'},location.origin));
+ await page.waitForFunction(()=>{
+  const frame=document.querySelector('#cloudWorkspace'),panel=frame.contentDocument?.getElementById('tasksPanel');
+  if(!panel||!document.querySelector('#panel-cloud')||window.scrollY<500)return false;
+  const top=frame.getBoundingClientRect().top+panel.getBoundingClientRect().top;
+  return Math.abs(top-78)<12;
+ },{timeout:8000});
+ check(await page.evaluate(()=>{
+  const frame=document.querySelector('#cloudWorkspace');
+  const panel=frame.contentDocument.getElementById('tasksPanel');
+  return Math.abs(frame.getBoundingClientRect().top+panel.getBoundingClientRect().top-78)<12&&
+   panel.querySelector('#taskForm').hidden;
+ }), 'iPhone 發布任務成功後，外層 CRM 自動返回任務列表頂部，編輯表單保持收起');
+ await page.frameLocator('#cloudWorkspace').locator('#tasksPanel').evaluate(panel=>panel.remove());
+ await page.locator('#backToTop').click();
+ await page.waitForFunction(()=>window.scrollY<10);
  await page.locator('#cloudWorkspace').evaluate(frame=>
   frame.contentDocument.getElementById('cloudLongContent').style.height='700px');
  await page.waitForFunction(()=>document.querySelector('#cloudWorkspace').clientHeight<900);
