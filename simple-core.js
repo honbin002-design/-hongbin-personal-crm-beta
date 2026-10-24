@@ -891,6 +891,23 @@ window.addEventListener('message',event=>{
   if(Number.isFinite(target))window.scrollTo({top:target,behavior:'smooth'});
  }));
 });
+// After a server-confirmed task publication, the embedded form collapses.
+ // Scroll the *host CRM*, not the no-scroll iframe, back to the task landing
+ // area. Without this, iPhone remains visually at the old editor position
+ // even when the form is hidden, inviting another accidental publication.
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==cloudFrame.contentWindow||
+    event.data?.type!=='HONBIN_CLOUD_TASK_PUBLISHED'||currentTab!=='cloud')return;
+ const doc=cloudDocument(),tasksPanel=doc?.getElementById('tasksPanel');
+ if(!tasksPanel||tasksPanel.hidden||!doc?.getElementById('taskForm')?.hidden)return;
+ queueCloudSize();
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  resizeCloudFrame();
+  const inner=tasksPanel.getBoundingClientRect(),outer=cloudFrame.getBoundingClientRect();
+  const target=Math.max(0,window.scrollY+outer.top+inner.top-78);
+  if(Number.isFinite(target))window.scrollTo({top:target,behavior:'instant'});
+ }));
+});
 cloudFrame.addEventListener('load',observeCloudSize);
 refreshCloudOuter.onclick=()=>{
  const control=cloudDocument()?.getElementById('refreshCloud');
