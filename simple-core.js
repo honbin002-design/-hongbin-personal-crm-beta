@@ -77,7 +77,8 @@ function showRecord(kind,key,push=true){
   record=crm.todos.find(t=>String(t.id)===String(key));if(!record)return;
   name=record.text||'未命名待辦';
   body=[['事項',name],['日期',record.date],['時間',record.time||'未設定時間'],
-    ['客戶',linkedTodoCustomer(record)],['狀態',record.done?'已完成':'待處理'],['備註',record.notes]].map(([a,b])=>readonlyRow(a,b||'—')).join('');
+    ['客戶',linkedTodoCustomer(record)],['狀態',record.done?'已完成':'待處理'],['備註',record.notes]].map(([a,b])=>readonlyRow(a,b||'—')).join('')+
+   '<div class="actions"><button type="button" class="secondary" data-calendar-ics="one" data-calendar-todo-id="'+esc(record.id)+'">匯出此筆至 iPhone 行事曆 .ics</button></div>';
  }else if(kind==='note'){
   record=getNotes().find(n=>String(n.id)===String(key));if(!record)return;
   name=noteHeading(record);
@@ -267,7 +268,7 @@ function renderCalendar(){const year=monthDate.getFullYear(),month=monthDate.get
 function renderTodos(){
  const all=todoItems(),day=all.filter(t=>t.date===selectedDate).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99')),undated=all.filter(t=>!String(t.date||'').trim());
  $('selectedDayTitle').textContent=selectedDate+' 的待辦（'+day.length+'）';
- const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="todo-task-main"><span class="todo-time'+(t.time?'':' unscheduled')+'">'+(t.time?'時間：'+esc(t.time):'未設定時間')+'</span><span class="listTitle">'+esc(t.text||'未命名待辦')+'</span></span></label>'+(linkedTodoCustomer(t)?'<div class="sub">客戶：'+esc(linkedTodoCustomer(t))+'</div>':'')+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<button type="button" class="secondary" data-todo="'+esc(t.id)+'">查看</button></div>';
+ const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="todo-task-main"><span class="todo-time'+(t.time?'':' unscheduled')+'">'+(t.time?'時間：'+esc(t.time):'未設定時間')+'</span><span class="listTitle">'+esc(t.text||'未命名待辦')+'</span></span></label>'+(linkedTodoCustomer(t)?'<div class="sub">客戶：'+esc(linkedTodoCustomer(t))+'</div>':'')+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<div class="actions"><button type="button" class="secondary" data-todo="'+esc(t.id)+'">查看</button><button type="button" class="secondary" data-calendar-ics="one" data-calendar-todo-id="'+esc(t.id)+'">匯出此筆 .ics</button></div></div>';
  $('todoList').innerHTML=(day.length?day.map(item).join(''):htmlListEmpty('當天沒有待辦'))+(undated.length?'<h3>尚未安排日期的待辦（'+undated.length+'）</h3><div class="muted">舊版未填日期的待辦仍保留，可按修改安排日期。</div>'+undated.map(item).join(''):'');
 }
 function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tTime').value=t?.time||'';$('tCustomer').value=t?linkedTodoCustomer(t):'';$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
