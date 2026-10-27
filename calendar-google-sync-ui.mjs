@@ -17,6 +17,7 @@ const SCOPES=['https://www.googleapis.com/auth/calendar.events',
  'https://www.googleapis.com/auth/calendar.calendarlist.readonly'];
 const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
  events:[],preview:null,running:false};
+let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
 const safeMessage=message=>{
  const status=$('googleCalendarStatus');if(!status)return;
  status.hidden=false;status.textContent=message;
@@ -102,12 +103,10 @@ function showPreview(plan,todos,events){
   ' 筆，略過 '+plan.skipped.length+' 筆。此時尚未修改 CRM 或 Google 行事曆。';
  box.append(summary);
  const ul=document.createElement('ul');
- for(const op of plan.operations.slice(0,25)){
+ for(const op of plan.operations){
   const li=document.createElement('li');li.textContent=detailTitle(op,todos,events);ul.append(li);
  }
- if(plan.operations.length>25){
-  const item=document.createElement('li');item.textContent='另有 '+(plan.operations.length-25)+' 筆，確認前請留意同步筆數。';ul.append(item);
- }
+ // Every proposed write must be visible before a person approves the batch.
  box.append(ul);
  if(plan.conflicts.length){
   const note=document.createElement('p');
@@ -122,22 +121,37 @@ async function connectGoogle(){
  state.preview=null;state.events=[];state.token='';state.expiresAt=0;
  state.calendarId='';state.calendarSummary='';state.user=null;
  $('googleCalendarPlan')?.replaceChildren();
- // Same approved Google Firebase project used by the cloud notebook;
- // permission is limited to the current signed-in Google identity.
- const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
- if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
- const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
- const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
- const app=appSdk.getApps().find(x=>x.name==='[DEFAULT]')||appSdk.initializeApp(firebaseConfig);
- if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
- const auth=authSdk.getAuth(app);
- await auth.authStateReady();
+ // iPhone WebKit may block popups if SDK downloads and awaits consume the
+ // original user gesture. The first explicit tap loads and validates auth;
+ // the second is a fresh direct tap that opens the Google OAuth popup before
+ // any await. No silent authorization and no new sign-in.
+ if(!googleAuthReady){
+  const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
+  if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
+  const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
+  const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
+  const app=appSdk.getApps().find(x=>x.name==='[DEFAULT]')||appSdk.initializeApp(firebaseConfig);
+  if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
+  const auth=authSdk.getAuth(app);
+  await auth.authStateReady();
+  const candidate=auth.currentUser;
+  if(!candidate||!candidate.emailVerified||
+     !candidate.providerData.some(p=>p.providerId==='google.com'))
+   throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
+  googleAuthReady={authSdk,auth};
+  $('googleCalendarConnect').textContent='第二步：點此授權 Google 日曆';
+  safeMessage('已確認目前登入的 Google 帳號。請再次點上方「第二步：點此授權 Google 日曆」，這次將由你本人開啟 Google 授權視窗。尚未取得任何日曆資料。');
+  return;
+ }
+ const {authSdk,auth}=googleAuthReady;
  const user=auth.currentUser;
  if(!user||!user.emailVerified||!user.providerData.some(p=>p.providerId==='google.com'))
-  throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
+  throw Error('目前尚未登入已驗證的 Google 帳號，請先登入雲端記事與任務。');
  const provider=new authSdk.GoogleAuthProvider();
  for(const scope of SCOPES)provider.addScope(scope);
- const result=await authSdk.reauthenticateWithPopup(user,provider);
+ // Intentionally executed before the first await on this second click.
+ const popup=authSdk.reauthenticateWithPopup(user,provider);
+ const result=await popup;
  if(!result.user||result.user.uid!==user.uid)throw Error('GOOGLE_ACCOUNT_CHANGED_STOP');
  const credential=authSdk.GoogleAuthProvider.credentialFromResult(result);
  if(!credential?.accessToken)throw Error('GOOGLE_CALENDAR_CONSENT_NOT_GRANTED');
@@ -161,6 +175,9 @@ async function connectGoogle(){
  safeMessage('已授權並找到專用 Google 日曆。點「預覽雙向差異」才會唯讀取得行程，尚未同步。');
 }
 async function preview(){
+ // Any failed new preview must invalidate the previous confirmation.
+ state.preview=null;
+ $('googleCalendarConfirm').disabled=true;
  if(!state.calendarId)throw Error('SELECT_DEDICATED_GOOGLE_CALENDAR');
  const [local,events]=[allTodos().todos,await listEvents()];
  const links=savedLinks();
@@ -274,6 +291,9 @@ async function handleClick(action){
    safeMessage('已中斷此頁 Google Calendar 的存取權杖。CRM 待辦與 Google 日曆資料均保留。');
   }
  }catch(error){
+  // Fail closed: a stale plan must never become confirmable after errors.
+  state.preview=null;
+  $('googleCalendarConfirm').disabled=true;
   const code=String(error?.message||error);
   const lookup={
    GOOGLE_CALENDAR_API_OR_PERMISSION_DENIED:'Google Calendar API 尚未啟用，或帳號尚未同意授權。請檢查 Google Cloud Console 的 Calendar API 與 OAuth 權限。',
