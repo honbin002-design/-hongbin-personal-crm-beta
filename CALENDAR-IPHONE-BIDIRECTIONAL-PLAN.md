@@ -75,3 +75,14 @@
 - iPhone 快取修正 `dc9fe6127810f09d48b2ddc472dd6114c1071087`：新模組 query string `20261027b-owner-calendar`；同步核心載入 query `20261027b`；相應更新 R73 workflow 斷言。其他已 PASS 的 CRM／通知／報價／共用記事沒有更動。
 - 最新程式碼曾在 GitHub Pages（run `40446059813`）與 Web Push safe-hold（run `40446059780`）成功。完整 R73 WebKit／PDF 回歸需以相同 commit `dc9fe6127` 的 run `40446059667` 最終結論為準，**未驗證前不可宣稱最終 PASS**。
 - 尚未有使用者在 iPhone 點 Google Calendar OAuth 建立專用日曆、沒有真實 Google API 建立結果，也未驗收 iPhone 原生日曆同步。原生 iCloud EventKit 依舊不能由此網頁直接讀寫。真人必須在授權畫面自行同意，任何未授權資料禁止讀寫。
+
+## 2026-10-27 12:47（臺北）｜iPhone 403 診斷施工接續
+
+- 使用者 iPhone Safari 截圖顯示「第二步：點此授權 Google 日曆」、建立鍵尚未可使用、日曆下拉清單空，底下為舊版合併錯誤「Google Calendar API 尚未啟用，或帳號尚未同意授權」。由程式路徑可判斷：第二步已從 Google/Firebase reauthenticateWithPopup 取得存於記憶體的 access token，然後第一次 `GET /users/me/calendarList` 回 HTTP 403；**不能說 Google Calendar API 讀取成功或已建立專用日曆**。也不能僅憑合併錯誤斷言 API 未啟用。
+- 由已連接的 Google Calendar 工具唯讀核對，目前此帳號只有主要日曆和「家族」日曆，尚無「鴻繽 CRM 待辦」；ChatGPT Google Calendar 工具使用獨立授權，不表示 CRM 所屬 Google Cloud 專案的 Calendar API 已經啟用。
+- 修改 `calendar-google-sync-ui.mjs` 的 HTTP 錯誤分類：`SERVICE_DISABLED` / `accessNotConfigured` → `GOOGLE_CALENDAR_API_DISABLED`；`ACCESS_TOKEN_SCOPE_INSUFFICIENT` / `insufficientPermissions` → `GOOGLE_CALENDAR_SCOPE_DENIED`；其他 403 → `GOOGLE_CALENDAR_403_UNCLASSIFIED`，不宣稱未知根因。拒絕顯示 provider 原始錯誤內容、個人資料或權杖。沒有進行任何 Calendar API 真實寫入，沒有變更 Firebase／Cloud API／付費計費。
+- `tests/calendar-google-sync-ui.mjs` 加入 7 組純模擬 API payload 分類驗證（API disabled、scope denied、unknown 403、401、429），不需要連線或 OAuth 憑證。
+- iPhone 模組快取網址更新為 `calendar-google-sync-ui.mjs?v=20261027c-api-diagnostics`，相應修改 `index.html` 與 R73 workflow 靜態斷言。
+- **實際驗證**：最新診斷版 HEAD `e97991aca4744769c77f19d363ee1e9fc2f2509e` 的 Pages run `40452005257` **SUCCESS**、R73 全量回歸 run `40452004703` **SUCCESS**（包含 iPhone WebKit／PDF 與 Calendar API mock）；早期 `7ae6e0cc4` run `40451999856` 的失敗是 workflow 舊版快取字串斷言未跟著更新，已修復，不能隱藏歷史 FAIL。
+- **尚未通過 Gate**：本人的 iPhone 在重新整理正式 CRM 後需再按「連線」→「第二步授權」一次，讀取新版顯示的精確錯誤代碼。若為 `GOOGLE_CALENDAR_API_DISABLED`，需要帳號擁有者至 `honbin-crm-notes-spark` Google Cloud Console 確認 `calendar-json.googleapis.com` 的啟用狀態；目前沒有 Google Cloud Service Usage 管理連線可以代操作，不能冒稱已啟用。若提示任何需付費、綁定帳單或升級 Blaze，必須停下來先取得同意。若為 `GOOGLE_CALENDAR_SCOPE_DENIED`，回查 OAuth 授權範圍，**不要**盲目開啟服務。
+- 本輪以缺陷修正為限，不動既有正式客戶／報價／進價／Firebase 規則或行事曆資料，不解除逐筆同步預覽與本人確認限制。沒有開啟背景自動日曆同步。
