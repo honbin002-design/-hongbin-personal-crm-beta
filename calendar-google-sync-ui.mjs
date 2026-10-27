@@ -418,7 +418,7 @@ async function readAssignedMemberTasks(){
  const db=sdk.getFirestore(auth.app),uid=state.user.uid;
  const groups=groupService({db,sdk,identity:{
   uid,email:auth.currentUser.email,emailVerified:auth.currentUser.emailVerified}});
- const accessible=await groups.listGroups();
+ const accessible=await groups.listGroupsFromServer();
  if(accessible.length>12)throw Error('群組超過 12 個，為控制免費讀取額度，請分批設計後再啟用');
  const result=[];
  for(const group of accessible){
