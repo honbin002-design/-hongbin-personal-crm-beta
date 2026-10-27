@@ -66,13 +66,47 @@ export function eventFingerprint(event){
  return t?JSON.stringify([t.text,t.date,t.time,t.notes]):null;
 }
 export function planCalendarSync({todos=[],events=[],links={}}={}){
- const local=new Map(todos.map(t=>[String(t?.id),t]).filter(([id,t])=>t&&id!=='undefined'));
- const remote=new Map(events.filter(e=>e?.id).map(e=>[String(e.id),e]));
  const operations=[],conflicts=[],skipped=[],linkedEvents=new Set();
+ const local=new Map();
+ for(const todo of todos){
+  if(!todo||todo.id==null)continue;
+  const id=String(todo.id);
+  if(!id){conflicts.push({todoId:id,reason:'EMPTY_LOCAL_TODO_ID'});continue}
+  if(local.has(id)){conflicts.push({todoId:id,reason:'DUPLICATE_LOCAL_TODO_ID'});continue}
+  local.set(id,todo);
+ }
+ // Duplicate local identifiers make every change ambiguous: stop the batch.
+ if(conflicts.length)return {operations:[],conflicts,skipped};
+ const remote=new Map(events.filter(e=>e?.id).map(e=>[String(e.id),e]));
+ const taggedByTodo=new Map();
+ for(const event of events){
+  const ownerId=text(event?.extendedProperties?.private?.honbinCrmTodoId);
+  if(!ownerId)continue;
+  const list=taggedByTodo.get(ownerId)||[];
+  list.push(event);
+  taggedByTodo.set(ownerId,list);
+ }
+ const linkedIds=new Map();
+ for(const [id,link] of Object.entries(links||{})){
+  if(!link?.eventId)continue;
+  const eventId=String(link.eventId);
+  const owners=linkedIds.get(eventId)||[];
+  owners.push(id);linkedIds.set(eventId,owners);
+ }
  for(const [id,link] of Object.entries(links||{})){
   if(!link?.eventId)continue;
   const eventId=String(link.eventId),todo=local.get(id),event=remote.get(eventId);
   linkedEvents.add(eventId);
+  if((linkedIds.get(eventId)||[]).length!==1){
+   conflicts.push({todoId:id,eventId,reason:'DUPLICATE_EVENT_LINK'});continue;
+  }
+  if((taggedByTodo.get(id)||[]).length>1){
+   conflicts.push({todoId:id,eventId,reason:'MULTIPLE_GOOGLE_EVENTS_FOR_TODO'});continue;
+  }
+  const remoteOwner=text(event?.extendedProperties?.private?.honbinCrmTodoId);
+  if(remoteOwner&&remoteOwner!==id){
+   conflicts.push({todoId:id,eventId,reason:'GOOGLE_EVENT_OWNER_MISMATCH'});continue;
+  }
   if(!todo||!event||event.status==='cancelled'){
    conflicts.push({todoId:id,eventId,reason:!todo?'CRM_RECORD_MISSING':'GOOGLE_EVENT_MISSING_OR_CANCELLED'});
    continue;
@@ -87,15 +121,25 @@ export function planCalendarSync({todos=[],events=[],links={}}={}){
  }
  for(const [id,todo] of local){
   if(Object.hasOwn(links,id))continue;
+  const matches=taggedByTodo.get(id)||[];
+  if(matches.length){
+   // On another iPhone, the local event mapping may be missing. Never
+   // create a second Google event for a CRM ID already tagged remotely.
+   conflicts.push({todoId:id,eventId:matches[0]?.id,
+    reason:matches.length>1?'MULTIPLE_GOOGLE_EVENTS_FOR_TODO':'UNLINKED_EXISTING_CRM_EVENT'});
+   continue;
+  }
   if(todoFingerprint(todo))operations.push({type:'CREATE_GOOGLE',todoId:id});
   else skipped.push({todoId:id,reason:'NO_VALID_DATE'});
  }
  for(const [eventId,event] of remote){
   if(linkedEvents.has(eventId)||event.status==='cancelled')continue;
   const ownerId=text(event.extendedProperties?.private?.honbinCrmTodoId);
-  if(ownerId&&local.has(ownerId)){
-   // A mapping might have been lost on another device: never create duplicate.
-   conflicts.push({todoId:ownerId,eventId,reason:'UNLINKED_EXISTING_CRM_EVENT'});
+  if(ownerId){
+   // Do not silently re-import a CRM event that was deliberately deleted
+   // or whose mapping was lost. A person must resolve the mismatch.
+   if(!local.has(ownerId))conflicts.push({todoId:ownerId,eventId,reason:'ORPHANED_CRM_EVENT'});
+   // If local exists, the preceding local loop already recorded the conflict.
    continue;
   }
   const fields=eventFields(event);

@@ -28,6 +28,30 @@ assert.deepEqual(p.operations.map(x=>x.type),['IMPORT_TO_CRM']);
 p=planCalendarSync({todos:[todo],events:[{...event,extendedProperties:{private:{honbinCrmTodoId:'123'}}}],links:{}});
 assert.deepEqual(p.conflicts.map(x=>x.reason),['UNLINKED_EXISTING_CRM_EVENT']);
 assert.equal(p.operations.filter(x=>x.type==='IMPORT_TO_CRM').length,0,'lost mapping never duplicates CRM task');
+assert.equal(p.operations.filter(x=>x.type==='CREATE_GOOGLE').length,0,'lost mapping must not create a second Google event');
+p=planCalendarSync({todos:[todo],events:[{...event,extendedProperties:{private:{honbinCrmTodoId:'123'}}}],links:{}});
+assert.deepEqual(p.operations,[],'unlinked existing Google tag must block both directions');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['UNLINKED_EXISTING_CRM_EVENT']);
+p=planCalendarSync({todos:[],events:[{...event,extendedProperties:{private:{honbinCrmTodoId:'deleted-id'}}}],links:{}});
+assert.deepEqual(p.operations,[],'deleted CRM todo must not resurrect from Google');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['ORPHANED_CRM_EVENT']);
+p=planCalendarSync({todos:[todo],events:[
+ {...event,extendedProperties:{private:{honbinCrmTodoId:'123'}}},
+ {...event,id:'g-duplicate',extendedProperties:{private:{honbinCrmTodoId:'123'}}}
+],links:{}});
+assert.equal(p.operations.length,0,'two remote tags must never trigger another creation');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['MULTIPLE_GOOGLE_EVENTS_FOR_TODO']);
+p=planCalendarSync({todos:[todo],events:[{...event,extendedProperties:{private:{honbinCrmTodoId:'someone-else'}}}],links});
+assert.equal(p.operations.length,0,'wrong event owner cannot receive CRM update');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['GOOGLE_EVENT_OWNER_MISMATCH']);
+p=planCalendarSync({todos:[todo,{...todo,id:456}],events:[event],links:{
+ '123':links['123'],'456':{...links['123']}
+}});
+assert.equal(p.operations.length,0,'two CRM records cannot update the same event');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['DUPLICATE_EVENT_LINK','DUPLICATE_EVENT_LINK']);
+p=planCalendarSync({todos:[todo,{...todo,text:'另一筆但錯誤重複 ID'}],events:[],links:{}});
+assert.equal(p.operations.length,0,'duplicated local IDs must stop all batch writes');
+assert.deepEqual(p.conflicts.map(x=>x.reason),['DUPLICATE_LOCAL_TODO_ID']);
 p=planCalendarSync({todos:[{...todo,date:''}],events:[],links:{}});
 assert.equal(p.operations.length,0);
 assert.deepEqual(p.skipped.map(x=>x.reason),['NO_VALID_DATE']);
