@@ -4,7 +4,8 @@
  * Calendar app. NEVER reads iCloud/EventKit, runs in background, or auto-writes.
  * Access token exists solely in module memory and only after explicit reauth.
  */
-import {planCalendarSync,todoFingerprint,eventFingerprint,googleEventFromTodo}
+import {planCalendarSync,todoFingerprint,eventFingerprint,googleEventFromTodo,
+ notesWithoutCrmCustomerFooter}
  from './calendar-sync-core.mjs?v=20261027';
 // Firebase's already existing public config is loaded only when the user taps Connect.
 const $=id=>document.getElementById(id);
@@ -26,7 +27,9 @@ const buttonDisable=disabled=>{
 };
 function allTodos(){
  const data=JSON.parse(localStorage.getItem(CRM_KEY)||'{}');
- if(!data||typeof data!=='object'||!Array.isArray(data.todos))throw Error('CRM_TODOS_INVALID');
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('CRM_TODOS_INVALID');
+ if(data.todos===undefined)return {...data,todos:[]}; // fresh CRM has no saved tasks yet
+ if(!Array.isArray(data.todos))throw Error('CRM_TODOS_INVALID');
  return data;
 }
 const linkKey=(uid,calendarId)=>MAP_KEY+':'+uid+':'+calendarId;
@@ -114,6 +117,11 @@ function showPreview(plan,todos,events){
  $('googleCalendarConfirm').disabled=plan.operations.length===0||state.running;
 }
 async function connectGoogle(){
+ // Reauthorization always clears prior preview/token/calendar selection.
+ // A failed or changed session must never confirm an old preview.
+ state.preview=null;state.events=[];state.token='';state.expiresAt=0;
+ state.calendarId='';state.calendarSummary='';state.user=null;
+ $('googleCalendarPlan')?.replaceChildren();
  // Same approved Google Firebase project used by the cloud notebook;
  // permission is limited to the current signed-in Google identity.
  const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
@@ -188,7 +196,8 @@ function patchTodoWithId(todoId,fields){
  const crm=allTodos(),item=crm.todos.find(x=>String(x.id)===String(todoId));
  if(!item)throw Error('CRM_TODO_REMOVED_REPREVIEW');
  // Never clear CRM's internal done or customer relationship fields.
- Object.assign(item,{text:fields.text,date:fields.date,time:fields.time,notes:fields.notes});
+ Object.assign(item,{text:fields.text,date:fields.date,time:fields.time,
+  notes:notesWithoutCrmCustomerFooter(fields.notes,item.customerName)});
  localStorage.setItem(CRM_KEY,JSON.stringify(crm));
  return item;
 }

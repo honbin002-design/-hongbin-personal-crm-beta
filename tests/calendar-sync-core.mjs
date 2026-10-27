@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {normalizeTodo,todoFingerprint,googleEventFromTodo,eventFingerprint,planCalendarSync} from '../calendar-sync-core.mjs';
+import {normalizeTodo,todoFingerprint,googleEventFromTodo,eventFingerprint,planCalendarSync,
+ notesWithoutCrmCustomerFooter} from '../calendar-sync-core.mjs';
 const todo={id:123,text:'客戶拜訪',date:'2026-10-27',time:'09:30',notes:'會議',customerName:'測試客戶',done:false};
 const event={id:'g-1',summary:'客戶拜訪',description:'會議',start:{dateTime:'2026-10-27T09:30:00+08:00'},end:{dateTime:'2026-10-27T10:30:00+08:00'}};
 const links={'123':{eventId:'g-1',localFingerprint:todoFingerprint(todo),remoteFingerprint:eventFingerprint(event)}};
@@ -31,6 +32,14 @@ p=planCalendarSync({todos:[{...todo,date:''}],events:[],links:{}});
 assert.equal(p.operations.length,0);
 assert.deepEqual(p.skipped.map(x=>x.reason),['NO_VALID_DATE']);
 assert.equal(normalizeTodo({id:1,date:'2026-10-27'}).time,'');
+assert.equal(normalizeTodo({...todo,date:'2026-02-30'}),null,'impossible dates must not sync');
+assert.equal(normalizeTodo({...todo,time:'25:61'}),null,'invalid time must not silently become all-day');
+assert.equal(planCalendarSync({todos:[{...todo,date:'2026-02-30'}],events:[]}).operations.length,0);
+assert.equal(notesWithoutCrmCustomerFooter('會議\n客戶：測試客戶','測試客戶'),'會議');
+assert.equal(notesWithoutCrmCustomerFooter('客戶：測試客戶','測試客戶'),'');
+assert.equal(notesWithoutCrmCustomerFooter('會議\n客戶：測試客戶\n客戶：測試客戶','測試客戶'),'會議\n客戶：測試客戶');
+assert.equal(notesWithoutCrmCustomerFooter('外部改寫內容','測試客戶'),'外部改寫內容');
+assert.equal(notesWithoutCrmCustomerFooter('使用者手動記錄\n客戶：乙公司','測試客戶'),'使用者手動記錄\n客戶：乙公司');
 assert.equal(googleEventFromTodo({...todo,time:''}).start.date,'2026-10-27');
 assert.equal(googleEventFromTodo({...todo,time:''}).end.date,'2026-10-28');
 assert.equal(googleEventFromTodo({...todo,date:'2026-12-31',time:''}).end.date,'2027-01-01');

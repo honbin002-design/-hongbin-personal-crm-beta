@@ -8,14 +8,31 @@ export const CALENDAR_TIME_ZONE='Asia/Taipei';
 const text=v=>String(v??'').trim();
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
 const timePattern=/^([01]\d|2[0-3]):[0-5]\d$/;
-const safeDate=v=>datePattern.test(text(v))&&Number.isFinite(Date.parse(text(v)+'T12:00:00Z'));
+const safeDate=v=>{
+ const value=text(v);
+ if(!datePattern.test(value))return false;
+ const parsed=new Date(value+'T12:00:00Z');
+ return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
+};
 const addDay=d=>{const v=new Date(d+'T12:00:00Z');v.setUTCDate(v.getUTCDate()+1);return v.toISOString().slice(0,10)};
 export function normalizeTodo(todo){
  if(!todo||todo.id==null||!safeDate(todo.date))return null;
+ const time=text(todo.time);
+ if(time&&!timePattern.test(time))return null; // never turn a bad time into an all-day event
  return {id:String(todo.id),text:text(todo.text),date:text(todo.date),
-  time:timePattern.test(text(todo.time))?text(todo.time):'',
+  time,
   notes:text(todo.notes),done:!!todo.done,
   customerName:text(todo.customerName)};
+}
+// A CRM-origin Google description appends its customer as a display-only footer.
+// Strip exactly one generated footer when updating the original CRM note, so
+// a Google-side edit cannot accumulate repeated customer lines on each sync.
+export function notesWithoutCrmCustomerFooter(description,customerName){
+ const note=text(description),customer=text(customerName);
+ if(!customer)return note;
+ const footer='客戶：'+customer;
+ if(note===footer)return '';
+ return note.endsWith('\n'+footer)?note.slice(0,-footer.length-1):note;
 }
 export function todoFingerprint(todo){
  const t=normalizeTodo(todo);

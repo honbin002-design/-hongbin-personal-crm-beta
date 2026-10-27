@@ -24,6 +24,9 @@ assert.doesNotMatch(code,/localStorage\.setItem\([^\n]*token/,'never persist Goo
 assert.doesNotMatch(code,/method:'DELETE'/,'no Google Calendar deletion');
 assert.doesNotMatch(code,/signInWithPopup\(/,'no account replacement');
 assert.match(code,/saveTodoWithId\(/);
+assert.match(code,/data\.todos===undefined/,'empty CRM should be safe to import');
+assert.match(code,/notesWithoutCrmCustomerFooter\(fields\.notes,item\.customerName\)/,'keep customer footer from accumulating');
+assert.match(code,/state\.preview=null;state\.events=\[\];state\.token=''/,'new authorization invalidates any prior preview');
 assert.match(code,/patchTodoWithId\(/);
 assert.match(code,/PREVIEW_REQUIRED/);
 assert.match(code,/googleCalendarConfirm'\)\.disabled=true/);
