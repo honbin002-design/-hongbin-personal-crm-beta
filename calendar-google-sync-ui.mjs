@@ -45,6 +45,31 @@ function storeLinks(links){
  const key=linkKey(state.user.uid,state.calendarId);
  localStorage.setItem(key,JSON.stringify(links));
 }
+// Convert Google's standard error reasons into safe, actionable codes.
+// Never display provider raw bodies: they can include account/project metadata.
+function googleCalendarErrorCode(status,payload){
+ if(status===401)return 'GOOGLE_TOKEN_EXPIRED';
+ if(status===403){
+  const error=payload?.error||{};
+  const reasons=[
+   error.status,
+   ...(Array.isArray(error.errors)?error.errors.map(x=>x?.reason):[]),
+   ...(Array.isArray(error.details)?error.details.map(x=>x?.reason):[])
+  ].filter(x=>typeof x==='string').join(' ').toUpperCase();
+  const message=typeof error.message==='string'?error.message.slice(0,1000):'';
+  if(/SERVICE_DISABLED|ACCESSNOTCONFIGURED|API_DISABLED|API_NOT_ENABLED/.test(reasons)||
+     /API (?:HAS NOT BEEN USED|IS DISABLED)|API.+(?:NOT ENABLED|HAS NOT BEEN ENABLED)/i.test(message))
+   return 'GOOGLE_CALENDAR_API_DISABLED';
+  if(/ACCESS_TOKEN_SCOPE_INSUFFICIENT|INSUFFICIENTPERMISSIONS|INSUFFICIENT_AUTHENTICATION_SCOPES/.test(reasons)||
+     /INSUFFICIENT (?:AUTHENTICATION )?SCOPES|INSUFFICIENT PERMISSIONS/i.test(message))
+   return 'GOOGLE_CALENDAR_SCOPE_DENIED';
+  return 'GOOGLE_CALENDAR_403_UNCLASSIFIED';
+ }
+ if(status===404)return 'GOOGLE_EVENT_OR_CALENDAR_NOT_FOUND';
+ if(status===409||status===412)return 'GOOGLE_VERSION_CHANGED_PREVIEW_AGAIN';
+ if(status===429)return 'GOOGLE_CALENDAR_QUOTA_LIMIT';
+ return 'GOOGLE_CALENDAR_HTTP_'+status;
+}
 async function request(path,options={}){
  if(!state.token||Date.now()>=state.expiresAt)throw Error('GOOGLE_SESSION_EXPIRED_CONNECT_AGAIN');
  const reply=await fetch(API+path,{...options,headers:{
@@ -54,12 +79,10 @@ async function request(path,options={}){
   ...(options.headers||{})
  },cache:'no-store'});
  if(!reply.ok){
-  if(reply.status===401)throw Error('GOOGLE_TOKEN_EXPIRED');
-  if(reply.status===403)throw Error('GOOGLE_CALENDAR_API_OR_PERMISSION_DENIED');
-  if(reply.status===404)throw Error('GOOGLE_EVENT_OR_CALENDAR_NOT_FOUND');
-  if(reply.status===409||reply.status===412)throw Error('GOOGLE_VERSION_CHANGED_PREVIEW_AGAIN');
-  if(reply.status===429)throw Error('GOOGLE_CALENDAR_QUOTA_LIMIT');
-  throw Error('GOOGLE_CALENDAR_HTTP_'+reply.status);
+  let payload=null;
+  try{payload=await reply.json()}catch{}
+  // The error is classified locally. Never log the token or provider body.
+  throw Error(googleCalendarErrorCode(reply.status,payload));
  }
  return reply.status===204?null:reply.json();
 }
@@ -336,7 +359,9 @@ async function handleClick(action){
   $('googleCalendarConfirm').disabled=true;
   const code=String(error?.message||error);
   const lookup={
-   GOOGLE_CALENDAR_API_OR_PERMISSION_DENIED:'Google Calendar API 尚未啟用，或帳號尚未同意授權。請檢查 Google Cloud Console 的 Calendar API 與 OAuth 權限。',
+   GOOGLE_CALENDAR_API_DISABLED:'Google 回覆：Calendar API 尚未對目前 OAuth 專案啟用（SERVICE_DISABLED）。請確認 Google Cloud 專案 honbin-crm-notes-spark 的 Google Calendar API 狀態；尚未建立日曆。',
+   GOOGLE_CALENDAR_SCOPE_DENIED:'Google 回覆：這次授權缺少 Calendar API 必要範圍（INSUFFICIENT_SCOPE）。請檢查 OAuth 同意畫面的授權範圍後重新授權；尚未建立日曆。',
+   GOOGLE_CALENDAR_403_UNCLASSIFIED:'Google Calendar API 回覆 HTTP 403，但無法從回應確認是 API 停用或權限問題。尚未建立日曆；請提供這個錯誤代碼，避免盲目更改 Firebase 設定。',
    GOOGLE_SESSION_EXPIRED_CONNECT_AGAIN:'授權已到期，請按「重新連線」後再預覽。',
    GOOGLE_TOKEN_EXPIRED:'Google 授權已失效，請重新連線。',
    GOOGLE_CALENDAR_QUOTA_LIMIT:'Google Calendar API 配額暫時達上限，沒有自動重試。',
