@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'simple-core.js'
+      - 'calendar-sync-core.mjs'
+      - 'tests/calendar-sync-core.mjs'
       - 'quote-vector-pdf.js'
       - 'owner-prices.mjs'
       - 'tests/owner-price-validation.cjs'
@@ -27,6 +29,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check JavaScript
         run: node --check simple-core.js && node --check quote-vector-pdf.js && node --check owner-prices.mjs && node --check sw.js && node --check crm-push-setup.mjs
+      - name: Verify bidirectional calendar merge engine without credentials or production writes
+        run: node --check calendar-sync-core.mjs && node tests/calendar-sync-core.mjs
       - name: Validate owner-only supplier price import (synthetic data only)
         run: node tests/owner-price-validation.cjs
       - name: Verify simplified homepage and old-data protection
