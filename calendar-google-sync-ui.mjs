@@ -392,3 +392,96 @@ $('googleCalendarSelect')?.addEventListener('change',event=>{
  state.preview=null;state.events=[];$('googleCalendarPlan').replaceChildren();
  $('googleCalendarConfirm').disabled=true;
 });
+
+
+// Candidate B: member-owned Google calendar, CRM-assigned shared tasks only.
+// No Firestore writes; Google-side edits never mutate shared tasks or bypass approval.
+import {assignedTaskCalendarItems,planAssignedTaskCalendar} from './calendar-assigned-tasks-v1.mjs';
+let memberPreview=null,memberBusy=false;
+const memberBox=document.createElement('div');
+memberBox.className='card';
+memberBox.style.cssText='margin-top:12px;padding:12px;background:#fff';
+memberBox.innerHTML='<h4>指派給我的共用任務 → 我的 Google 日曆（TEST）</h4>'+
+ '<p class="muted">只同步指派給目前登入者的任務；共用任務的修改與完成仍須回 CRM 操作。請先預覽再確認。</p>'+
+ '<div class="actions"><button type="button" class="secondary" id="memberCalendarPreview">預覽我的指派任務</button>'+
+ '<button type="button" id="memberCalendarApply" disabled>確認同步指派任務</button></div>'+
+ '<p class="muted" id="memberCalendarStatus" role="status">尚未預覽。</p><div id="memberCalendarChanges"></div>';
+$('googleCalendarSync')?.append(memberBox);
+const memberStatus=m=>$('memberCalendarStatus').textContent=m;
+async function readAssignedMemberTasks(){
+ if(!state.user?.uid||!state.calendarId||!state.token||Date.now()>=state.expiresAt)
+  throw Error('請先登入並連線自己擁有的專用 Google 日曆');
+ const {auth}=googleAuthReady||{};
+ if(!auth?.currentUser||auth.currentUser.uid!==state.user.uid)throw Error('ACCOUNT_CHANGED_STOP');
+ const sdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js');
+ const {groupService}=await import('/honbin-crm-auth-test/firebase-group-service.mjs');
+ const db=sdk.getFirestore(auth.app),uid=state.user.uid;
+ const groups=groupService({db,sdk,identity:{
+  uid,email:auth.currentUser.email,emailVerified:auth.currentUser.emailVerified}});
+ const accessible=await groups.listGroups();
+ if(accessible.length>12)throw Error('群組超過 12 個，為控制免費讀取額度，請分批設計後再啟用');
+ const result=[];
+ for(const group of accessible){
+  const col=sdk.collection(db,'groups',group.id,'tasks');
+  const snap=await sdk.getDocsFromServer(sdk.query(col,
+   sdk.where('assignedUid','==',uid),sdk.limit(200)));
+  if(snap.size===200)throw Error('單一群組指派任務達 200 筆，為避免漏同步已停止');
+  if(auth.currentUser?.uid!==uid)throw Error('ACCOUNT_CHANGED_STOP');
+  result.push({groupId:group.id,tasks:snap.docs.map(d=>({id:d.id,...d.data()}))});
+ }
+ return assignedTaskCalendarItems({uid,groups:result})
+  .sort((a,b)=>a.sourceKey.localeCompare(b.sourceKey));
+}
+const memberHash=items=>JSON.stringify(items.map(x=>[
+ x.sourceKey,x.title,x.description,x.status,x.executeDate,x.dueDate]));
+async function previewMember(){
+ memberPreview=null;$('memberCalendarApply').disabled=true;
+ const items=await readAssignedMemberTasks();
+ const events=await listEvents();
+ const plan=planAssignedTaskCalendar({items,events});
+ memberPreview={uid:state.user.uid,calendarId:state.calendarId,plan,
+  taskHash:memberHash(items),
+  remoteHash:JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))};
+ $('memberCalendarChanges').textContent='待新增 '+plan.operations.filter(x=>x.type==='CREATE').length+
+  ' 筆、待更新 '+plan.operations.filter(x=>x.type==='UPDATE').length+
+  ' 筆、重複衝突 '+plan.conflicts.length+' 筆。';
+ $('memberCalendarApply').disabled=plan.operations.length===0;
+ memberStatus('唯讀預覽完成；尚未寫入。請確認後再同步。');
+}
+async function applyMember(){
+ if(!memberPreview)throw Error('請先預覽');
+ const p=memberPreview;
+ memberPreview=null;$('memberCalendarApply').disabled=true;
+ if(p.uid!==state.user?.uid||p.calendarId!==state.calendarId)throw Error('ACCOUNT_CHANGED_STOP');
+ const items=await readAssignedMemberTasks(),events=await listEvents();
+ if(memberHash(items)!==p.taskHash||
+  JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))!==p.remoteHash)
+  throw Error('資料已變動，請重新預覽');
+ if(!confirm('確定同步 '+p.plan.operations.length+' 筆指派給自己的共用任務到專用 Google 日曆？不會修改 Firestore 任務。'))return;
+ let count=0;
+ try{
+  for(const op of p.plan.operations){
+   if(state.user?.uid!==p.uid||state.calendarId!==p.calendarId)
+    throw Error('ACCOUNT_CHANGED_STOP');
+   if(op.type==='CREATE'){
+    await request(eventUrl(state.calendarId),{
+     method:'POST',body:JSON.stringify(op.event)});
+   }else if(op.type==='UPDATE'){
+    if(!op.expectedEtag)throw Error('GOOGLE_EVENT_ETAG_MISSING');
+    await request(eventUrl(state.calendarId,'/'+encodeURIComponent(op.eventId)),{
+     method:'PATCH',headers:{'If-Match':op.expectedEtag},body:JSON.stringify(op.event)});
+   }
+   count++;memberStatus('已同步 '+count+'/'+p.plan.operations.length+' 筆。');
+  }
+  memberStatus('指派任務同步完成 '+count+' 筆。若同事修改 Google 日曆，仍以 CRM 任務為準。');
+ }catch(e){throw Error('已完成 '+count+' 筆後停止；請重新預覽，避免重複。'+e.message)}
+}
+for(const [id,fn] of [['memberCalendarPreview',previewMember],['memberCalendarApply',applyMember]]){
+ $(id)?.addEventListener('click',async()=>{
+  if(memberBusy||state.running)return;memberBusy=true;
+  $('memberCalendarPreview').disabled=true;$('memberCalendarApply').disabled=true;
+  try{await fn()}catch(e){memberPreview=null;memberStatus('安全停止：'+e.message)}
+  finally{memberBusy=false;$('memberCalendarPreview').disabled=false;
+   $('memberCalendarApply').disabled=!memberPreview?.plan?.operations.length}
+ });
+}
