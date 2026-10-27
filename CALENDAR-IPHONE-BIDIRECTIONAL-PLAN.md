@@ -64,3 +64,4 @@
 - 以上都沒有對任何真實行事曆寫入；GitHub Pages 部署完成後仍須分別看 R73 WebKit CI，真實 Google Calendar API OAuth／iPhone 原生日曆實機仍**未 PASS**。
 - Google Calendar 已連線帳號唯讀看見主要與「家族」，尚沒有名稱完全一致的專用「鴻繽 CRM 待辦」。這不是程式故障，實際 Calendar API 啟用、Google OAuth scope 同意與專用日曆建立尚待本人確認。不能為了「直接完成」自動寫入家族日曆或冒用 OAuth 同意。
 - 後續只接續已存在的同步需求：檢查 `0e5d75346` CI／Pages readback；正式手機上點第一次「連線 Google 日曆」載入登入 SDK、第二次才同意授權；必須找到 owner 專用日曆才可「預覽／明確確認」，且不能刪除紀錄、不能宣稱自動背景同步。
+- **最終代碼 Gate 已確認 PASS**：`0e5d75346` 對應 R73 全量測試 run `40444122779` SUCCESS（包含雙向核心/授權靜態保護/ICS/PDF/iPhone WebKit 回歸）；Pages run `40444121965` SUCCESS。文件交接 commit `d4cd9b13c` 對應 Pages run `40444258644` SUCCESS，僅文件更新、未變動執行程式。真實 Google OAuth/iPhone 雙向仍待授權及實機驗收。
