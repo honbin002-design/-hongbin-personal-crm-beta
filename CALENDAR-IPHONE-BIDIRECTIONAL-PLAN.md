@@ -44,3 +44,12 @@
 5. 測試單向/雙向/同時修改、離線重試、權限撤銷、時區、同名不同 ID、防重複、跨日/跨年、跨手機本機資料差異。最後由使用者 iPhone 原生行事曆實機 PASS 才標示完成。
 
 **保護原則**：零新增費用；任何正式資料改寫須使用者在預覽後明確確認；原始待辦永不清空。
+
+## 2026-10-27 11:19（臺北）｜舊視窗回收與安全修正 Checkpoint
+
+- 已回收「工具_小工具集中區」舊視窗既有需求：正式 CRM 保留客戶／報價／進價／待辦／備份；Firebase `honbin-crm-notes-spark` 私人與共用記事、多人任務、延期審核、通知，先前 PASS 不重測。不擴充範圍、不切換 Work、不升級 Blaze 或新增付費項目。
+- 正式原始碼安全修正 commit `cecbdbce7dede49dfc45526e87684a4a38de854e`，僅四個檔案：`calendar-sync-core.mjs`、`calendar-google-sync-ui.mjs`、及各自對應的合成測試。已修：拒絕 2 月 30 日等不存在日期、拒絕不合法時間變成全天事件、新裝置沒有 `todos` 鍵時仍能安全匯入、CRM 客戶欄位不隨 Google 回寫重複附加備註、重新授權必須使先前預覽失效。
+- 該修正 GitHub Actions：R73 release checks run `40443238294` **success**，包含 JavaScript/日曆雙向核心/ICS/Google 連線安全/供應商進價安全/正式 R73 WebKit 與報價字型布局回歸；Pages run `40443237911` **success**。這是程式及自動化測試通過，**不是** Google OAuth 與 iPhone 真實行事曆資料交換 PASS。
+- 正式推播公開設定於此日讀回為 `SPARK_LIVE_FREE`、`subscriptionsEnabled=true`、`senderEnabled=true`；TEST repo `honbin002-design/honbin-crm-auth-test` cron sender 最近 2026-10-27 08:49 臺北 run `40428814331` **success**。舊視窗兩支 iPhone 收件／其中一支任務完成深層連結實機 PASS/FROZEN 保留；排程成功不代表三類新事件均已實機驗收。
+- 透過現有 Google Calendar 連線 **唯讀**查到目前只有「主要日曆」及「家族」，沒有名稱完全一致的「鴻繽 CRM 待辦」專用日曆。程式因此維持 fail-closed，不同步至主日曆或家族日曆。Google Cloud Calendar API／OAuth 正式授權及 iPhone 原生日曆讀回未驗收；iOS Safari/PWA 不能直接讀寫 iCloud EventKit。
+- 最後施工原則：保持本機 `hongbin_personal_crm_v3`、報價、進價及 Firebase 現有實際資料不動；使用者按「預覽→確認」前**零正式日曆資料寫入**；不得把 .ics 匯出稱為雙向同步、不得把 GitHub Pages 成功稱為 OAuth/iPhone 實機 PASS。接續工作僅限既有需求及必要缺陷修復。
