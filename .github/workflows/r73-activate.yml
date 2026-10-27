@@ -8,8 +8,10 @@ on:
       - 'calendar-sync-core.mjs'
       - 'calendar-ics-export.mjs'
       - 'calendar-ics-ui.mjs'
+      - 'calendar-google-sync-ui.mjs'
       - 'tests/calendar-sync-core.mjs'
       - 'tests/calendar-ics-export.mjs'
+      - 'tests/calendar-google-sync-ui.mjs'
       - 'quote-vector-pdf.js'
       - 'owner-prices.mjs'
       - 'tests/owner-price-validation.cjs'
@@ -36,6 +38,8 @@ jobs:
         run: node --check calendar-sync-core.mjs && node tests/calendar-sync-core.mjs
       - name: Verify native iPhone Calendar ICS exporter (no localStorage or production writes)
         run: node --check calendar-ics-export.mjs && node --check calendar-ics-ui.mjs && node tests/calendar-ics-export.mjs
+      - name: Validate consent-only, conflict-safe Google Calendar bridge
+        run: node --check calendar-google-sync-ui.mjs && node tests/calendar-google-sync-ui.mjs
       - name: Validate owner-only supplier price import (synthetic data only)
         run: node tests/owner-price-validation.cjs
       - name: Verify simplified homepage and old-data protection
@@ -65,6 +69,7 @@ jobs:
           assert 'id="calendarExportAll"' in html
           assert 'data-calendar-ics="one"' in js
           assert 'calendar-ics-ui.mjs?v=20261027a' in html
+          assert 'calendar-google-sync-ui.mjs?v=20261027a' in html
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
           assert 'html2canvas@' not in js
