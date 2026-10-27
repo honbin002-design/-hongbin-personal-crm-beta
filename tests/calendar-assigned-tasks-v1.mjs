@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {assignedTaskCalendarItems,taskGoogleEvent,planAssignedTaskCalendar,personalCalendarEvents} from '../calendar-assigned-tasks-v1.mjs';
 const groups=[{groupId:'g1',tasks:[
  {id:'a',assignedUid:'u1',title:'拜訪客戶',status:'OPEN',executeDate:'2026-11-05',dueDate:'2026-11-06'},
@@ -30,3 +31,9 @@ const personal={id:'personal1',summary:'私人行程',start:{date:'2026-11-05'},
 assert.deepEqual(personalCalendarEvents([shared,personal]).map(e=>e.id),['personal1']);
 assert.deepEqual(personalCalendarEvents([shared]).map(e=>e.id),[]);
 console.log('PERSONAL_CALENDAR_NEVER_IMPORTS_ASSIGNED_TASKS_PASS');
+
+const ui=readFileSync(new URL('../calendar-google-sync-ui.mjs',import.meta.url),'utf8');
+assert(ui.includes('personalCalendarEvents(await listEvents())'));
+assert(ui.includes('if(state.running||memberBusy)return'));
+assert(ui.includes('invalidateMemberPreview();'));
+console.log('CALENDAR_SYNC_SEPARATION_AND_MUTUAL_EXCLUSION_PASS');
