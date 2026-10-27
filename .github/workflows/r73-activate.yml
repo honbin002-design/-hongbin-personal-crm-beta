@@ -6,7 +6,10 @@ on:
       - 'index.html'
       - 'simple-core.js'
       - 'calendar-sync-core.mjs'
+      - 'calendar-ics-export.mjs'
+      - 'calendar-ics-ui.mjs'
       - 'tests/calendar-sync-core.mjs'
+      - 'tests/calendar-ics-export.mjs'
       - 'quote-vector-pdf.js'
       - 'owner-prices.mjs'
       - 'tests/owner-price-validation.cjs'
@@ -31,6 +34,8 @@ jobs:
         run: node --check simple-core.js && node --check quote-vector-pdf.js && node --check owner-prices.mjs && node --check sw.js && node --check crm-push-setup.mjs
       - name: Verify bidirectional calendar merge engine without credentials or production writes
         run: node --check calendar-sync-core.mjs && node tests/calendar-sync-core.mjs
+      - name: Verify native iPhone Calendar ICS exporter (no localStorage or production writes)
+        run: node --check calendar-ics-export.mjs && node --check calendar-ics-ui.mjs && node tests/calendar-ics-export.mjs
       - name: Validate owner-only supplier price import (synthetic data only)
         run: node tests/owner-price-validation.cjs
       - name: Verify simplified homepage and old-data protection
@@ -56,6 +61,10 @@ jobs:
           assert 'function restore()' in js
           assert 'function renderHistory(' in js
           assert 'function renderCalendar(' in js
+          assert 'id="calendarExportDay"' in html
+          assert 'id="calendarExportAll"' in html
+          assert 'data-calendar-ics="one"' in js
+          assert 'calendar-ics-ui.mjs?v=20261027a' in html
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
           assert 'html2canvas@' not in js
