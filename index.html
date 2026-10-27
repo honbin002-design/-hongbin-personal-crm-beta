@@ -367,6 +367,17 @@
 <p id="iphoneCalendarExportStatus" role="status" aria-live="polite" class="muted" hidden></p>
 <p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p>
 </div>
+<div class="card" id="googleCalendarSync" style="margin:12px 0;background:#f7fafc">
+<h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
+<p class="muted">若 iPhone 原生行事曆已加入同一 Google 帳號，可在 Apple「行事曆」顯示和修改專用的「鴻繽 CRM 待辦」日曆。先連線、預覽差異、再由你明確確認同步。不讀取 iCloud，不刪除兩邊的行程；只有這一本專用 Google 日曆會納入同步。</p>
+<div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
+<label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
+<select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
+<div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
+<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。必須先使用 Google 日曆建立專用「鴻繽 CRM 待辦」日曆；只有授權成功後才能操作。</div>
+<div id="googleCalendarPlan"></div>
+<p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p>
+</div>
 <div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下月 ›</button></div>
 <div class="yearNav"><label for="calendarYear">快速選年份</label><select id="calendarYear" aria-label="行事曆年份"></select><label for="calendarMonth">月份</label><select id="calendarMonth" aria-label="行事曆月份"></select><button id="calendarToday" class="weak" type="button">回今天</button></div>
 <div id="calendarSwipeArea" aria-label="行事曆左右滑動切換月份">
@@ -501,6 +512,7 @@
 <script src="./simple-core.js?v=20261027-iphone-ics" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
+<script type="module" src="./calendar-google-sync-ui.mjs?v=20261027a"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
