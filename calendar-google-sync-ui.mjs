@@ -256,7 +256,7 @@ async function preview(){
  $('googleCalendarConfirm').disabled=true;
  if(!state.calendarId)throw Error('SELECT_DEDICATED_GOOGLE_CALENDAR');
  assertLocalTodoOwner();
- const [local,events]=[allTodos().todos,await listEvents()];
+ const [local,events]=[allTodos().todos,personalCalendarEvents(await listEvents())];
  const links=savedLinks();
  // If we successfully imported an event in a prior interrupted session,
  // restore that local-only association instead of importing a duplicate.
@@ -300,7 +300,7 @@ async function apply(){
  const {plan,links,localFingerprint,remoteFingerprint}=state.preview;
  if(!plan.operations.length)throw Error('NOTHING_TO_SYNC');
  assertLocalTodoOwner();
- const local=allTodos().todos,events=await listEvents();
+ const local=allTodos().todos,events=personalCalendarEvents(await listEvents());
  if(JSON.stringify(local.map(x=>[x.id,todoFingerprint(x)]))!==localFingerprint||
   JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))!==remoteFingerprint)
   throw Error('CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN');
@@ -412,7 +412,7 @@ $('googleCalendarSelect')?.addEventListener('change',event=>{
 
 // Candidate B: member-owned Google calendar, CRM-assigned shared tasks only.
 // No Firestore writes; Google-side edits never mutate shared tasks or bypass approval.
-import {assignedTaskCalendarItems,planAssignedTaskCalendar} from './calendar-assigned-tasks-v1.mjs';
+import {assignedTaskCalendarItems,planAssignedTaskCalendar,personalCalendarEvents} from './calendar-assigned-tasks-v1.mjs';
 let memberPreview=null,memberBusy=false;
 const memberBox=document.createElement('div');
 memberBox.className='card';
