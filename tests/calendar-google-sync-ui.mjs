@@ -14,7 +14,7 @@ assert.match(code,/scope\b/);
 assert.match(code,/https:\/\/www\.googleapis\.com\/auth\/calendar\.events/);
 assert.match(code,/CAL='鴻繽 CRM 待辦'/);
 assert.match(code,/x\.summary===CAL/,'only exact dedicated calendar');
-assert.match(code,/\['owner','writer'\]/);
+assert.match(code,/x\.accessRole==='owner'&&\!x\.primary/,'reject writable shared and primary calendars');
 assert.match(code,/confirmed|confirm\(/i,'explicit write authorization');
 assert.match(code,/planCalendarSync/);
 assert.match(code,/CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN/);

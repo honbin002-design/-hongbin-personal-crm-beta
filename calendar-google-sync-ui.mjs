@@ -71,7 +71,8 @@ async function listCalendars(){
   found.push(...(data.items||[]));page=data.nextPageToken||'';
   if(++n>10)throw Error('TOO_MANY_CALENDARS_STOP');
  }while(page);
- return found.filter(x=>x.summary===CAL&&['owner','writer'].includes(x.accessRole));
+ // Shared writer calendars can disclose confidential CRM notes to other owners.
+ return found.filter(x=>x.summary===CAL&&x.accessRole==='owner'&&!x.primary);
 }
 async function listEvents(){
  let page='',n=0,items=[];
