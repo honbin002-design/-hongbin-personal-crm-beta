@@ -46,7 +46,7 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM</title>' in html
-          assert html.count('src="./simple-core.js?v=20261022-quote-note-scroll"') == 1
+          assert html.count('src="./simple-core.js?v=20261027-iphone-ics"') == 1
           assert 'src="./owner-prices.mjs?v=20261022"' in html
           assert 'id="ownerPricePanel"' in html
           assert '<script src="./r73-fixes.js' not in html
@@ -77,7 +77,7 @@ jobs:
           assert 'subset:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'useObjectStreams:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'right-measure(representative,repSize)' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
-          assert 'hongbin-crm-r73-free-live-push-20261023' in sw
+          assert 'hongbin-crm-r73-iphone-calendar-20261027' in sw
           assert 'rel="manifest"' in html
           assert 'apple-mobile-web-app-capable' in html
           assert 'pushTab' in js
