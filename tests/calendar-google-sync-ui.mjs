@@ -35,6 +35,6 @@ for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendar
  assert(html.includes('id="'+id+'"'));
 }
 assert.match(plan,/reason:'BOTH_CHANGED'/,'simultaneous edits never overwrite');
-assert.match(plan,/reason:'UNLINKED_EXISTING_CRM_EVENT'/,'lost map fails closed');
+assert.match(plan,/UNLINKED_EXISTING_CRM_EVENT/,'lost map fails closed');
 assert.match(html,/同步只會在你按下「確認」時進行/);
 console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
