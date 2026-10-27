@@ -356,7 +356,8 @@ async function apply(){
  }
 }
 async function handleClick(action){
- if(state.running)return;
+ if(state.running||memberBusy)return;
+ invalidateMemberPreview();
  state.running=true;buttonDisable(true);
  try{
   if(action==='connect')await connectGoogle();
@@ -406,6 +407,7 @@ for(const [id,kind] of [
 $('googleCalendarSelect')?.addEventListener('change',event=>{
  state.calendarId=event.target.value;
  state.preview=null;state.events=[];$('googleCalendarPlan').replaceChildren();
+ invalidateMemberPreview();
  $('googleCalendarConfirm').disabled=true;
 });
 
@@ -414,6 +416,10 @@ $('googleCalendarSelect')?.addEventListener('change',event=>{
 // No Firestore writes; Google-side edits never mutate shared tasks or bypass approval.
 import {assignedTaskCalendarItems,planAssignedTaskCalendar,personalCalendarEvents} from './calendar-assigned-tasks-v1.mjs';
 let memberPreview=null,memberBusy=false;
+function invalidateMemberPreview(){
+ memberPreview=null;
+ const b=$('memberCalendarApply');if(b)b.disabled=true;
+}
 const memberBox=document.createElement('div');
 memberBox.className='card';
 memberBox.style.cssText='margin-top:12px;padding:12px;background:#fff';
