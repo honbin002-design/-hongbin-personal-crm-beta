@@ -360,6 +360,13 @@
 <section class="panel" id="panel-calendar" hidden>
 <div class="card"><h2>待辦行事曆</h2>
 <div class="calendarQuickAdd"><button id="newTodo" type="button">＋ 新增當日待辦</button></div>
+<div class="card" id="iphoneCalendarExport" style="margin:12px 0;background:#f7fafc">
+<h3>iPhone 原生行事曆｜免費加入待辦</h3>
+<p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p>
+<div class="actions"><button id="calendarExportDay" type="button" class="secondary" data-calendar-ics="day">匯出當日待辦 .ics</button><button id="calendarExportAll" type="button" class="secondary" data-calendar-ics="all">匯出全部待辦 .ics</button></div>
+<p id="iphoneCalendarExportStatus" role="status" aria-live="polite" class="muted" hidden></p>
+<p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p>
+</div>
 <div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下月 ›</button></div>
 <div class="yearNav"><label for="calendarYear">快速選年份</label><select id="calendarYear" aria-label="行事曆年份"></select><label for="calendarMonth">月份</label><select id="calendarMonth" aria-label="行事曆月份"></select><button id="calendarToday" class="weak" type="button">回今天</button></div>
 <div id="calendarSwipeArea" aria-label="行事曆左右滑動切換月份">
@@ -493,6 +500,7 @@
 <script src="./quote-vector-pdf.js?v=20261022-quote-layout-4col" defer></script>
 <script src="./simple-core.js?v=20261022-quote-note-scroll" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
+<script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
