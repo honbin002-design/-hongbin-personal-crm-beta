@@ -49,4 +49,76 @@ for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendar
 assert.match(plan,/reason:'BOTH_CHANGED'/,'simultaneous edits never overwrite');
 assert.match(plan,/UNLINKED_EXISTING_CRM_EVENT/,'lost map fails closed');
 assert.match(html,/同步只會在你按下「確認」時進行/);
+// Execute the actual dedicated-calendar creation function against synthetic
+// Google API results. Never request real OAuth credentials or modify calendars.
+const createMatch=code.match(/async function createDedicatedCalendar\(\)\{[\s\S]*?\n\}\nasync function connectGoogle\(\)/);
+assert.ok(createMatch,'production creation function exists');
+const createImplementation=createMatch[0].replace(/\nasync function connectGoogle\(\)$/,'');
+const execute=new Function('env',`
+ const {state,listCalendars,chooseDedicatedCalendar,request,confirm,safeMessage,CAL}=env;
+ ${createImplementation}
+ return createDedicatedCalendar();
+`);
+const fresh=()=>({token:'fake-token-in-memory',expiresAt:Date.now()+60000,
+ user:{uid:'synthetic'},calendarId:'',preview:null,createAttempted:false,createdCalendarId:''});
+function environment({calendars=[[],[{id:'new-owned'}]],accept=true,response={id:'new-owned'}}={}){
+ const state=fresh(),notes=[],writes=[];
+ let reads=0;
+ const env={
+  state,CAL:'鴻繽 CRM 待辦',
+  listCalendars:async()=>calendars[Math.min(reads++,calendars.length-1)],
+  chooseDedicatedCalendar(list){
+   if(!list.length)return false;
+   state.calendarId=list[0].id;state.createAttempted=false;return true;
+  },
+  async request(path,options){
+   writes.push({path,options});
+   assert.equal(path,'/calendars');
+   assert.equal(options.method,'POST');
+   assert.deepEqual(JSON.parse(options.body),{summary:'鴻繽 CRM 待辦',
+    timeZone:'Asia/Taipei',description:'鴻繽科技 CRM 專用待辦；由使用者手動確認同步'});
+   return response;
+  },
+  confirm:()=>accept,safeMessage:v=>notes.push(v)
+ };
+ return {env,state,writes,notes};
+}
+{
+ const t=environment({calendars:[[{id:'owned-existing'}]]});
+ await execute(t.env);
+ assert.equal(t.writes.length,0,'existing owner calendar must never be duplicated');
+ assert.equal(t.state.calendarId,'owned-existing');
+}
+{
+ const t=environment({accept:false});
+ await execute(t.env);
+ assert.equal(t.writes.length,0,'canceled consent must cause zero remote writes');
+ assert.equal(t.state.createAttempted,false);
+}
+{
+ const t=environment();
+ await execute(t.env);
+ assert.equal(t.writes.length,1,'approved creation must issue exactly one insert');
+ assert.equal(t.state.calendarId,'new-owned');
+ assert.equal(t.state.createAttempted,false,'clear hold only after exact calendar readback');
+}
+{
+ const t=environment({response:{}});
+ await assert.rejects(execute(t.env),/GOOGLE_CALENDAR_CREATE_READBACK_UNCERTAIN/);
+ assert.equal(t.state.createAttempted,true,'unknown insert response must hold next retry');
+ await assert.rejects(execute(t.env),/CALENDAR_CREATION_UNCERTAIN_NO_RETRY/);
+ assert.equal(t.writes.length,1,'uncertain creation must never send a second insert');
+}
+{
+ const t=environment({calendars:[[],[]]});
+ await assert.rejects(execute(t.env),/GOOGLE_CALENDAR_CREATED_WAIT_FOR_LIST/);
+ assert.equal(t.writes.length,1);
+ assert.equal(t.state.createdCalendarId,'new-owned');
+ assert.equal(t.state.createAttempted,true,'missing post-insert readback must fail closed');
+}
+{
+ const t=environment();t.state.expiresAt=Date.now()-1000;
+ await assert.rejects(execute(t.env),/GOOGLE_SESSION_EXPIRED_CONNECT_AGAIN/);
+ assert.equal(t.writes.length,0,'expired token cannot create calendars');
+}
 console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
