@@ -65,3 +65,13 @@
 - Google Calendar 已連線帳號唯讀看見主要與「家族」，尚沒有名稱完全一致的專用「鴻繽 CRM 待辦」。這不是程式故障，實際 Calendar API 啟用、Google OAuth scope 同意與專用日曆建立尚待本人確認。不能為了「直接完成」自動寫入家族日曆或冒用 OAuth 同意。
 - 後續只接續已存在的同步需求：檢查 `0e5d75346` CI／Pages readback；正式手機上點第一次「連線 Google 日曆」載入登入 SDK、第二次才同意授權；必須找到 owner 專用日曆才可「預覽／明確確認」，且不能刪除紀錄、不能宣稱自動背景同步。
 - **最終代碼 Gate 已確認 PASS**：`0e5d75346` 對應 R73 全量測試 run `40444122779` SUCCESS（包含雙向核心/授權靜態保護/ICS/PDF/iPhone WebKit 回歸）；Pages run `40444121965` SUCCESS。文件交接 commit `d4cd9b13c` 對應 Pages run `40444258644` SUCCESS，僅文件更新、未變動執行程式。真實 Google OAuth/iPhone 雙向仍待授權及實機驗收。
+
+## 2026-10-27｜本人一鍵建立專用日曆｜對話模式接續
+
+- 本次唯一施工目標：讓本人可直接在既有正式 CRM 內、完成 OAuth 同意後建立唯一名稱「鴻繽 CRM 待辦」的次要 Google 日曆，不再強制去別的網站手動建立。保留現有約束：免費／Spark、無新增計費、不得動主要或「家族」日曆，不改 CRM／Firebase 真實資料，不自動批次同步。
+- 依 Google 官方 Calendar API `calendars.insert`（`POST /calendar/v3/calendars`）與最窄合適的新增日曆權限 `https://www.googleapis.com/auth/calendar.app.created` 施工；原本 `calendar.events`／`calendar.calendarlist.readonly` 保留既有同步功能；**不要求管理所有行事曆的 `https://www.googleapis.com/auth/calendar` scope**。
+- 程式版本 `9866b3f836b0b45529912f2edef2d22ca2709cc1`：正式 UI 加 `googleCalendarCreate`，只在同帳號 OAuth 完成、找不到本人 owner 專用次要日曆後開放。本人按建立後先重新讀取清單→彈出確認→只 POST 一次→以新 ID 讀回確認，再可「預覽雙向差異」。未知回應／讀回延遲一律 fail-closed，不自動重試；所有 access token 僅存在記憶體，正式行程保持不動。
+- 以合成 Google API 回應對本人新建同意／已有日曆／拒絕同意／成功讀回／不明回應／延遲讀回／過期憑證進行測試。早期 synthetic `af1b36708` workflow run `40445911701` **failure**，根因為不明回應測試第一次查詢後第二次假清單錯誤回傳「已存在」，期望與資料不符；修正測試假清單 `6a5355b7c`，不代表正式 API 有錯。不得抹去失敗紀錄。
+- iPhone 快取修正 `dc9fe6127810f09d48b2ddc472dd6114c1071087`：新模組 query string `20261027b-owner-calendar`；同步核心載入 query `20261027b`；相應更新 R73 workflow 斷言。其他已 PASS 的 CRM／通知／報價／共用記事沒有更動。
+- 最新程式碼曾在 GitHub Pages（run `40446059813`）與 Web Push safe-hold（run `40446059780`）成功。完整 R73 WebKit／PDF 回歸需以相同 commit `dc9fe6127` 的 run `40446059667` 最終結論為準，**未驗證前不可宣稱最終 PASS**。
+- 尚未有使用者在 iPhone 點 Google Calendar OAuth 建立專用日曆、沒有真實 Google API 建立結果，也未驗收 iPhone 原生日曆同步。原生 iCloud EventKit 依舊不能由此網頁直接讀寫。真人必須在授權畫面自行同意，任何未授權資料禁止讀寫。
