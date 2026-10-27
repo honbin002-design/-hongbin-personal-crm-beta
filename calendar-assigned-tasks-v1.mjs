@@ -60,3 +60,7 @@ export function planAssignedTaskCalendar({items=[],events=[]}={}){
  }
  return {operations,conflicts};
 }
+
+export const isAssignedTaskEvent=e=>e?.extendedProperties?.private?.honbinSource==='firestore-group-task';
+// Personal CRM sync must never import/update the cloud-shared assigned task events.
+export const personalCalendarEvents=events=>(events||[]).filter(e=>!isAssignedTaskEvent(e));
