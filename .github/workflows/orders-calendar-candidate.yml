@@ -16,3 +16,5 @@ jobs:
           node-version: '22'
       - run: node --check tests/calendar-assigned-tasks-v1.mjs
       - run: node tests/calendar-assigned-tasks-v1.mjs
+
+      - run: node --check calendar-google-sync-ui.mjs
