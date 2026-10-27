@@ -26,6 +26,26 @@ assert.match(code,/x\.accessRole==='owner'&&\!x\.primary/,'reject writable share
 assert.match(code,/confirmed|confirm\(/i,'explicit write authorization');
 assert.match(code,/planCalendarSync/);
 assert.match(code,/CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN/);
+// Test exact Google API errors without real OAuth tokens or cloud writes.
+const classifierSource=code.match(/function googleCalendarErrorCode\(status,payload\)\{[\s\S]*?\n\}\nasync function request\(/);
+assert.ok(classifierSource,'Google API error classifier exists');
+const googleCalendarErrorCode=new Function(
+ classifierSource[0].replace(/\nasync function request\($/,'')+
+ '\nreturn googleCalendarErrorCode;')();
+assert.equal(googleCalendarErrorCode(403,{error:{details:[{reason:'SERVICE_DISABLED'}]}}),
+ 'GOOGLE_CALENDAR_API_DISABLED');
+assert.equal(googleCalendarErrorCode(403,{error:{message:'Google Calendar API has not been used in project 123 or it is disabled'}}),
+ 'GOOGLE_CALENDAR_API_DISABLED');
+assert.equal(googleCalendarErrorCode(403,{error:{details:[{reason:'ACCESS_TOKEN_SCOPE_INSUFFICIENT'}]}}),
+ 'GOOGLE_CALENDAR_SCOPE_DENIED');
+assert.equal(googleCalendarErrorCode(403,{error:{errors:[{reason:'insufficientPermissions'}]}}),
+ 'GOOGLE_CALENDAR_SCOPE_DENIED');
+assert.equal(googleCalendarErrorCode(403,{error:{message:'Forbidden'}}),
+ 'GOOGLE_CALENDAR_403_UNCLASSIFIED');
+assert.equal(googleCalendarErrorCode(401,{}),'GOOGLE_TOKEN_EXPIRED');
+assert.equal(googleCalendarErrorCode(429,{}),'GOOGLE_CALENDAR_QUOTA_LIMIT');
+assert.match(code,/payload=await reply\.json\(\)/,'classify Calendar API response');
+assert.doesNotMatch(code,/console\.log\(.*?payload|console\.log\(.*?token/,'never log private API results');
 assert.match(code,/If-Match/);
 assert.match(code,/GOOGLE_VERSION_CHANGED_PREVIEW_AGAIN/);
 assert.match(code,/state\.token=''/);
