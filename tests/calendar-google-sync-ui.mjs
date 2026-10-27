@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const code=readFileSync('calendar-google-sync-ui.mjs','utf8');
+const html=readFileSync('index.html','utf8');
+const plan=readFileSync('calendar-sync-core.mjs','utf8');
+assert.match(code,/reauthenticateWithPopup\(user,provider\)/,'reuse already signed-in user');
+assert.match(code,/result\.user\.uid!==user\.uid/,'reject swapped Google account');
+assert.match(code,/credentialFromResult\(result\)/);
+assert.match(code,/scope\b/);
+assert.match(code,/https:\/\/www\.googleapis\.com\/auth\/calendar\.events/);
+assert.match(code,/CAL='鴻繽 CRM 待辦'/);
+assert.match(code,/x\.summary===CAL/,'only exact dedicated calendar');
+assert.match(code,/\['owner','writer'\]/);
+assert.match(code,/confirmed|confirm\(/i,'explicit write authorization');
+assert.match(code,/planCalendarSync/);
+assert.match(code,/CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN/);
+assert.match(code,/If-Match/);
+assert.match(code,/GOOGLE_VERSION_CHANGED_PREVIEW_AGAIN/);
+assert.match(code,/state\.token=''/);
+assert.match(code,/storeLinks\(links\)/);
+assert.match(code,/localStorage\.setItem\(CRM_KEY/,'CRM only after confirmation');
+assert.match(code,/localStorage\.setItem\(key,JSON\.stringify\(links\)\)/);
+assert.doesNotMatch(code,/localStorage\.setItem\([^\n]*token/,'never persist Google OAuth token');
+assert.doesNotMatch(code,/method:'DELETE'/,'no Google Calendar deletion');
+assert.doesNotMatch(code,/signInWithPopup\(/,'no account replacement');
+assert.match(code,/saveTodoWithId\(/);
+assert.match(code,/patchTodoWithId\(/);
+assert.match(code,/PREVIEW_REQUIRED/);
+assert.match(code,/googleCalendarConfirm'\)\.disabled=true/);
+for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendarConfirm',
+ 'googleCalendarSelect','googleCalendarStatus','googleCalendarDisconnect']){
+ assert(html.includes('id="'+id+'"'));
+}
+assert.match(plan,/reason:'BOTH_CHANGED'/,'simultaneous edits never overwrite');
+assert.match(plan,/reason:'UNLINKED_EXISTING_CRM_EVENT'/,'lost map fails closed');
+assert.match(html,/同步只會在你按下「確認」時進行/);
+console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
