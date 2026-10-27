@@ -103,7 +103,7 @@ function environment({calendars=[[],[{id:'new-owned'}]],accept=true,response={id
  assert.equal(t.state.createAttempted,false,'clear hold only after exact calendar readback');
 }
 {
- const t=environment({response:{}});
+ const t=environment({calendars:[[],[]],response:{}});
  await assert.rejects(execute(t.env),/GOOGLE_CALENDAR_CREATE_READBACK_UNCERTAIN/);
  assert.equal(t.state.createAttempted,true,'unknown insert response must hold next retry');
  await assert.rejects(execute(t.env),/CALENDAR_CREATION_UNCERTAIN_NO_RETRY/);
