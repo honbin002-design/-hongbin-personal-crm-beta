@@ -6,7 +6,7 @@
  */
 import {planCalendarSync,todoFingerprint,eventFingerprint,googleEventFromTodo}
  from './calendar-sync-core.mjs?v=20261027';
-import {firebaseConfig} from '/honbin-crm-auth-test/firebase-web-config.mjs';
+// Firebase's already existing public config is loaded only when the user taps Connect.
 const $=id=>document.getElementById(id);
 const CAL='鴻繽 CRM 待辦';
 const CRM_KEY='hongbin_personal_crm_v3';
@@ -116,9 +116,12 @@ function showPreview(plan,todos,events){
 async function connectGoogle(){
  // Same approved Google Firebase project used by the cloud notebook;
  // permission is limited to the current signed-in Google identity.
+ const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
+ if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
  const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
  const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
  const app=appSdk.getApps().find(x=>x.name==='[DEFAULT]')||appSdk.initializeApp(firebaseConfig);
+ if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
  const auth=authSdk.getAuth(app);
  await auth.authStateReady();
  const user=auth.currentUser;
