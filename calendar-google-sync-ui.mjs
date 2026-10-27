@@ -12,6 +12,20 @@ const $=id=>document.getElementById(id);
 const CAL='鴻繽 CRM 待辦';
 const CRM_KEY='hongbin_personal_crm_v3';
 const MAP_KEY='honbin_calendar_google_links_v1';
+const LOCAL_OWNER_KEY='honbin_calendar_local_todos_account_owner_v1';
+// CRM localStorage is device-wide, not Google-account-scoped. Never let
+// switching Google accounts silently upload a previous user's local todos.
+function assertLocalTodoOwner(){
+ if(!state.user?.uid)throw Error('GOOGLE_ACCOUNT_REQUIRED');
+ const saved=localStorage.getItem(LOCAL_OWNER_KEY);
+ if(saved&&saved!==state.user.uid)throw Error('LOCAL_TODOS_BELONG_TO_ANOTHER_ACCOUNT_STOP');
+ if(!saved){
+  const count=allTodos().todos.length;
+  if(!confirm('這台裝置目前有 '+count+' 筆本機 CRM 待辦。\\n確定全部屬於目前登入的 Google 帳號（'+state.user.email+'）嗎？\\n確認後將綁定此帳號；切換帳號不會上傳這些待辦。'))throw Error('LOCAL_TODOS_ACCOUNT_BINDING_CANCELLED');
+  localStorage.setItem(LOCAL_OWNER_KEY,state.user.uid);
+ }
+}
+
 const API='https://www.googleapis.com/calendar/v3';
 const SCOPES=['https://www.googleapis.com/auth/calendar.events',
  'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
@@ -241,6 +255,7 @@ async function preview(){
  state.preview=null;
  $('googleCalendarConfirm').disabled=true;
  if(!state.calendarId)throw Error('SELECT_DEDICATED_GOOGLE_CALENDAR');
+ assertLocalTodoOwner();
  const [local,events]=[allTodos().todos,await listEvents()];
  const links=savedLinks();
  // If we successfully imported an event in a prior interrupted session,
@@ -284,6 +299,7 @@ async function apply(){
  if(!state.preview||!state.calendarId)throw Error('PREVIEW_REQUIRED');
  const {plan,links,localFingerprint,remoteFingerprint}=state.preview;
  if(!plan.operations.length)throw Error('NOTHING_TO_SYNC');
+ assertLocalTodoOwner();
  const local=allTodos().todos,events=await listEvents();
  if(JSON.stringify(local.map(x=>[x.id,todoFingerprint(x)]))!==localFingerprint||
   JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))!==remoteFingerprint)
