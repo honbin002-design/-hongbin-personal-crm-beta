@@ -69,7 +69,7 @@ jobs:
           assert 'id="calendarExportAll"' in html
           assert 'data-calendar-ics="one"' in js
           assert 'calendar-ics-ui.mjs?v=20261027a' in html
-          assert 'calendar-google-sync-ui.mjs?v=20261027a' in html
+          assert 'calendar-google-sync-ui.mjs?v=20261027b-owner-calendar' in html
           assert 'function saveQuote(' in js
           assert 'function pdfQuote(' in js
           assert 'html2canvas@' not in js

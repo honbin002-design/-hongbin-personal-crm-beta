@@ -6,7 +6,7 @@
  */
 import {planCalendarSync,todoFingerprint,eventFingerprint,googleEventFromTodo,
  notesWithoutCrmCustomerFooter}
- from './calendar-sync-core.mjs?v=20261027';
+ from './calendar-sync-core.mjs?v=20261027b';
 // Firebase's already existing public config is loaded only when the user taps Connect.
 const $=id=>document.getElementById(id);
 const CAL='鴻繽 CRM 待辦';
