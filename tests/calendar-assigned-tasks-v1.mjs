@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {assignedTaskCalendarItems,taskGoogleEvent,planAssignedTaskCalendar} from './calendar-assigned-tasks-v1.mjs';
+import {assignedTaskCalendarItems,taskGoogleEvent,planAssignedTaskCalendar} from '../calendar-assigned-tasks-v1.mjs';
 const groups=[{groupId:'g1',tasks:[
  {id:'a',assignedUid:'u1',title:'拜訪客戶',status:'OPEN',executeDate:'2026-11-05',dueDate:'2026-11-06'},
  {id:'b',assignedUid:'u2',title:'別人的任務',status:'OPEN',dueDate:'2026-11-05'},
