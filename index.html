@@ -371,10 +371,12 @@
 <h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
 <p class="muted">若 iPhone 原生行事曆已加入同一 Google 帳號，可在 Apple「行事曆」顯示和修改專用的「鴻繽 CRM 待辦」日曆。先連線、預覽差異、再由你明確確認同步。不讀取 iCloud，不刪除兩邊的行程；只有這一本專用 Google 日曆會納入同步。</p>
 <div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
+<div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的「鴻繽 CRM 待辦」專用 Google 日曆</button></div>
+<p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p>
 <label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
 <select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
 <div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
-<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。必須先使用 Google 日曆建立專用「鴻繽 CRM 待辦」日曆；只有授權成功後才能操作。</div>
+<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
 <div id="googleCalendarPlan"></div>
 <p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p>
 </div>

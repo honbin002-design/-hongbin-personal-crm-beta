@@ -14,16 +14,18 @@ const CRM_KEY='hongbin_personal_crm_v3';
 const MAP_KEY='honbin_calendar_google_links_v1';
 const API='https://www.googleapis.com/calendar/v3';
 const SCOPES=['https://www.googleapis.com/auth/calendar.events',
- 'https://www.googleapis.com/auth/calendar.calendarlist.readonly'];
+ 'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
+ // Least-privilege permission for creating app-owned secondary calendars only.
+ 'https://www.googleapis.com/auth/calendar.app.created'];
 const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
- events:[],preview:null,running:false};
+ events:[],preview:null,running:false,createAttempted:false,createdCalendarId:''};
 let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
 const safeMessage=message=>{
  const status=$('googleCalendarStatus');if(!status)return;
  status.hidden=false;status.textContent=message;
 };
 const buttonDisable=disabled=>{
- for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendarConfirm','googleCalendarDisconnect'])
+ for(const id of ['googleCalendarConnect','googleCalendarCreate','googleCalendarPreview','googleCalendarConfirm','googleCalendarDisconnect'])
   if($(id))$(id).disabled=disabled;
 };
 function allTodos(){
@@ -116,6 +118,47 @@ function showPreview(plan,todos,events){
  }
  $('googleCalendarConfirm').disabled=plan.operations.length===0||state.running;
 }
+function chooseDedicatedCalendar(available){
+ const select=$('googleCalendarSelect');select.replaceChildren();
+ for(const c of available){
+  const option=document.createElement('option');option.value=c.id;
+  option.textContent=c.summary+'（'+c.id+'）';select.append(option);
+ }
+ if(!available.length){
+  state.calendarId='';state.calendarSummary='';state.preview=null;
+  return false;
+ }
+ // An explicitly created calendar takes precedence over similar names.
+ const selected=available.find(c=>c.id===state.createdCalendarId)||available[0];
+ state.calendarId=selected.id;state.calendarSummary=CAL;select.value=state.calendarId;
+ state.createAttempted=false;
+ return true;
+}
+async function createDedicatedCalendar(){
+ if(!state.user||!state.token||Date.now()>=state.expiresAt)throw Error('GOOGLE_SESSION_EXPIRED_CONNECT_AGAIN');
+ if(state.calendarId)throw Error('DEDICATED_CALENDAR_ALREADY_SELECTED');
+ // Read every calendar page again before creating to prevent double submission.
+ const existing=await listCalendars();
+ if(chooseDedicatedCalendar(existing)){
+  safeMessage('重新查詢時已找到你擁有的專用日曆，沒有再建立第二本。現在可預覽同步。');
+  return;
+ }
+ if(state.createAttempted)throw Error('CALENDAR_CREATION_UNCERTAIN_NO_RETRY');
+ if(!confirm('確定要在目前授權的 Google 帳號新增一個名為「'+CAL+'」的私人次要日曆嗎？\\n'+
+  '不會變更主要、家族或其他既有日曆，也不會立即同步任何 CRM 待辦。'))return;
+ // A remote insert may succeed even if its network response is lost.
+ // Never retry the insert automatically or twice in the same browser session.
+ state.createAttempted=true;
+ const created=await request('/calendars',{
+  method:'POST',body:JSON.stringify({summary:CAL,timeZone:'Asia/Taipei',
+   description:'鴻繽科技 CRM 專用待辦；由使用者手動確認同步'})});
+ if(!created?.id)throw Error('GOOGLE_CALENDAR_CREATE_READBACK_UNCERTAIN');
+ state.createdCalendarId=created.id;
+ const verified=await listCalendars();
+ if(!verified.some(c=>c.id===created.id))throw Error('GOOGLE_CALENDAR_CREATED_WAIT_FOR_LIST');
+ chooseDedicatedCalendar(verified);
+ safeMessage('已建立並確認本人擁有的「'+CAL+'」專用日曆。尚未建立或修改任何待辦行程；下一步可按「預覽雙向差異」。');
+}
 async function connectGoogle(){
  // Reauthorization always clears prior preview/token/calendar selection.
  // A failed or changed session must never confirm an old preview.
@@ -160,20 +203,15 @@ async function connectGoogle(){
  state.expiresAt=Date.now()+50*60*1000; // conservative; never persist token
  state.user={uid:user.uid,email:user.email};
  const available=await listCalendars();
- const select=$('googleCalendarSelect');select.replaceChildren();
- for(const c of available){
-  const o=document.createElement('option');o.value=c.id;
-  o.textContent=c.summary+'（'+c.id+'）';select.append(o);
- }
- if(!available.length){
-  state.calendarId='';state.events=[];state.preview=null;
-  safeMessage('Google 已授權，但尚未找到可編輯的「'+CAL+'」專用日曆。請先在 Google 日曆建立這個名稱的日曆，再按連線重新讀取；不會操作個人其他日曆。');
+ if(!chooseDedicatedCalendar(available)){
+  state.events=[];state.preview=null;
+  safeMessage(state.createAttempted?
+   '先前建立專用日曆的結果尚待確認，為避免重複建立已鎖定建立按鈕。請先到 Google 日曆核對，勿反覆按建立。':
+   'Google 已授權，目前沒有你擁有的「'+CAL+'」專用日曆。可按「建立我的專用 Google 日曆」，本人確認後才會新增；不會操作主要或家族日曆。');
   $('googleCalendarPreview').disabled=true;return;
  }
- state.calendarId=available[0].id;
- state.calendarSummary=CAL;select.value=state.calendarId;
  $('googleCalendarPreview').disabled=false;
- safeMessage('已授權並找到專用 Google 日曆。點「預覽雙向差異」才會唯讀取得行程，尚未同步。');
+ safeMessage('已授權並找到本人擁有的專用 Google 日曆。點「預覽雙向差異」才會唯讀取得行程，尚未同步。');
 }
 async function preview(){
  // Any failed new preview must invalidate the previous confirmation.
@@ -283,6 +321,7 @@ async function handleClick(action){
  state.running=true;buttonDisable(true);
  try{
   if(action==='connect')await connectGoogle();
+  else if(action==='create')await createDedicatedCalendar();
   else if(action==='preview')await preview();
   else if(action==='apply')await apply();
   else if(action==='disconnect'){
@@ -302,19 +341,23 @@ async function handleClick(action){
    GOOGLE_TOKEN_EXPIRED:'Google 授權已失效，請重新連線。',
    GOOGLE_CALENDAR_QUOTA_LIMIT:'Google Calendar API 配額暫時達上限，沒有自動重試。',
    GOOGLE_VERSION_CHANGED_PREVIEW_AGAIN:'Google 行程已被修改，請重新預覽，不會覆寫。',
-   CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN:'CRM 或 Google 行事曆資料在預覽後變動，已安全停止，請重新預覽。'
+   CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN:'CRM 或 Google 行事曆資料在預覽後變動，已安全停止，請重新預覽。',
+   CALENDAR_CREATION_UNCERTAIN_NO_RETRY:'前一次建立請求可能已被 Google 接受，已禁止直接重試。請先開 Google 日曆核對是否已建立，再重新連線。',
+   GOOGLE_CALENDAR_CREATE_READBACK_UNCERTAIN:'建立請求結果不明，請開 Google 日曆核對，不能直接重試以免建立兩本。',
+   GOOGLE_CALENDAR_CREATED_WAIT_FOR_LIST:'Google 已回傳新日曆識別碼，但清單尚未更新。請重新連線讀回確認，不要再按建立。'
   };
   safeMessage(lookup[code]||'無法同步（未清除任何資料）：'+code);
  }finally{
   state.running=false;
   $('googleCalendarConnect').disabled=false;
   $('googleCalendarDisconnect').disabled=false;
+  $('googleCalendarCreate').disabled=!state.user||!state.token||!!state.calendarId||state.createAttempted||Date.now()>=state.expiresAt;
   $('googleCalendarPreview').disabled=!state.calendarId;
   $('googleCalendarConfirm').disabled=!state.preview?.plan?.operations.length;
  }
 }
 for(const [id,kind] of [
- ['googleCalendarConnect','connect'],['googleCalendarPreview','preview'],
+ ['googleCalendarConnect','connect'],['googleCalendarCreate','create'],['googleCalendarPreview','preview'],
  ['googleCalendarConfirm','apply'],['googleCalendarDisconnect','disconnect']
 ]){
  const el=$(id);if(el)el.addEventListener('click',()=>void handleClick(kind));

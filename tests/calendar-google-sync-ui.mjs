@@ -12,6 +12,14 @@ assert.match(code,/result\.user\.uid!==user\.uid/,'reject swapped Google account
 assert.match(code,/credentialFromResult\(result\)/);
 assert.match(code,/scope\b/);
 assert.match(code,/https:\/\/www\.googleapis\.com\/auth\/calendar\.events/);
+assert.match(code,/https:\/\/www\.googleapis\.com\/auth\/calendar\.app\.created/,'only limited new-calendar creation scope');
+assert.doesNotMatch(code,/https:\/\/www\.googleapis\.com\/auth\/calendar['"]/,'no all-calendar management OAuth scope');
+assert.match(code,/if\(!confirm\('確定要在目前授權的 Google 帳號新增一個/,'explicit dedicated calendar creation consent');
+assert.match(code,/state\.createAttempted=true;[\s\S]*?await request\('\/calendars'/,'one-shot attempt flag before API insert');
+assert.match(code,/if\(state\.createAttempted\)throw Error\('CALENDAR_CREATION_UNCERTAIN_NO_RETRY'\)/);
+assert.match(code,/const existing=await listCalendars\(\)/,'read live calendar inventory before create');
+assert.match(code,/verified\.some\(c=>c\.id===created\.id\)/,'new calendar must readback exact id');
+assert.match(code,/state\.createAttempted=false/,'only reset after owned calendar is confirmed');
 assert.match(code,/CAL='鴻繽 CRM 待辦'/);
 assert.match(code,/x\.summary===CAL/,'only exact dedicated calendar');
 assert.match(code,/x\.accessRole==='owner'&&\!x\.primary/,'reject writable shared and primary calendars');
@@ -35,7 +43,7 @@ assert.match(code,/patchTodoWithId\(/);
 assert.match(code,/PREVIEW_REQUIRED/);
 assert.match(code,/googleCalendarConfirm'\)\.disabled=true/);
 for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendarConfirm',
- 'googleCalendarSelect','googleCalendarStatus','googleCalendarDisconnect']){
+ 'googleCalendarSelect','googleCalendarStatus','googleCalendarDisconnect','googleCalendarCreate']){
  assert(html.includes('id="'+id+'"'));
 }
 assert.match(plan,/reason:'BOTH_CHANGED'/,'simultaneous edits never overwrite');
