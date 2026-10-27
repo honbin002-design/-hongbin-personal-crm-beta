@@ -53,3 +53,14 @@
 - 正式推播公開設定於此日讀回為 `SPARK_LIVE_FREE`、`subscriptionsEnabled=true`、`senderEnabled=true`；TEST repo `honbin002-design/honbin-crm-auth-test` cron sender 最近 2026-10-27 08:49 臺北 run `40428814331` **success**。舊視窗兩支 iPhone 收件／其中一支任務完成深層連結實機 PASS/FROZEN 保留；排程成功不代表三類新事件均已實機驗收。
 - 透過現有 Google Calendar 連線 **唯讀**查到目前只有「主要日曆」及「家族」，沒有名稱完全一致的「鴻繽 CRM 待辦」專用日曆。程式因此維持 fail-closed，不同步至主日曆或家族日曆。Google Cloud Calendar API／OAuth 正式授權及 iPhone 原生日曆讀回未驗收；iOS Safari/PWA 不能直接讀寫 iCloud EventKit。
 - 最後施工原則：保持本機 `hongbin_personal_crm_v3`、報價、進價及 Firebase 現有實際資料不動；使用者按「預覽→確認」前**零正式日曆資料寫入**；不得把 .ics 匯出稱為雙向同步、不得把 GitHub Pages 成功稱為 OAuth/iPhone 實機 PASS。接續工作僅限既有需求及必要缺陷修復。
+
+## 2026-10-27 本視窗續作｜防重複、iPhone 授權、安全控制
+
+- 接手時 SOURCE HEAD 為 `b162fa08fa5bccba212dc4e071bd87cc1d016689`，舊視窗成果完整保留、不擴充功能、不修改真實 CRM／Firestore／Google 行程。
+- `1a75d319e22d0d4e374d084c8c50e573616a1eb5`：修正跨 iPhone 失去本機 Google link 映射時，遠端已有 `honbinCrmTodoId` 不得再 `CREATE_GOOGLE`；孤兒 CRM 標記事件不自動匯回；錯誤 owner 標記、同一遠端事件對應多筆本機、重複本機 ID 均阻擋。加入合成回歸測試。
+- `76f744d1c9e93c93bad8023cfe8d5b3e8ce87bc1`：修正靜態安全測試舊 regex。首次 run `40443864797` 失敗的原因僅為 assert 對原始碼文字格式的過度指定；該 run 的雙向核心運作測試已 PASS，不可謊報首次 run PASS。修正後 run `40443937117` SUCCESS。
+- `a6fb8ac63fc5afd8a14b211482a413fad9be6eeb`：Google OAuth 改先由第一個明確按鍵預載驗證 SDK，第二次本人按鍵才同步開啟 popup，減少 iOS WebKit 非使用者手勢造成的彈窗阻擋。重新預覽失敗時一律使舊預覽失效；每筆候選同步動作均須呈現，避免 25 筆以外隱藏。
+- `0e5d75346dce81e4acb6c6928097ea6177120370`：只允許本人 `owner` 且非主要日曆、名稱完全吻合「鴻繽 CRM 待辦」的 Google 專用次要日曆；排除有 writer 權限但歸別人擁有的共用日曆，避免 CRM 註記意外外流。
+- 以上都沒有對任何真實行事曆寫入；GitHub Pages 部署完成後仍須分別看 R73 WebKit CI，真實 Google Calendar API OAuth／iPhone 原生日曆實機仍**未 PASS**。
+- Google Calendar 已連線帳號唯讀看見主要與「家族」，尚沒有名稱完全一致的專用「鴻繽 CRM 待辦」。這不是程式故障，實際 Calendar API 啟用、Google OAuth scope 同意與專用日曆建立尚待本人確認。不能為了「直接完成」自動寫入家族日曆或冒用 OAuth 同意。
+- 後續只接續已存在的同步需求：檢查 `0e5d75346` CI／Pages readback；正式手機上點第一次「連線 Google 日曆」載入登入 SDK、第二次才同意授權；必須找到 owner 專用日曆才可「預覽／明確確認」，且不能刪除紀錄、不能宣稱自動背景同步。
