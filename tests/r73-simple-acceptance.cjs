@@ -31,7 +31,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
-  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261028-orders-fast-load',
+  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261028-orders-warm-load',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
  check(await page.locator('#panel-cloud .cloud-panel-title').evaluate(el=>
   el.getBoundingClientRect().height<55&&
