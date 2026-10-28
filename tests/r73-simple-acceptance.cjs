@@ -26,15 +26,18 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
   '僅保留鴻繽科技 CRM 主標題，撤除功能介紹與多餘標籤');
  check(await page.locator('header.head').evaluate(el=>el.getBoundingClientRect().height<65),
   'iPhone 主標題高度壓縮至 65px 以下，增加內容可用空間');
+ check(await page.locator('.nav').evaluate(el=>{const r=el.getBoundingClientRect();return r.height<115&&getComputedStyle(el).gridTemplateColumns.split(' ').length===5}),
+  'iPhone 十個功能入口分成兩排，不留孤立的第四排');
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
   (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261028-readonly-settings',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
  check(await page.locator('#panel-cloud .cloud-panel-title').evaluate(el=>
-  el.getBoundingClientRect().height<60&&
-  getComputedStyle(el.querySelector('h2')).fontSize==='18px'),
-  '雲端記事與任務標題縮為緊湊區塊，不再浪費上下高度');
+  el.getBoundingClientRect().height<55&&
+  getComputedStyle(el.querySelector('h2')).display==='none'&&
+  el.querySelector('#pushHostButton').getBoundingClientRect().height>=44),
+  'iPhone 雲端頁不重複標題，通知操作維持可點擊');
  // The cloud iframe is now auto-sized to its real contents, leaving just
  // one continuous iPhone viewport, no nested swipe-to-bottom handoff.
  // Fulfill its same-origin HTML with a stable long document, without Firebase.

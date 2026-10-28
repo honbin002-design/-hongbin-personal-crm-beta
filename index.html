@@ -297,6 +297,9 @@
 /* Compact screen layout; printed quotation rules remain untouched. */
 .nav{gap:4px;padding:7px 5px}.nav button{min-height:46px;font-size:14px}.panel{padding-top:10px}.card{padding:14px;margin-bottom:9px}.card h2{margin-bottom:9px}.row{margin:8px 0}.actions{margin:11px 0}.listItem{padding:10px 0}.help{border-top:1px solid #e6edf2;margin-top:8px;color:#45617b;font-size:14px}.help summary{padding:8px 0}.help p{margin:0 0 8px}.settings-heading{padding:11px 14px}.settings-heading h2{margin:0}#panel-settings .card h3{margin:2px 0 9px}#panel-settings .muted{margin:7px 0;line-height:1.45}#googleCalendarCreate:disabled,#googleCalendarConfirm:disabled,#memberCalendarApply:disabled{display:none}
 @media(max-width:600px){.nav button{min-height:45px;font-size:13px}.panel{padding:9px}.card{padding:11px}.day{min-height:48px}.cal{gap:3px;margin:9px 0}.calendarQuickAdd{margin-bottom:9px}.calendarQuickAdd button{width:100%}}
+
+/* iPhone: ten destinations in two compact rows and a single cloud toolbar. */
+@media(max-width:640px){.nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px}.nav button,.nav .cloudTab{font-size:11px;min-height:45px;padding:4px 2px;line-height:1.18;overflow-wrap:anywhere}.head{padding:6px 10px}.head h1{font-size:20px}#panel-cloud .cloud-panel-title{border:0;background:transparent;box-shadow:none;justify-content:flex-end;padding:0 2px;margin:0 0 3px}#panel-cloud .cloud-panel-title h2{display:none}#panel-cloud{padding-top:5px}.cloud-push-status{margin:0 0 3px}#refreshCloudOuter{min-width:0;padding:8px 11px;font-size:13px;min-height:44px;opacity:.95}}
 </style>
 </head>
 <body><div class="app">
@@ -533,6 +536,10 @@
   status:document.getElementById('pushHostStatus'),
   frame:document.getElementById('cloudWorkspace')
  });
+ const pushStatus=document.getElementById('pushHostStatus');
+ const compactPushStatus=()=>{pushStatus.hidden=pushStatus.textContent.trim().startsWith('系統背景通知已開通')};
+ new MutationObserver(compactPushStatus).observe(pushStatus,{childList:true,characterData:true,subtree:true});
+ compactPushStatus();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-iphone-calendar-20261027').catch(()=>{}))}</script>
 </body></html>
