@@ -423,7 +423,7 @@ function invalidateMemberPreview(){
 const memberBox=document.createElement('div');
 memberBox.className='card';
 memberBox.style.cssText='margin-top:12px;padding:12px;background:#fff';
-memberBox.innerHTML='<h4>指派給我的共用任務 → 我的 Google 日曆（TEST）</h4>'+
+memberBox.innerHTML='<h4>指派給我的共用任務 → 我的 Google 日曆（預覽後同步）</h4>'+
  '<p class="muted">只同步指派給目前登入者的任務；共用任務的修改與完成仍須回 CRM 操作。請先預覽再確認。</p>'+
  '<div class="actions"><button type="button" class="secondary" id="memberCalendarPreview">預覽我的指派任務</button>'+
  '<button type="button" id="memberCalendarApply" disabled>確認同步指派任務</button></div>'+
