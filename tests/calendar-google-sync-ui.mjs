@@ -68,7 +68,16 @@ for(const id of ['googleCalendarConnect','googleCalendarPreview','googleCalendar
 }
 assert.match(plan,/reason:'BOTH_CHANGED'/,'simultaneous edits never overwrite');
 assert.match(plan,/UNLINKED_EXISTING_CRM_EVENT/,'lost map fails closed');
-assert.match(html,/同步只會在你按下「確認」時進行/);
+assert.match(html,/首次同步需預覽及確認/);
+for(const id of ['googleCalendarAutoEnable','googleCalendarAutoPause','googleCalendarAutoStatus'])
+ assert(html.includes('id="'+id+'"'));
+assert.match(code,/document\.visibilityState!=='visible'/,'only sync while app is visible');
+assert.match(code,/setInterval\(\(\)=>void runAutoSync\(\),AUTO_INTERVAL\)/);
+assert.match(code,/plan\.conflicts\.length\|\|plan\.operations\.length>AUTO_MAX_WRITES/);
+assert.match(code,/automatic&&!autoSessionReady\(\)/);
+assert.match(code,/if\(automatic\)payload\.id=await automaticEventId\(todo\.id\)/);
+assert.match(code,/localStorage\.getItem\(LOCAL_OWNER_KEY\)===state\.user\.uid/);
+assert.match(code,/pauseAuto\('已關閉自動同步/);
 // Execute the actual dedicated-calendar creation function against synthetic
 // Google API results. Never request real OAuth credentials or modify calendars.
 const createMatch=code.match(/async function createDedicatedCalendar\(\)\{[\s\S]*?\n\}\nasync function connectGoogle\(\)/);
@@ -140,5 +149,27 @@ function environment({calendars=[[],[{id:'new-owned'}]],accept=true,response={id
  const t=environment();t.state.expiresAt=Date.now()-1000;
  await assert.rejects(execute(t.env),/GOOGLE_SESSION_EXPIRED_CONNECT_AGAIN/);
  assert.equal(t.writes.length,0,'expired token cannot create calendars');
+}
+// Exercise the foreground scheduler without network, OAuth, or real CRM data.
+const autoMatch=code.match(/async function runAutoSync\(\)\{[\s\S]*?\n\}\nasync function handleClick\(action\)/);
+assert.ok(autoMatch,'foreground loop exists');
+const autoSource=autoMatch[0].replace(/\nasync function handleClick\(action\)$/,'');
+const makeAuto=new Function('env',`
+ const {state,document,preview,apply,pauseAuto,autoSessionReady,buttonDisable,autoControls,$}=env;
+ const AUTO_INTERVAL=300000,AUTO_MAX_WRITES=10;let memberBusy=false;
+ ${autoSource}
+ return runAutoSync;
+`);
+for(const mode of ['hidden','conflict','ready']){
+ const calls=[],state={autoActive:true,running:false,lastAutoAt:0,preview:null,
+  calendarId:'owned',user:{uid:'same'},expiresAt:Date.now()+600000,token:'synthetic',
+  createAttempted:false};
+ const env={state,document:{visibilityState:mode==='hidden'?'hidden':'visible'},
+  autoSessionReady:()=>true,buttonDisable:()=>{},autoControls:()=>{},
+  $:()=>({disabled:false,textContent:''}),pauseAuto:()=>calls.push('pause'),
+  preview:async()=>{calls.push('preview');state.preview={plan:{conflicts:mode==='conflict'?[{}]:[],
+   operations:[{type:'CREATE_GOOGLE'}]}}},apply:async({automatic})=>calls.push(automatic?'auto-apply':'manual')};
+ await makeAuto(env)();
+ assert.deepEqual(calls,mode==='hidden'?[]:mode==='conflict'?['preview','pause']:['preview','auto-apply']);
 }
 console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
