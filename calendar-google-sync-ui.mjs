@@ -255,11 +255,11 @@ async function connectGoogle(){
   if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
   const auth=authSdk.getAuth(app);
   await auth.authStateReady();
+  googleAuthReady={authSdk,auth};
   const candidate=auth.currentUser;
   if(!candidate||!candidate.emailVerified||
      !candidate.providerData.some(p=>p.providerId==='google.com'))
    throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
-  googleAuthReady={authSdk,auth};
   $('googleCalendarConnect').textContent='① 繼續 Google 授權';
   safeMessage('已準備好。請再點一次「繼續 Google 授權」並在 Google 視窗同意。');
   return;
@@ -461,6 +461,12 @@ async function handleClick(action){
   state.preview=null;
   $('googleCalendarConfirm').disabled=true;
   const code=String(error?.message||error);
+  if(code.includes('請先到「雲端記事與任務」登入')||code.includes('目前尚未登入已驗證的 Google 帳號')){
+   const guide=$('calendarLoginGuide');if(guide)guide.hidden=false;
+   safeMessage('請先登入 Google 帳號；已帶你前往「雲端記事與任務」。登入後返回設定，繼續授權日曆。');
+   document.querySelector('[data-tab="cloud"]')?.click();
+   return;
+  }
   const lookup={
    GOOGLE_CALENDAR_API_DISABLED:'Google 回覆：Calendar API 尚未對目前 OAuth 專案啟用（SERVICE_DISABLED）。請確認 Google Cloud 專案 honbin-crm-notes-spark 的 Google Calendar API 狀態；尚未建立日曆。',
    GOOGLE_CALENDAR_SCOPE_DENIED:'Google 回覆：這次授權缺少 Calendar API 必要範圍（INSUFFICIENT_SCOPE）。請檢查 OAuth 同意畫面的授權範圍後重新授權；尚未建立日曆。',
@@ -510,6 +516,11 @@ $('googleCalendarAutoEnable')?.addEventListener('click',()=>{
 });
 $('googleCalendarAutoPause')?.addEventListener('click',()=>pauseAuto('已暫停自動同步。'));
 $('googleCalendarBackupNow')?.addEventListener('click',()=>$('downloadBackup')?.click());
+$('calendarLoginReturn')?.addEventListener('click',()=>{
+ const guide=$('calendarLoginGuide');if(guide)guide.hidden=true;
+ document.querySelector('[data-tab="settings"]')?.click();
+ safeMessage('已回到日曆設定。請按「連線 Google 日曆」繼續授權。');
+});
 setInterval(()=>void runAutoSync(),AUTO_INTERVAL);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void runAutoSync()});
 
