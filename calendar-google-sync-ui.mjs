@@ -39,6 +39,15 @@ const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
  autoActive:false,baselineReady:false,lastAutoAt:0};
 let eventSnapshot={owner:'',token:'',items:new Map()};
 let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
+async function waitForLogin(authSdk,auth){
+ if(auth.currentUser)return auth.currentUser;
+ return new Promise(resolve=>{
+  let done=false,stop=()=>{};
+  const finish=user=>{if(done)return;done=true;clearTimeout(timer);stop();resolve(user)};
+  const timer=setTimeout(()=>finish(auth.currentUser),3000);
+  stop=authSdk.onAuthStateChanged(auth,user=>{if(user)finish(user)},()=>finish(null));
+ });
+}
 const safeMessage=message=>{
  const status=$('googleCalendarStatus');if(!status)return;
  status.hidden=false;status.textContent=message;
@@ -246,7 +255,16 @@ async function connectGoogle(){
  // original user gesture. The first explicit tap loads and validates auth;
  // the second is a fresh direct tap that opens the Google OAuth popup before
  // any await. No silent authorization and no new sign-in.
- if(!googleAuthReady){
+ if(!googleAuthReady||!googleAuthReady.auth.currentUser){
+  if(googleAuthReady){
+   const {authSdk,auth}=googleAuthReady;
+   const candidate=await waitForLogin(authSdk,auth);
+   if(!candidate||!candidate.emailVerified||!candidate.providerData.some(p=>p.providerId==='google.com'))
+    throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
+   $('googleCalendarConnect').textContent='① 繼續 Google 授權';
+   safeMessage('登入已確認。請再點一次「繼續 Google 授權」開啟授權視窗。');
+   return;
+  }
   const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
   if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
   const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
@@ -256,7 +274,7 @@ async function connectGoogle(){
   const auth=authSdk.getAuth(app);
   await auth.authStateReady();
   googleAuthReady={authSdk,auth};
-  const candidate=auth.currentUser;
+  const candidate=await waitForLogin(authSdk,auth);
   if(!candidate||!candidate.emailVerified||
      !candidate.providerData.some(p=>p.providerId==='google.com'))
    throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
@@ -521,6 +539,18 @@ $('calendarLoginReturn')?.addEventListener('click',()=>{
  document.querySelector('[data-tab="settings"]')?.click();
  safeMessage('已回到日曆設定。請按「連線 Google 日曆」繼續授權。');
 });
+// The embedded workspace signs in independently. Return to the setup as soon
+// as its visible sign-in state confirms success; never read credentials.
+setInterval(()=>{
+ const guide=$('calendarLoginGuide'),frame=$('cloudWorkspace');
+ if(!guide||guide.hidden||!frame?.contentDocument)return;
+ try{
+  if(frame.contentDocument.getElementById('logout')?.disabled!==false)return;
+  guide.hidden=true;
+  document.querySelector('[data-tab="settings"]')?.click();
+  safeMessage('Google 帳號已登入。請按「連線 Google 日曆」繼續授權。');
+ }catch{}
+},750);
 setInterval(()=>void runAutoSync(),AUTO_INTERVAL);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void runAutoSync()});
 
