@@ -295,7 +295,7 @@
  letter-spacing:normal!important}
 
 /* Compact screen layout; printed quotation rules remain untouched. */
-.nav{gap:4px;padding:7px 5px}.nav button{min-height:46px;font-size:14px}.panel{padding-top:10px}.card{padding:14px;margin-bottom:9px}.card h2{margin-bottom:9px}.row{margin:8px 0}.actions{margin:11px 0}.listItem{padding:10px 0}.help{border-top:1px solid #e6edf2;margin-top:8px;color:#45617b;font-size:14px}.help summary{padding:8px 0}.help p{margin:0 0 8px}.settings-heading{padding:11px 14px}.settings-heading h2{margin:0}#panel-settings .card h3{margin:2px 0 9px}#panel-settings .muted{margin:7px 0;line-height:1.45}
+.nav{gap:4px;padding:7px 5px}.nav button{min-height:46px;font-size:14px}.panel{padding-top:10px}.card{padding:14px;margin-bottom:9px}.card h2{margin-bottom:9px}.row{margin:8px 0}.actions{margin:11px 0}.listItem{padding:10px 0}.help{border-top:1px solid #e6edf2;margin-top:8px;color:#45617b;font-size:14px}.help summary{padding:8px 0}.help p{margin:0 0 8px}.settings-heading{padding:11px 14px}.settings-heading h2{margin:0}#panel-settings .card h3{margin:2px 0 9px}#panel-settings .muted{margin:7px 0;line-height:1.45}#googleCalendarCreate:disabled,#googleCalendarConfirm:disabled,#memberCalendarApply:disabled{display:none}
 @media(max-width:600px){.nav button{min-height:45px;font-size:13px}.panel{padding:9px}.card{padding:11px}.day{min-height:48px}.cal{gap:3px;margin:9px 0}.calendarQuickAdd{margin-bottom:9px}.calendarQuickAdd button{width:100%}}
 </style>
 </head>
@@ -461,23 +461,23 @@
 <div class="card" id="iphoneCalendarExport" style="margin:12px 0;background:#f7fafc">
 <h3>匯出至 iPhone 行事曆</h3>
 <p id="calendarExportSelectedDate" class="muted"></p>
-<details class="help"><summary>使用說明</summary><p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p></details>
+
 <div class="actions"><button id="calendarExportDay" type="button" class="secondary" data-calendar-ics="day">匯出選定日期待辦 .ics</button><button id="calendarExportAll" type="button" class="secondary" data-calendar-ics="all">匯出全部待辦 .ics</button></div>
 <p id="iphoneCalendarExportStatus" role="status" aria-live="polite" class="muted" hidden></p>
-<details class="help"><summary>使用說明</summary><p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p></details>
+<details class="help"><summary>使用說明</summary><p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p><p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p></details>
 </div>
 <div class="card" id="googleCalendarSync" style="margin:12px 0;background:#f7fafc">
 <h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
 <p class="muted">連線後先預覽，再確認同步專用日曆。</p>
 <div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
 <div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的「鴻繽 CRM 待辦」專用 Google 日曆</button></div>
-<details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p></details>
+
 <label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
 <select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
 <div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
 <div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
 <div id="googleCalendarPlan"></div>
-<details class="help"><summary>使用說明</summary><p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
+<details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p><p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
 </div>
 </section>
 <section class="panel" id="panel-backup" hidden>
