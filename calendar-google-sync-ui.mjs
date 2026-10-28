@@ -13,6 +13,9 @@ const CAL='鴻繽 CRM 待辦';
 const CRM_KEY='hongbin_personal_crm_v3';
 const MAP_KEY='honbin_calendar_google_links_v1';
 const LOCAL_OWNER_KEY='honbin_calendar_local_todos_account_owner_v1';
+const AUTO_KEY='honbin_calendar_auto_foreground_v1';
+const AUTO_INTERVAL=5*60*1000;
+const AUTO_MAX_WRITES=10;
 // CRM localStorage is device-wide, not Google-account-scoped. Never let
 // switching Google accounts silently upload a previous user's local todos.
 function assertLocalTodoOwner(){
@@ -32,7 +35,8 @@ const SCOPES=['https://www.googleapis.com/auth/calendar.events',
  // Least-privilege permission for creating app-owned secondary calendars only.
  'https://www.googleapis.com/auth/calendar.app.created'];
 const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
- events:[],preview:null,running:false,createAttempted:false,createdCalendarId:''};
+ events:[],preview:null,running:false,createAttempted:false,createdCalendarId:'',
+ autoActive:false,baselineReady:false,lastAutoAt:0};
 let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
 const safeMessage=message=>{
  const status=$('googleCalendarStatus');if(!status)return;
@@ -58,6 +62,22 @@ function savedLinks(){
 function storeLinks(links){
  const key=linkKey(state.user.uid,state.calendarId);
  localStorage.setItem(key,JSON.stringify(links));
+}
+const autoKey=()=>AUTO_KEY+':'+state.user.uid+':'+state.calendarId;
+function autoControls(){
+ const on=$('googleCalendarAutoEnable'),off=$('googleCalendarAutoPause');
+ if(on)on.disabled=!state.user||!state.calendarId||!state.baselineReady||state.autoActive||state.running||Date.now()>=state.expiresAt;
+ if(off)off.disabled=!state.autoActive;
+}
+function pauseAuto(message){
+ if(state.user&&state.calendarId)localStorage.removeItem(autoKey());
+ state.autoActive=false;state.baselineReady=false;autoControls();
+ if(message)$('googleCalendarAutoStatus').textContent=message;
+}
+function autoSessionReady(){
+ return state.autoActive&&state.user?.uid&&state.calendarId&&
+  localStorage.getItem(autoKey())==='enabled'&&localStorage.getItem(LOCAL_OWNER_KEY)===state.user.uid&&
+  Date.now()<state.expiresAt-5*60*1000&&googleAuthReady?.auth?.currentUser?.uid===state.user.uid;
 }
 // Convert Google's standard error reasons into safe, actionable codes.
 // Never display provider raw bodies: they can include account/project metadata.
@@ -201,6 +221,7 @@ async function connectGoogle(){
  // A failed or changed session must never confirm an old preview.
  state.preview=null;state.events=[];state.token='';state.expiresAt=0;
  state.calendarId='';state.calendarSummary='';state.user=null;
+ state.autoActive=false;state.baselineReady=false;autoControls();
  $('googleCalendarPlan')?.replaceChildren();
  // iPhone WebKit may block popups if SDK downloads and awaits consume the
  // original user gesture. The first explicit tap loads and validates auth;
@@ -248,7 +269,12 @@ async function connectGoogle(){
   $('googleCalendarPreview').disabled=true;return;
  }
  $('googleCalendarPreview').disabled=false;
- safeMessage('已授權並找到本人擁有的專用 Google 日曆。點「預覽雙向差異」才會唯讀取得行程，尚未同步。');
+ if(localStorage.getItem(autoKey())==='enabled'&&localStorage.getItem(LOCAL_OWNER_KEY)===state.user.uid){
+  state.autoActive=true;state.baselineReady=true;autoControls();
+  $('googleCalendarAutoStatus').textContent='已連線；CRM 開啟期間每 5 分鐘自動核對。';
+  setTimeout(()=>void runAutoSync(),0);
+ }else autoControls();
+ safeMessage('已授權並找到本人擁有的專用 Google 日曆。可先預覽雙向差異。');
 }
 async function preview(){
  // Any failed new preview must invalidate the previous confirmation.
@@ -273,6 +299,7 @@ async function preview(){
   localFingerprint:JSON.stringify(local.map(x=>[x.id,todoFingerprint(x)])),
   remoteFingerprint:JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))};
  showPreview(plan,local,events);
+ if(!plan.operations.length&&!plan.conflicts.length){state.baselineReady=true;autoControls()}
  safeMessage('差異預覽完成；只有再次確認後才會修改資料。異常或兩邊都修改的項目不會覆蓋。');
 }
 function saveTodoWithId(fields,eventId){
@@ -295,7 +322,7 @@ function patchTodoWithId(todoId,fields){
  localStorage.setItem(CRM_KEY,JSON.stringify(crm));
  return item;
 }
-async function apply(){
+async function apply({automatic=false}={}){
  if(!state.preview||!state.calendarId)throw Error('PREVIEW_REQUIRED');
  const {plan,links,localFingerprint,remoteFingerprint}=state.preview;
  if(!plan.operations.length)throw Error('NOTHING_TO_SYNC');
@@ -304,17 +331,23 @@ async function apply(){
  if(JSON.stringify(local.map(x=>[x.id,todoFingerprint(x)]))!==localFingerprint||
   JSON.stringify(events.map(x=>[x.id,x.etag,x.updated]))!==remoteFingerprint)
   throw Error('CALENDAR_CHANGED_SINCE_PREVIEW_REVIEW_AGAIN');
- if(!confirm('確定將 '+plan.operations.length+' 筆非衝突差異寫入選定的「'+CAL+'」專用 Google 日曆與 CRM？\n'+
+ if(automatic){
+  if(!autoSessionReady()||plan.conflicts.length||plan.operations.length>AUTO_MAX_WRITES)
+   throw Error('AUTO_SYNC_SAFETY_STOP');
+ }else if(!confirm('確定將 '+plan.operations.length+' 筆非衝突差異寫入選定的「'+CAL+'」專用 Google 日曆與 CRM？\n'+
     '雙方衝突 '+plan.conflicts.length+' 筆將保留，不刪除任何資料。'))return;
  $('googleCalendarConfirm').disabled=true;
  let completed=0;
  try{
   for(const op of plan.operations){
+   if(automatic&&!autoSessionReady())throw Error('AUTO_SESSION_CHANGED_STOP');
    if(op.type==='CREATE_GOOGLE'){
     const todo=local.find(x=>String(x.id)===String(op.todoId));
     if(!todo)throw Error('CRM_TODO_REMOVED_REPREVIEW');
+    const payload=googleEventFromTodo(todo);
+    if(automatic)payload.id=await automaticEventId(todo.id);
     const remote=await request(eventUrl(state.calendarId),{
-     method:'POST',body:JSON.stringify(googleEventFromTodo(todo))});
+     method:'POST',body:JSON.stringify(payload)});
     if(!remote?.id)throw Error('GOOGLE_INSERT_READBACK_FAILED');
     links[String(todo.id)]={eventId:remote.id,localFingerprint:todoFingerprint(todo),
      remoteFingerprint:eventFingerprint(remote)};
@@ -349,10 +382,43 @@ async function apply(){
   }
   state.preview=null;$('googleCalendarPlan').replaceChildren();
   $('googleCalendarConfirm').disabled=true;
-  safeMessage('已同步 '+completed+' 筆。請打開 iPhone 原生「行事曆」，確認 Google 帳號的「'+CAL+'」有顯示；目前是按鈕觸發的雙向同步，不會在背景自動同步。');
+  if(!automatic&&!plan.conflicts.length){state.baselineReady=true;autoControls()}
+  safeMessage('已同步 '+completed+' 筆。請在 iPhone 行事曆確認「'+CAL+'」已顯示。');
  }catch(error){
   state.preview=null;$('googleCalendarConfirm').disabled=true;
   throw Error('已完成 '+completed+' 筆後中止；對應記錄已保存，請先重新預覽，勿直接重試。原因：'+String(error.message||error));
+ }
+}
+async function automaticEventId(todoId){
+ const raw=new TextEncoder().encode(state.user.uid+'|'+state.calendarId+'|'+todoId);
+ const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',raw));
+ return 'h'+Array.from(digest.slice(0,16),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function runAutoSync(){
+ if(!state.autoActive||state.running||memberBusy||document.visibilityState!=='visible')return;
+ if(Date.now()-state.lastAutoAt<AUTO_INTERVAL)return;
+ state.lastAutoAt=Date.now();
+ if(!autoSessionReady()){
+  pauseAuto('自動同步已暫停：Google 授權到期或帳號變更。請重新連線。');return;
+ }
+ state.running=true;buttonDisable(true);autoControls();
+ try{
+  await preview();
+  const plan=state.preview?.plan;
+  if(!plan||plan.conflicts.length||plan.operations.length>AUTO_MAX_WRITES)
+   throw Error('AUTO_SYNC_REVIEW_REQUIRED');
+  if(plan.operations.length)await apply({automatic:true});
+  $('googleCalendarAutoStatus').textContent='上次核對：'+new Date().toLocaleTimeString('zh-TW')+
+   '；'+(plan.operations.length?'同步 '+plan.operations.length+' 筆。':'資料已是最新。');
+ }catch(error){
+  state.preview=null;$('googleCalendarConfirm').disabled=true;
+  pauseAuto('自動同步已安全暫停（'+String(error.message||error)+ '）。請手動預覽核對後再啟用。');
+ }finally{
+  state.running=false;buttonDisable(false);
+  $('googleCalendarCreate').disabled=!state.user||!state.token||!!state.calendarId||state.createAttempted||Date.now()>=state.expiresAt;
+  $('googleCalendarPreview').disabled=!state.calendarId;
+  $('googleCalendarConfirm').disabled=!state.preview?.plan?.operations.length;
+  autoControls();
  }
 }
 async function handleClick(action){
@@ -365,6 +431,7 @@ async function handleClick(action){
   else if(action==='preview')await preview();
   else if(action==='apply')await apply();
   else if(action==='disconnect'){
+   pauseAuto('已關閉自動同步。');
    state.token='';state.expiresAt=0;state.user=null;state.calendarId='';
    state.events=[];state.preview=null;
    $('googleCalendarPlan').replaceChildren();
@@ -396,6 +463,7 @@ async function handleClick(action){
   $('googleCalendarCreate').disabled=!state.user||!state.token||!!state.calendarId||state.createAttempted||Date.now()>=state.expiresAt;
   $('googleCalendarPreview').disabled=!state.calendarId;
   $('googleCalendarConfirm').disabled=!state.preview?.plan?.operations.length;
+  autoControls();
  }
 }
 for(const [id,kind] of [
@@ -405,12 +473,25 @@ for(const [id,kind] of [
  const el=$(id);if(el)el.addEventListener('click',()=>void handleClick(kind));
 }
 $('googleCalendarSelect')?.addEventListener('change',event=>{
- state.calendarId=event.target.value;
+ state.autoActive=false;state.baselineReady=false;
+ state.calendarId=event.target.value;autoControls();
  state.preview=null;state.events=[];$('googleCalendarPlan').replaceChildren();
  invalidateMemberPreview();
  $('googleCalendarConfirm').disabled=true;
 });
 
+
+$('googleCalendarAutoEnable')?.addEventListener('click',()=>{
+ if(state.running||!state.baselineReady||!state.user||!state.calendarId||
+    localStorage.getItem(LOCAL_OWNER_KEY)!==state.user.uid||Date.now()>=state.expiresAt)return;
+ if(!confirm('開啟 CRM 且 Google 授權有效期間，每 5 分鐘自動同步「鴻繽 CRM 待辦」與本機待辦？衝突或錯誤會暫停，絕不刪除行程。關閉頁面後不會同步。'))return;
+ localStorage.setItem(autoKey(),'enabled');state.autoActive=true;state.lastAutoAt=0;
+ autoControls();$('googleCalendarAutoStatus').textContent='已啟用；正在首次核對。';
+ void runAutoSync();
+});
+$('googleCalendarAutoPause')?.addEventListener('click',()=>pauseAuto('已暫停自動同步。'));
+setInterval(()=>void runAutoSync(),AUTO_INTERVAL);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void runAutoSync()});
 
 // Candidate B: member-owned Google calendar, CRM-assigned shared tasks only.
 // No Firestore writes; Google-side edits never mutate shared tasks or bypass approval.
