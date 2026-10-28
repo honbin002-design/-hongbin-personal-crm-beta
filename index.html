@@ -480,7 +480,9 @@
 <div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
 <div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
 <div id="googleCalendarPlan"></div>
-<details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p><p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
+<div class="actions"><button type="button" id="googleCalendarAutoEnable" class="secondary" disabled>啟用開啟期間自動同步</button><button type="button" id="googleCalendarAutoPause" class="weak" disabled>暫停自動同步</button></div>
+<p id="googleCalendarAutoStatus" class="muted" role="status">先完成首次預覽與確認；啟用後僅在 CRM 開啟且授權有效時每 5 分鐘核對。</p>
+<details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p><p class="muted">首次同步需預覽及確認。啟用後，CRM 開啟且 Google 授權有效時每 5 分鐘自動核對；關閉頁面後不會同步。衝突或錯誤會停止，不刪除行程。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
 </div>
 </section>
 <section class="panel" id="panel-backup" hidden>
@@ -528,7 +530,7 @@
 <script src="./simple-core.js?v=20261028-compact-cloud-height" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
-<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-view-settings"></script>
+<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-foreground-auto"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
