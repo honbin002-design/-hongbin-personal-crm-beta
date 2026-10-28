@@ -1,5 +1,5 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-r73-iphone-calendar-20261027';
+const CACHE='hongbin-crm-r73-calendar-backup-20261028';
 const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead.jpg','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
@@ -77,3 +77,4 @@ self.addEventListener('notificationclick',event=>{
   await self.clients.openWindow(target.href);
  })());
 });
+
