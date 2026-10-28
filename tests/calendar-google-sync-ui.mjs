@@ -156,7 +156,7 @@ assert.ok(autoMatch,'foreground loop exists');
 const autoSource=autoMatch[0].replace(/\nasync function handleClick\(action\)$/,'');
 const makeAuto=new Function('env',`
  const {state,document,preview,apply,pauseAuto,autoSessionReady,buttonDisable,autoControls,$}=env;
- const AUTO_INTERVAL=300000;let memberBusy=false;
+ const AUTO_INTERVAL=300000,AUTO_MAX_WRITES=10;let memberBusy=false;
  ${autoSource}
  return runAutoSync;
 `);
