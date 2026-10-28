@@ -470,18 +470,17 @@
 <details class="help"><summary>使用說明</summary><p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p><p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p></details>
 </div>
 <div class="card" id="googleCalendarSync" style="margin:12px 0;background:#f7fafc">
-<h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
-<p class="muted">連線後先預覽，再確認同步專用日曆。</p>
-<div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
-<div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的「鴻繽 CRM 待辦」專用 Google 日曆</button></div>
-
-<label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
+<h3>Google 日曆同步</h3>
+<p class="muted">首次設定：連線 → 預覽確認 → 開啟同步。只使用你擁有的「鴻繽 CRM 待辦」日曆。</p>
+<div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">① 連線 Google 日曆</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷連線</button></div>
+<div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的專用日曆</button></div>
+<label for="googleCalendarSelect">專用日曆</label>
 <select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
-<div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
-<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
+<div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>② 預覽差異</button><button type="button" id="googleCalendarConfirm" disabled>確認首次同步</button></div>
+<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未連線。首次點擊會準備登入，請再點一次開啟 Google 授權。</div>
 <div id="googleCalendarPlan"></div>
-<div class="actions"><button type="button" id="googleCalendarAutoEnable" class="secondary" disabled>啟用開啟期間自動同步</button><button type="button" id="googleCalendarAutoPause" class="weak" disabled>暫停自動同步</button></div>
-<p id="googleCalendarAutoStatus" class="muted" role="status">先完成首次預覽與確認；啟用後僅在 CRM 開啟且授權有效時每 5 分鐘核對。</p>
+<div class="actions"><button type="button" id="googleCalendarAutoEnable" class="secondary" disabled>③ 開啟自動同步</button><button type="button" id="googleCalendarAutoPause" class="weak" disabled>暫停同步</button><button type="button" id="googleCalendarBackupNow" class="weak">下載完整備份</button></div>
+<p id="googleCalendarAutoStatus" class="muted" role="status">開啟 CRM 且連線有效時同步；關閉後停止。換手機前請下載備份並先還原。</p>
 <details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p><p class="muted">首次同步需預覽及確認。啟用後，CRM 開啟且 Google 授權有效時每 5 分鐘自動核對；關閉頁面後不會同步。衝突或錯誤會停止，不刪除行程。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
 </div>
 </section>
@@ -527,10 +526,10 @@
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
 <script src="./quote-vector-pdf.js?v=20261022-quote-layout-4col" defer></script>
-<script src="./simple-core.js?v=20261028-compact-cloud-height" defer></script>
+<script src="./simple-core.js?v=20261028-calendar-backup" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
-<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-foreground-auto"></script>
+<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-incremental-sync"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
@@ -543,6 +542,7 @@
  new MutationObserver(compactPushStatus).observe(pushStatus,{childList:true,characterData:true,subtree:true});
  compactPushStatus();
 </script>
-<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-iphone-calendar-20261027').catch(()=>{}))}</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-calendar-backup-20261028').catch(()=>{}))}</script>
 </body></html>
+
 
