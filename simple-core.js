@@ -432,8 +432,13 @@ function deleteViewedNote(){
 // ── Local backup and careful restore ──
 function renderStorage(){try{const keys=Object.keys(localStorage).filter(k=>k.startsWith('hongbin_'));$('storageStatus').textContent='本機儲存狀態：可使用｜目前找到 '+keys.length+' 個 CRM 資料項目'}catch{$('storageStatus').textContent='無法讀取本機儲存，請勿繼續輸入資料'}}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
-function backup(){const data={};try{for(const k of Object.keys(localStorage))if(k.startsWith('hongbin_'))data[k]=localStorage.getItem(k);const archive={format:'hongbin-crm-simple-localstorage',schema:1,exportedAt:new Date().toISOString(),data};downloadBlob(new Blob([JSON.stringify(archive,null,2)],{type:'application/json;charset=utf-8'}),'鴻繽CRM備份_'+localDate()+'.json');toast('已建立備份檔，請確認存入 iPhone 檔案')}catch(e){alert('備份失敗：'+e.message)}}
+const calendarBackupKey=k=>k==='honbin_calendar_local_todos_account_owner_v1'||k.startsWith('honbin_calendar_google_links_v1:');
+function backup(){const data={};try{for(const k of Object.keys(localStorage))if(k.startsWith('hongbin_')||calendarBackupKey(k))data[k]=localStorage.getItem(k);const archive={format:'hongbin-crm-simple-localstorage',schema:1,exportedAt:new Date().toISOString(),data};downloadBlob(new Blob([JSON.stringify(archive,null,2)],{type:'application/json;charset=utf-8'}),'鴻繽CRM備份_'+localDate()+'.json');toast('已建立備份檔，請確認存入 iPhone 檔案')}catch(e){alert('備份失敗：'+e.message)}}
 function validShape(key,value){
+ if(key==='honbin_calendar_local_todos_account_owner_v1'){
+  if(!/^[A-Za-z0-9_-]{1,128}$/.test(value))throw new Error('日曆帳號綁定格式錯誤');
+  return;
+ }
  let obj;
  try{obj=JSON.parse(value)}catch(e){throw new Error('資料格式錯誤：'+key+' 不是有效 JSON')}
  const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -444,6 +449,10 @@ function validShape(key,value){
  if(key===KEYS.notes&&(!Array.isArray(obj)||obj.some(n=>!plain(n)||!['number','string'].includes(typeof n.id)||typeof n.content!=='string'||typeof (n.title??'')!=='string')))throw new Error('隨手記資料格式錯誤');
  if((key===KEYS.progress||key===KEYS.history)&&!plain(obj))throw new Error('追蹤紀錄格式錯誤');
  if(key==='hongbin_crm_cards_r70'&&!Array.isArray(obj))throw new Error('舊版名片資料格式錯誤');
+ if(key.startsWith('honbin_calendar_google_links_v1:')&&(!plain(obj)||
+   Object.values(obj).some(link=>!plain(link)||typeof link.eventId!=='string'||
+    typeof link.localFingerprint!=='string'||typeof link.remoteFingerprint!=='string')))
+  throw new Error('日曆同步對應紀錄格式錯誤');
 }
 function normalizeBackup(obj){
  const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -451,7 +460,7 @@ function normalizeBackup(obj){
  if(obj?.format==='hongbin-crm-simple-localstorage'&&obj.schema===1&&plain(obj.data)){
    source='簡易版完整備份';
    entries=Object.entries(obj.data);
-   if(!entries.length||entries.some(([k,v])=>!k.startsWith('hongbin_')||typeof v!=='string'))throw new Error('備份內容缺少有效 CRM 資料');
+   if(!entries.length||entries.some(([k,v])=>!(k.startsWith('hongbin_')||calendarBackupKey(k))||typeof v!=='string'))throw new Error('備份內容缺少有效 CRM 資料');
  }else if(obj?.app==='鴻繽科技 CRM'&&['R50','R70'].includes(obj.schema)&&plain(obj.data)){
    source='舊版 '+obj.schema+' 備份';
    const d=obj.data;
@@ -463,7 +472,7 @@ function normalizeBackup(obj){
      if(obj.settings!==undefined){if(!plain(obj.settings))throw new Error('舊版設定資料無效');entries.push(['hongbin_personal_crm_settings_v1',JSON.stringify(obj.settings)])}
    }
  }else throw new Error('無法辨識此備份版本；不會覆蓋任何資料');
- for(const [key,value] of entries)if([KEYS.crm,KEYS.master,KEYS.quotes,KEYS.progress,KEYS.history,KEYS.notes,'hongbin_crm_cards_r70'].includes(key))validShape(key,value);
+ for(const [key,value] of entries)if(calendarBackupKey(key)||[KEYS.crm,KEYS.master,KEYS.quotes,KEYS.progress,KEYS.history,KEYS.notes,'hongbin_crm_cards_r70'].includes(key))validShape(key,value);
  return {source,entries};
 }
 async function restore(){
@@ -480,6 +489,9 @@ async function restore(){
    entries.forEach(([key],i)=>{try{previous[i]===null?localStorage.removeItem(key):localStorage.setItem(key,previous[i])}catch{}});
    alert('還原失敗，已嘗試復原原有內容：'+e.message);return
  }
+ // A restored CRM snapshot must be reviewed against live Google events before
+ // automatic writes resume, even if this device had an old opt-in preference.
+ for(const key of Object.keys(localStorage))if(key.startsWith('honbin_calendar_auto_foreground_v1:'))localStorage.removeItem(key);
  alert(source+'已還原，即將重新載入');location.reload()
 }
 
@@ -948,4 +960,5 @@ if(['Tasks','Notes'].includes(pushMode)&&
 }
 updateBackToTop();
 })();
+
 
