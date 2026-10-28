@@ -1,5 +1,7 @@
 name: R73 simplified seven-module release checks
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -50,7 +52,7 @@ jobs:
           js=Path('simple-core.js').read_text(encoding='utf-8')
           sw=Path('sw.js').read_text(encoding='utf-8')
           assert '<title>鴻繽科技 CRM</title>' in html
-          assert html.count('src="./simple-core.js?v=20261027-iphone-ics"') == 1
+          assert html.count('src="./simple-core.js?v=20261028-view-settings"') == 1
           assert 'src="./owner-prices.mjs?v=20261022"' in html
           assert 'id="ownerPricePanel"' in html
           assert '<script src="./r73-fixes.js' not in html
@@ -113,3 +115,4 @@ jobs:
           pid=$!
           trap 'kill "$pid" || true' EXIT
           CRM_PRINT_TEST_FONT=/tmp/honbin-print-font.otf node tests/r73-simple-acceptance.cjs
+

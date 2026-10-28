@@ -20,7 +20,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const page=await ctx.newPage(),errors=[],dialogs=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs.push(d.message());d.accept()});
  await page.addInitScript(data=>{if(sessionStorage.getItem('__r73_skip_fixtures_after_reset')==='1')return;for(const [k,v] of Object.entries(data))if(localStorage.getItem(k)===null)localStorage.setItem(k,JSON.stringify(v))},fixtures);
  await page.goto(base,{waitUntil:'load'});await page.waitForSelector('#quoteList [data-quote]');
- check(await page.locator('.nav button').count()===9,'原八個主選單與雲端記事任務第九頁');
+ check(await page.locator('.nav button').count()===10,'主選單提供獨立設定頁');
  check(await page.locator('header.head h1').innerText()==='鴻繽科技 CRM' &&
   await page.locator('header.head .muted,header.head .test').count()===0,
   '僅保留鴻繽科技 CRM 主標題，撤除功能介紹與多餘標籤');
@@ -415,7 +415,10 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#customerListCard').isVisible(),'按關閉後可回到客戶清單');
 
 
+ await page.locator('button[data-tab="settings"]').click();
+ check(await page.locator('#googleCalendarSync').isVisible()&&await page.locator('#iphoneCalendarExport').isVisible(),'授權同步與匯出集中設定頁');
  await page.locator('button[data-tab="calendar"]').click();
+ check(await page.locator('#googleCalendarSync').isHidden()&&await page.locator('#iphoneCalendarExport').isHidden(),'月曆頁沒有授權設定');
  check(await page.locator('#calendarGrid button.day').count()>=28,'月曆模式具有日期格');
  check((await page.locator('#todoList').innerText()).includes('舊版未排日期事項'),'舊版未指定日期待辦仍可看到');
  check(await page.evaluate(()=>{
@@ -469,7 +472,13 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.time==='14:30')),'待辦時間持久保存');
  check((await page.locator('#todoList').innerText()).includes('R74行事曆事項'),'待辦儲存並顯示在選定日期');
  check((await page.locator('#todoList').innerText()).includes('14:30'),'待辦時間頁面不需要備份即可查看');
- await page.locator('#todoList input[type="checkbox"]').first().check();
+ await page.locator('#todoList .listTitle[data-todo]').first().click();
+ check(await page.locator('#recordDetail').isVisible()&&await page.locator('#todoEditor').isHidden(),'點待辦標題只進唯讀檢視');
+ check(!await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.find(x=>x.text==='R74行事曆事項').done),'點標題不改完成狀態');
+ await page.locator('#recordDetailEdit').click();
+ await page.locator('#tDone').check();
+ await page.locator('#saveTodo').click();
+ await page.locator('#recordDetailBack').click();
  check(await page.evaluate(()=>JSON.parse(localStorage.getItem('hongbin_personal_crm_v3')).todos.some(x=>x.text==='R74行事曆事項'&&x.done)),'待辦完成狀態持久保存');
  await page.locator('#todoList [data-todo]').first().click();
  check(await page.locator('#recordDetail').isVisible()&&await page.locator('#todoEditor').isHidden(),'待辦查看為獨立唯讀資料');
@@ -601,7 +610,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#noteSearch').fill('不存在的關鍵字');
  check((await page.locator('#noteList').innerText()).includes('找不到符合的隨手記'),'搜尋無結果提示清楚');
  await page.locator('#noteSearch').fill('');
- await page.locator('#noteList [data-note]').first().click();
+ await page.locator('#noteList .listTitle[data-note]').first().click();
  check(await page.locator('#noteEditor').isHidden()&&(await page.locator('#recordDetailTitle').innerText())==='拜訪提醒',
   '點查看時只能唯讀，不直接進入編輯');
  await page.locator('#recordDetailEdit').click();
@@ -789,3 +798,4 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(errors.length===0,'無 JavaScript 執行錯誤：'+errors.join(','));
  console.log('R73 SIMPLE ACCEPTANCE WEBKIT PASS',JSON.stringify({checks:passed,pageErrors:errors}));await browser.close();
 })().catch(async e=>{console.error('R73 SIMPLE ACCEPTANCE WEBKIT FAIL',e.stack||String(e));try{await browser?.close()}catch{}process.exitCode=1});
+

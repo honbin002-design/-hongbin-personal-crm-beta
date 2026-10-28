@@ -79,6 +79,7 @@
 .calendarQuickAdd{margin:0 0 15px}
 .calendarQuickAdd button{min-width:174px}
 @media(max-width:600px){.calendarQuickAdd button{width:100%}}
+.record-title-link{padding:4px 0;min-height:44px;max-width:100%;background:transparent;color:#1c527b;text-align:left;white-space:normal;overflow-wrap:anywhere}
 .taskCheck .todo-task-main{display:flex;flex:1;flex-direction:column;align-items:flex-start;min-width:0;gap:7px}
 .taskCheck .todo-task-main .listTitle{flex:0 1 auto;overflow-wrap:anywhere}
 .taskCheck .todo-time{display:inline-flex;flex:0 0 auto;align-items:center;background:#e3f0fb;color:#174a70;border:1px solid #92b9d4;border-radius:8px;padding:6px 12px;font-size:17px;font-weight:750;line-height:1.25;font-variant-numeric:tabular-nums}
@@ -305,6 +306,7 @@
 <button type="button" data-tab="products">產品資料</button>
 <button type="button" data-tab="notes">隨手記</button>
 <button type="button" data-tab="backup">備份</button>
+<button type="button" data-tab="settings">設定</button>
 <button type="button" data-tab="cloud" class="cloudTab">雲端記事與任務</button>
 </nav>
 <main>
@@ -360,26 +362,6 @@
 <section class="panel" id="panel-calendar" hidden>
 <div class="card"><h2>待辦行事曆</h2>
 <div class="calendarQuickAdd"><button id="newTodo" type="button">＋ 新增當日待辦</button></div>
-<div class="card" id="iphoneCalendarExport" style="margin:12px 0;background:#f7fafc">
-<h3>iPhone 原生行事曆｜免費加入待辦</h3>
-<p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p>
-<div class="actions"><button id="calendarExportDay" type="button" class="secondary" data-calendar-ics="day">匯出當日待辦 .ics</button><button id="calendarExportAll" type="button" class="secondary" data-calendar-ics="all">匯出全部待辦 .ics</button></div>
-<p id="iphoneCalendarExportStatus" role="status" aria-live="polite" class="muted" hidden></p>
-<p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p>
-</div>
-<div class="card" id="googleCalendarSync" style="margin:12px 0;background:#f7fafc">
-<h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
-<p class="muted">若 iPhone 原生行事曆已加入同一 Google 帳號，可在 Apple「行事曆」顯示和修改專用的「鴻繽 CRM 待辦」日曆。先連線、預覽差異、再由你明確確認同步。不讀取 iCloud，不刪除兩邊的行程；只有這一本專用 Google 日曆會納入同步。</p>
-<div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
-<div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的「鴻繽 CRM 待辦」專用 Google 日曆</button></div>
-<p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p>
-<label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
-<select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
-<div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
-<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
-<div id="googleCalendarPlan"></div>
-<p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p>
-</div>
 <div class="calendarHead"><button class="secondary" id="prevMonth">‹ 上月</button><strong id="calTitle"></strong><button class="secondary" id="nextMonth">下月 ›</button></div>
 <div class="yearNav"><label for="calendarYear">快速選年份</label><select id="calendarYear" aria-label="行事曆年份"></select><label for="calendarMonth">月份</label><select id="calendarMonth" aria-label="行事曆月份"></select><button id="calendarToday" class="weak" type="button">回今天</button></div>
 <div id="calendarSwipeArea" aria-label="行事曆左右滑動切換月份">
@@ -392,6 +374,7 @@
 <label for="tTime">時間（可留空）</label><input id="tTime" type="time">
 <label for="tCustomer">關聯客戶（可留空）</label><input id="tCustomer" list="customerNames" placeholder="選擇或輸入已建立客戶">
 <label for="tText">事項</label><input id="tText">
+<label><input id="tDone" type="checkbox"> 已完成</label>
 <label for="tNotes">備註</label><textarea id="tNotes"></textarea>
 <div class="actions"><button id="saveTodo">儲存待辦</button><button id="cancelTodo" class="secondary">取消</button></div></div>
 </section>
@@ -469,6 +452,30 @@
  <p id="pushHostStatus" class="cloud-push-status" role="status" aria-live="polite"></p>
  <iframe id="cloudWorkspace" class="cloudWorkspace" title="鴻繽 CRM 雲端記事與任務" loading="lazy" scrolling="no" data-src="/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261024-task-publish-return"></iframe>
 </section>
+<section class="panel" id="panel-settings" hidden>
+<div class="card"><h2>設定</h2><p class="muted">行事曆匯出、Google 授權與同步設定。</p></div>
+<div class="card" id="iphoneCalendarExport" style="margin:12px 0;background:#f7fafc">
+<h3>匯出至 iPhone 行事曆</h3>
+<p id="calendarExportSelectedDate" class="muted"></p>
+<p class="muted">以下匯出僅在這支手機產生 .ics 行程檔，不會上傳客戶資料、修改待辦或取得 Apple 行事曆權限。由本人選擇是否匯入，原生行事曆修改後不會自動回寫 CRM。</p>
+<div class="actions"><button id="calendarExportDay" type="button" class="secondary" data-calendar-ics="day">匯出選定日期待辦 .ics</button><button id="calendarExportAll" type="button" class="secondary" data-calendar-ics="all">匯出全部待辦 .ics</button></div>
+<p id="iphoneCalendarExportStatus" role="status" aria-live="polite" class="muted" hidden></p>
+<p class="muted">iPhone 可透過「檔案」分享 .ics 至「郵件」，開啟附件時選擇加入「行事曆」；此方式是單次匯入。真正自動雙向同步需連接有授權的 Google 日曆，不能直接從網頁讀寫私人 iCloud 行事曆。</p>
+</div>
+<div class="card" id="googleCalendarSync" style="margin:12px 0;background:#f7fafc">
+<h3>Google 日曆 ↔ CRM 待辦（需本人授權）</h3>
+<p class="muted">若 iPhone 原生行事曆已加入同一 Google 帳號，可在 Apple「行事曆」顯示和修改專用的「鴻繽 CRM 待辦」日曆。先連線、預覽差異、再由你明確確認同步。不讀取 iCloud，不刪除兩邊的行程；只有這一本專用 Google 日曆會納入同步。</p>
+<div class="actions"><button type="button" id="googleCalendarConnect" class="secondary">連線 Google 日曆（授權）</button><button type="button" id="googleCalendarDisconnect" class="secondary">中斷此頁授權</button></div>
+<div class="actions"><button type="button" id="googleCalendarCreate" class="secondary" disabled>建立我的「鴻繽 CRM 待辦」專用 Google 日曆</button></div>
+<p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p>
+<label for="googleCalendarSelect">指定 Google 日曆（只接受名稱完全一致的「鴻繽 CRM 待辦」）</label>
+<select id="googleCalendarSelect" aria-label="CRM 專屬 Google 行事曆"></select>
+<div class="actions"><button type="button" id="googleCalendarPreview" class="secondary" disabled>預覽雙向差異（唯讀）</button><button type="button" id="googleCalendarConfirm" disabled>確認同步非衝突項目</button></div>
+<div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未授權 Google Calendar。請先連線；授權後若沒有專用日曆，才會提供本人確認建立的按鈕。</div>
+<div id="googleCalendarPlan"></div>
+<p class="muted">同步只會在你按下「確認」時進行，不會在 iPhone 背景自動讀寫。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p>
+</div>
+</section>
 <section class="panel" id="panel-backup" hidden>
 <div class="card"><h2>本機儲存與備份</h2>
 <p>資料直接儲存在這台 iPhone 的瀏覽器。請定期備份到「檔案」或 iCloud Drive，避免更換手機或清除 Safari 資料時遺失。</p>
@@ -511,10 +518,10 @@
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
 <script src="./quote-vector-pdf.js?v=20261022-quote-layout-4col" defer></script>
-<script src="./simple-core.js?v=20261027-iphone-ics" defer></script>
+<script src="./simple-core.js?v=20261028-view-settings" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
-<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-release"></script>
+<script type="module" src="./calendar-google-sync-ui.mjs?v=20261028-view-settings"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
@@ -525,3 +532,4 @@
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=r73-iphone-calendar-20261027').catch(()=>{}))}</script>
 </body></html>
+

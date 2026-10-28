@@ -77,8 +77,7 @@ function showRecord(kind,key,push=true){
   record=crm.todos.find(t=>String(t.id)===String(key));if(!record)return;
   name=record.text||'未命名待辦';
   body=[['事項',name],['日期',record.date],['時間',record.time||'未設定時間'],
-    ['客戶',linkedTodoCustomer(record)],['狀態',record.done?'已完成':'待處理'],['備註',record.notes]].map(([a,b])=>readonlyRow(a,b||'—')).join('')+
-   '<div class="actions"><button type="button" class="secondary" data-calendar-ics="one" data-calendar-todo-id="'+esc(record.id)+'">匯出此筆至 iPhone 行事曆 .ics</button></div>';
+    ['客戶',linkedTodoCustomer(record)],['狀態',record.done?'已完成':'待處理'],['備註',record.notes]].map(([a,b])=>readonlyRow(a,b||'—')).join('');
  }else if(kind==='note'){
   record=getNotes().find(n=>String(n.id)===String(key));if(!record)return;
   name=noteHeading(record);
@@ -143,7 +142,7 @@ function goBackView(){
  updateFloatingBack();
 }
 
-function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src;else queueCloudSize()}if(tab==='backup')renderStorage();window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();updateBackToTop()}
+function openTab(tab){recordView=null;recordTrail=[];editorFromRecord=null;customerDetailEditing=false;creatingNote=false;$('noteEditor').hidden=true;$('recordDetail').hidden=true;$('floatingGoBack').hidden=true;document.querySelectorAll('.panel').forEach(p=>p.classList.remove('is-editing'));if(!['quotes','customers','calendar','projects','suppliers','products','notes','cloud','backup','settings'].includes(tab))tab='quotes';currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-selected',String(b.dataset.tab===tab))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='panel-'+tab);if(tab==='quotes')renderQuotes();if(tab==='customers'){ $('customerListCard').hidden=false; $('customer360').hidden=true; customer360Name=null; renderCustomers() }if(tab==='calendar')renderCalendar();if(tab==='projects')renderProjects();if(tab==='suppliers')renderSuppliers();if(tab==='products')renderProducts();if(tab==='notes')renderNotes();if(tab==='cloud'){const frame=$('cloudWorkspace');if(!frame.getAttribute('src'))frame.src=frame.dataset.src;else queueCloudSize()}if(tab==='backup')renderStorage();if(tab==='settings')$('calendarExportSelectedDate').textContent='目前選定日期：'+selectedDate+'（可在待辦日曆切換）';window.scrollTo({top:0,behavior:'instant'});updateFloatingBack();updateBackToTop()}
 function customerEntries(){const m=getMaster().customers,c=getCRM().customers,map=new Map();m.forEach(x=>{const key=norm(x.name);if(key)map.set(key,{...x,legacyId:c.find(v=>norm(v.name)===key)?.id})});c.forEach(x=>{const key=norm(x.name);if(key&&!map.has(key))map.set(key,{name:x.name,legacyId:x.id})});return [...map.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name),'zh-Hant'))}
 function datalist(id,values){const n=$(id);if(!n)return;n.replaceChildren(...[...new Set(values.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant')).map(s=>{const o=document.createElement('option');o.value=s;return o}))}
 function fillCustomerNames(){
@@ -268,11 +267,11 @@ function renderCalendar(){const year=monthDate.getFullYear(),month=monthDate.get
 function renderTodos(){
  const all=todoItems(),day=all.filter(t=>t.date===selectedDate).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99')),undated=all.filter(t=>!String(t.date||'').trim());
  $('selectedDayTitle').textContent=selectedDate+' 的待辦（'+day.length+'）';
- const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><label class="taskCheck"><input type="checkbox" data-complete="'+esc(t.id)+'" '+(t.done?'checked':'')+'><span class="todo-task-main"><span class="todo-time'+(t.time?'':' unscheduled')+'">'+(t.time?'時間：'+esc(t.time):'未設定時間')+'</span><span class="listTitle">'+esc(t.text||'未命名待辦')+'</span></span></label>'+(linkedTodoCustomer(t)?'<div class="sub">客戶：'+esc(linkedTodoCustomer(t))+'</div>':'')+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<div class="actions"><button type="button" class="secondary" data-todo="'+esc(t.id)+'">查看</button><button type="button" class="secondary" data-calendar-ics="one" data-calendar-todo-id="'+esc(t.id)+'">匯出此筆 .ics</button></div></div>';
+ const item=t=>'<div class="listItem task '+(t.done?'done':'')+'"><div class="taskCheck"><span class="todo-task-main"><span class="todo-time'+(t.time?'':' unscheduled')+'">'+(t.time?'時間：'+esc(t.time):'未設定時間')+'</span><button type="button" class="listTitle record-title-link" data-todo="'+esc(t.id)+'">'+esc(t.text||'未命名待辦')+'</button></span><span class="pill">'+(t.done?'已完成':'待處理')+'</span></div>'+(linkedTodoCustomer(t)?'<div class="sub">客戶：'+esc(linkedTodoCustomer(t))+'</div>':'')+(t.notes?'<div class="sub">'+esc(t.notes)+'</div>':'')+'<div class="actions"><button type="button" class="secondary" data-todo="'+esc(t.id)+'">查看</button></div></div>';
  $('todoList').innerHTML=(day.length?day.map(item).join(''):htmlListEmpty('當天沒有待辦'))+(undated.length?'<h3>尚未安排日期的待辦（'+undated.length+'）</h3><div class="muted">舊版未填日期的待辦仍保留，可按修改安排日期。</div>'+undated.map(item).join(''):'');
 }
-function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tTime').value=t?.time||'';$('tCustomer').value=t?linkedTodoCustomer(t):'';$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
-function saveTodo(){const text=field('tText'),date=field('tDate');if(!text||!date){alert('請輸入待辦日期與內容');return}const d=getCRM(),i=d.todos.findIndex(x=>editTodoId!=null&&String(x.id)===String(editTodoId)),old=i>=0?d.todos[i]:null,next={...(old||{}),id:old?.id??uniqueId(),text,date,time:field('tTime'),customerName:field('tCustomer'),customerId:field('tCustomer')?customerId(field('tCustomer')):null,notes:field('tNotes'),done:old?.done??false};if(i>=0)d.todos[i]=next;else d.todos.unshift(next);if(!store(KEYS.crm,d))return;selectedDate=date;monthDate=new Date(date+'T12:00:00');$('todoEditor').hidden=true;renderCalendar();toast('待辦已儲存');if(editorFromRecord?.kind==='todo')finishRecordEdit(next.id)}
+function editTodo(id){const t=id==null?null:todoItems().find(x=>String(x.id)===String(id));editTodoId=t?.id??null;$('tDate').value=t?.date||selectedDate;$('tTime').value=t?.time||'';$('tCustomer').value=t?linkedTodoCustomer(t):'';$('tText').value=t?.text||'';$('tNotes').value=t?.notes||'';$('tDone').checked=!!t?.done;$('panel-calendar').classList.add('is-editing');$('todoEditor').hidden=false;$('todoEditor').scrollIntoView({behavior:'smooth',block:'start'})}
+function saveTodo(){const text=field('tText'),date=field('tDate');if(!text||!date){alert('請輸入待辦日期與內容');return}const d=getCRM(),i=d.todos.findIndex(x=>editTodoId!=null&&String(x.id)===String(editTodoId)),old=i>=0?d.todos[i]:null,next={...(old||{}),id:old?.id??uniqueId(),text,date,time:field('tTime'),customerName:field('tCustomer'),customerId:field('tCustomer')?customerId(field('tCustomer')):null,notes:field('tNotes'),done:$('tDone').checked};if(i>=0)d.todos[i]=next;else d.todos.unshift(next);if(!store(KEYS.crm,d))return;selectedDate=date;monthDate=new Date(date+'T12:00:00');$('todoEditor').hidden=true;$('panel-calendar').classList.remove('is-editing');renderCalendar();toast('待辦已儲存');if(editorFromRecord?.kind==='todo')finishRecordEdit(next.id)}
 function toggleTodo(id,checked){const d=getCRM(),t=d.todos.find(x=>String(x.id)===String(id));if(!t)return;t.done=checked;if(store(KEYS.crm,d))renderCalendar()}
 // ── Project ──
 const STAGES=['進行中','已成交','暫停','結案','取消'],PROGRESS=['','初步接洽','需求確認','送樣中','客戶測試中','報價中','待客戶確認','待採購確認','成交準備'];
@@ -376,7 +375,7 @@ function renderNotes(){
  const list=getNotes().filter(n=>!q||norm([n.title,n.content].join(' ')).includes(q))
   .slice().sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')));
  $('noteList').innerHTML=list.length?list.map(n=>
-  '<div class="listItem"><div class="listTitle">'+esc(noteHeading(n))+'</div>'+
+  '<div class="listItem"><button type="button" class="listTitle record-title-link" data-note="'+esc(n.id)+'">'+esc(noteHeading(n))+'</button>'+
   '<div class="sub">建立：'+esc(readableHistoryTime(n.createdAt))+
   '　｜　更新：'+esc(readableHistoryTime(n.updatedAt||n.createdAt))+'</div>'+
   '<div class="sub quick-note-excerpt">'+esc(n.content||'')+'</div>'+
@@ -789,7 +788,7 @@ $('calendarToday').onclick=()=>{selectedDate=localDate();monthDate=new Date();re
 let swipeStart=null;
 $('calendarSwipeArea').addEventListener('touchstart',e=>{if(e.touches.length===1)swipeStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
 $('calendarSwipeArea').addEventListener('touchend',e=>{if(!swipeStart||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-swipeStart.x,dy=e.changedTouches[0].clientY-swipeStart.y;swipeStart=null;if(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.3)shiftMonth(dx<0?1:-1)},{passive:true});
-$('prevMonth').onclick=()=>shiftMonth(-1);$('nextMonth').onclick=()=>shiftMonth(1);$('newTodo').onclick=()=>editTodo(null);$('todoList').onchange=e=>{if(e.target.matches('[data-complete]'))toggleTodo(e.target.dataset.complete,e.target.checked)};$('todoList').onclick=e=>{const b=e.target.closest('[data-todo]');if(b)showRecord('todo',b.dataset.todo)};$('saveTodo').onclick=saveTodo;$('cancelTodo').onclick=()=>{if(editorFromRecord?.kind==='todo')finishRecordEdit();else $('todoEditor').hidden=true};
+$('prevMonth').onclick=()=>shiftMonth(-1);$('nextMonth').onclick=()=>shiftMonth(1);$('newTodo').onclick=()=>editTodo(null);$('todoList').onchange=e=>{if(e.target.matches('[data-complete]'))toggleTodo(e.target.dataset.complete,e.target.checked)};$('todoList').onclick=e=>{const b=e.target.closest('[data-todo]');if(b)showRecord('todo',b.dataset.todo)};$('saveTodo').onclick=saveTodo;$('cancelTodo').onclick=()=>{if(editorFromRecord?.kind==='todo')finishRecordEdit();else {$('todoEditor').hidden=true;$('panel-calendar').classList.remove('is-editing')}};
 $('projectSearch').addEventListener('input',renderProjects);$('newProject').onclick=()=>editProject(null);$('projectList').onclick=e=>{const b=e.target.closest('[data-project]');if(b)showRecord('project',b.dataset.project)};$('saveProject').onclick=saveProject;$('cancelProject').onclick=()=>{if(editorFromRecord?.kind==='project')finishRecordEdit();else $('projectEditor').hidden=true};
 $('supplierSearch').oninput=renderSuppliers;$('newSupplier').onclick=()=>editSupplier(null);$('supplierList').onclick=e=>{const b=e.target.closest('[data-supplier-browse]');if(b){
  const item=getMaster().suppliers[Number(b.dataset.supplierBrowse)];if(item){const origin=listContext();$('productSearch').value=supplierName(item);openTab('products');recordTrail.push(origin);updateFloatingBack()}return}
@@ -881,8 +880,8 @@ function updateBackToTop(){
 // that frame must move the parent CRM window to the real note input instead.
 window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==cloudFrame.contentWindow||
-    event.data?.type!=='HONBIN_CLOUD_NOTE_EDITOR'||currentTab!=='cloud')return;
- const doc=cloudDocument(),editor=doc?.getElementById('noteEditor');
+    !['HONBIN_CLOUD_NOTE_EDITOR','HONBIN_CLOUD_RECORD_VIEW'].includes(event.data?.type)||currentTab!=='cloud')return;
+ const doc=cloudDocument(),editor=doc?.getElementById(event.data.type==='HONBIN_CLOUD_RECORD_VIEW'?'cloudRecordView':'noteEditor');
  if(!editor||editor.hidden)return;
  queueCloudSize();
  requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -949,3 +948,4 @@ if(['Tasks','Notes'].includes(pushMode)&&
 }
 updateBackToTop();
 })();
+
