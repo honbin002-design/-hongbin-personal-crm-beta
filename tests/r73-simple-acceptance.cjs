@@ -31,7 +31,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  check(await page.locator('#cloudWorkspace').getAttribute('src')===null,'雲端頁初始不在背景載入');
  await page.locator('[data-tab="cloud"]').click();
  check(await page.locator('#panel-cloud').isVisible()&&
-  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261028-orders-auth-ready',
+  (await page.locator('#cloudWorkspace').getAttribute('src'))==='/honbin-crm-auth-test/workspace-v2.html?embedded=1&v=20261028-orders-compact-height',
   '雲端記事任務在 CRM 第九頁載入，保留原本八頁');
  check(await page.locator('#panel-cloud .cloud-panel-title').evaluate(el=>
   el.getBoundingClientRect().height<55&&
@@ -125,7 +125,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  await page.locator('#cloudWorkspace').evaluate(frame=>
   frame.contentDocument.getElementById('cloudLongContent').style.height='700px');
  await page.waitForFunction(()=>document.querySelector('#cloudWorkspace').clientHeight<900);
- check(await page.locator('#cloudWorkspace').evaluate(frame=>frame.clientHeight>=480&&frame.clientHeight<900),
+ check(await page.locator('#cloudWorkspace').evaluate(frame=>frame.clientHeight>=240&&frame.clientHeight<900),
   '記事內容收合後，嵌入頁面也能縮回正確高度，避免多餘空白');
  await page.locator('[data-tab="quotes"]').click();
 
