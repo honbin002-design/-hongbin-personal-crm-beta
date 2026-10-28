@@ -844,7 +844,7 @@ function resizeCloudFrame(){
  const natural=Math.max(body.scrollHeight,body.offsetHeight,
   Math.ceil(body.getBoundingClientRect().height));
  if(!Number.isFinite(natural)||natural<1)return;
- const pixels=Math.max(480,Math.min(100000,Math.ceil(natural)+4));
+ const pixels=Math.max(240,Math.min(100000,Math.ceil(natural)+4));
  if(Math.abs(cloudFrame.getBoundingClientRect().height-pixels)>2)
   cloudFrame.style.height=pixels+'px';
 }
