@@ -37,6 +37,7 @@ const SCOPES=['https://www.googleapis.com/auth/calendar.events',
 const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
  events:[],preview:null,running:false,createAttempted:false,createdCalendarId:'',
  autoActive:false,baselineReady:false,lastAutoAt:0};
+let eventSnapshot={owner:'',token:'',items:new Map()};
 let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
 const safeMessage=message=>{
  const status=$('googleCalendarStatus');if(!status)return;
@@ -134,19 +135,37 @@ async function listCalendars(){
  return found.filter(x=>x.summary===CAL&&x.accessRole==='owner'&&!x.primary);
 }
 async function listEvents(){
- let page='',n=0,items=[];
+ const owner=state.user?.uid+':'+state.calendarId;
+ const incremental=eventSnapshot.owner===owner&&!!eventSnapshot.token;
+ let page='',n=0,items=new Map(incremental?eventSnapshot.items:[]),nextSyncToken='';
  do{
-  const query=new URLSearchParams({maxResults:'250',showDeleted:'false',singleEvents:'false',
-   fields:'nextPageToken,items(id,summary,description,start,end,extendedProperties,etag,status,recurrence,recurringEventId,updated)'});
+  const query=new URLSearchParams({maxResults:'250',showDeleted:'true',singleEvents:'false',
+   fields:'nextPageToken,nextSyncToken,items(id,summary,description,start,end,extendedProperties,etag,status,recurrence,recurringEventId,updated)'});
+  if(incremental)query.set('syncToken',eventSnapshot.token);
   if(page)query.set('pageToken',page);
-  const data=await request(eventUrl(state.calendarId)+'?'+query);
-  items.push(...(data.items||[]));page=data.nextPageToken||'';
-  if(++n>4||items.length>1000)throw Error('CALENDAR_TOO_MANY_EVENTS_STOP');
+  let data;
+  try{data=await request(eventUrl(state.calendarId)+'?'+query)}
+  catch(error){
+   if(incremental&&error.message==='GOOGLE_CALENDAR_HTTP_410'){
+    eventSnapshot={owner:'',token:'',items:new Map()};
+    return listEvents(); // expired sync token: one full read, never a stale cached result
+   }
+   throw error;
+  }
+  for(const event of data.items||[]){
+   if(!event?.id)continue;
+   if(event.status==='cancelled')items.delete(event.id);
+   else items.set(event.id,event);
+  }
+  page=data.nextPageToken||'';nextSyncToken=data.nextSyncToken||nextSyncToken;
+  if(++n>4||items.size>1000)throw Error('CALENDAR_TOO_MANY_EVENTS_STOP');
  }while(page);
  // No recurrence changes: these require a dedicated expansion/conflict policy.
- const recurring=items.filter(x=>x.recurrence||x.recurringEventId);
+ const result=[...items.values()];
+ const recurring=result.filter(x=>x.recurrence||x.recurringEventId);
  if(recurring.length)throw Error('RECURRING_EVENTS_NOT_SUPPORTED_USE_DEDICATED_CALENDAR');
- return items;
+ eventSnapshot={owner,token:nextSyncToken,items};
+ return result;
 }
 function detailTitle(operation,todos,events){
  const local=todos.find(t=>String(t.id)===String(operation.todoId));
@@ -241,8 +260,8 @@ async function connectGoogle(){
      !candidate.providerData.some(p=>p.providerId==='google.com'))
    throw Error('請先到「雲端記事與任務」登入你自己的 Google 帳號，再連接日曆。');
   googleAuthReady={authSdk,auth};
-  $('googleCalendarConnect').textContent='第二步：點此授權 Google 日曆';
-  safeMessage('已確認目前登入的 Google 帳號。請再次點上方「第二步：點此授權 Google 日曆」，這次將由你本人開啟 Google 授權視窗。尚未取得任何日曆資料。');
+  $('googleCalendarConnect').textContent='① 繼續 Google 授權';
+  safeMessage('已準備好。請再點一次「繼續 Google 授權」並在 Google 視窗同意。');
   return;
  }
  const {authSdk,auth}=googleAuthReady;
@@ -262,7 +281,7 @@ async function connectGoogle(){
  state.user={uid:user.uid,email:user.email};
  const available=await listCalendars();
  if(!chooseDedicatedCalendar(available)){
-  state.events=[];state.preview=null;
+  state.events=[];state.preview=null;eventSnapshot={owner:'',token:'',items:new Map()};
   safeMessage(state.createAttempted?
    '先前建立專用日曆的結果尚待確認，為避免重複建立已鎖定建立按鈕。請先到 Google 日曆核對，勿反覆按建立。':
    'Google 已授權，目前沒有你擁有的「'+CAL+'」專用日曆。可按「建立我的專用 Google 日曆」，本人確認後才會新增；不會操作主要或家族日曆。');
@@ -433,7 +452,7 @@ async function handleClick(action){
   else if(action==='disconnect'){
    pauseAuto('已關閉自動同步。');
    state.token='';state.expiresAt=0;state.user=null;state.calendarId='';
-   state.events=[];state.preview=null;
+   state.events=[];state.preview=null;eventSnapshot={owner:'',token:'',items:new Map()};
    $('googleCalendarPlan').replaceChildren();
    safeMessage('已中斷此頁 Google Calendar 的存取權杖。CRM 待辦與 Google 日曆資料均保留。');
   }
@@ -490,6 +509,7 @@ $('googleCalendarAutoEnable')?.addEventListener('click',()=>{
  void runAutoSync();
 });
 $('googleCalendarAutoPause')?.addEventListener('click',()=>pauseAuto('已暫停自動同步。'));
+$('googleCalendarBackupNow')?.addEventListener('click',()=>$('downloadBackup')?.click());
 setInterval(()=>void runAutoSync(),AUTO_INTERVAL);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void runAutoSync()});
 
@@ -588,3 +608,4 @@ for(const [id,fn] of [['memberCalendarPreview',previewMember],['memberCalendarAp
    $('memberCalendarApply').disabled=!memberPreview?.plan?.operations.length}
  });
 }
+
