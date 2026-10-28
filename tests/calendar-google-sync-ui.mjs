@@ -3,6 +3,27 @@ import {readFileSync} from 'node:fs';
 const code=readFileSync('calendar-google-sync-ui.mjs','utf8');
 const html=readFileSync('index.html','utf8');
 const plan=readFileSync('calendar-sync-core.mjs','utf8');
+const simple=readFileSync('simple-core.js','utf8');
+assert.match(simple,/calendarBackupKey=k=>k==='honbin_calendar_local_todos_account_owner_v1'\|\|k\.startsWith\('honbin_calendar_google_links_v1:'\)/);
+assert.match(simple,/k\.startsWith\('hongbin_'\)\|\|calendarBackupKey\(k\)/,'full backup includes calendar mappings');
+assert.match(simple,/if\(calendarBackupKey\(key\)\|\|/,'restore validates calendar mappings');
+assert.match(simple,/honbin_calendar_auto_foreground_v1:.*localStorage\.removeItem\(key\)/,'restored backup requires a new review before automatic writes');
+const backupMatch=simple.match(/const calendarBackupKey=[\s\S]*?\nfunction validShape\(/);
+assert.ok(backupMatch);
+const backupFactory=new Function('env',`const {localStorage,downloadBlob,Blob,localDate,toast,alert}=env;
+ ${backupMatch[0].replace(/\nfunction validShape\($/,'')}
+ return backup;`);
+const saved={hongbin_personal_crm_v3:'{"todos":[]}',
+ 'honbin_calendar_local_todos_account_owner_v1':'u',
+ 'honbin_calendar_google_links_v1:u:owned':'{"t":{"eventId":"e","localFingerprint":"a","remoteFingerprint":"b"}}',
+ 'honbin_calendar_auto_foreground_v1:u:owned':'enabled'};
+let archive;
+backupFactory({localStorage:{...saved,getItem(k){return this[k]}},Blob,
+ downloadBlob(blob){archive=blob},localDate:()=>'',toast(){},alert(msg){throw Error(msg)}})();
+const backupData=JSON.parse(await archive.text()).data;
+assert.equal(backupData['honbin_calendar_google_links_v1:u:owned'],saved['honbin_calendar_google_links_v1:u:owned']);
+assert.equal(backupData.honbin_calendar_local_todos_account_owner_v1,'u');
+assert.equal(backupData['honbin_calendar_auto_foreground_v1:u:owned'],undefined,'restored backup is never automatically armed');
 assert.match(code,/reauthenticateWithPopup\(user,provider\)/,'reuse already signed-in user');
 assert.match(code,/let googleAuthReady=null/,'explicit first-tap initialization');
 assert.match(code,/const popup=authSdk\.reauthenticateWithPopup\(user,provider\);\s*const result=await popup/,'popup opens immediately on second user gesture');
@@ -78,6 +99,42 @@ assert.match(code,/automatic&&!autoSessionReady\(\)/);
 assert.match(code,/if\(automatic\)payload\.id=await automaticEventId\(todo\.id\)/);
 assert.match(code,/localStorage\.getItem\(LOCAL_OWNER_KEY\)===state\.user\.uid/);
 assert.match(code,/pauseAuto\('已關閉自動同步/);
+assert.match(html,/id="googleCalendarBackupNow"/,'backup is reachable from sync setup');
+assert.match(code,/googleCalendarBackupNow'\)\?\.addEventListener/);
+const listMatch=code.match(/async function listEvents\(\)\{[\s\S]*?\n\}\nfunction detailTitle\(/);
+assert.ok(listMatch,'incremental event read exists');
+const listImplementation=listMatch[0].replace(/\nfunction detailTitle\($/,'');
+const createList=new Function('env',`const {state,request,eventUrl}=env;
+ let eventSnapshot={owner:'',token:'',items:new Map()};
+ ${listImplementation}
+ return listEvents;`);
+const calls=[];
+let responses=[
+ {items:[{id:'a',summary:'初始'}],nextSyncToken:'token1'},
+ {items:[{id:'a',summary:'更新'},{id:'b',summary:'新增'}],nextSyncToken:'token2'},
+ {items:[{id:'a',status:'cancelled'}],nextSyncToken:'token3'}
+];
+const listEvents=createList({state:{user:{uid:'u'},calendarId:'owned'},eventUrl:(c)=>'/'+c+'/events',
+ async request(path){calls.push(new URL(path,'https://calendar.test').searchParams);return responses.shift()}});
+assert.deepEqual((await listEvents()).map(x=>x.summary),['初始']);
+assert.equal(calls[0].get('syncToken'),null);
+assert.equal(calls[0].get('showDeleted'),'true');
+assert.deepEqual((await listEvents()).map(x=>x.summary),['更新','新增']);
+assert.equal(calls[1].get('syncToken'),'token1');
+assert.deepEqual((await listEvents()).map(x=>x.id),['b']);
+assert.equal(calls[2].get('syncToken'),'token2');
+responses=[{items:[{id:'c',summary:'舊基準'}],nextSyncToken:'token4'},
+ {items:[{id:'d',summary:'新基準'}],nextSyncToken:'token5'}];
+// An expired token must trigger a full read and discard its stale snapshot.
+const expiredCalls=[];
+let expired=true;
+const expiredList=createList({state:{user:{uid:'u'},calendarId:'owned'},eventUrl:c=>'/'+c+'/events',
+ async request(path){const q=new URL(path,'https://calendar.test').searchParams;expiredCalls.push(q);
+  if(expired&&q.has('syncToken')){expired=false;throw Error('GOOGLE_CALENDAR_HTTP_410')}
+  return responses.shift();}});
+await expiredList();
+assert.deepEqual((await expiredList()).map(x=>x.id),['d']);
+assert.equal(expiredCalls.at(-1).get('syncToken'),null);
 // Execute the actual dedicated-calendar creation function against synthetic
 // Google API results. Never request real OAuth credentials or modify calendars.
 const createMatch=code.match(/async function createDedicatedCalendar\(\)\{[\s\S]*?\n\}\nasync function connectGoogle\(\)/);
@@ -173,3 +230,4 @@ for(const mode of ['hidden','conflict','ready']){
  assert.deepEqual(calls,mode==='hidden'?[]:mode==='conflict'?['preview','pause']:['preview','auto-apply']);
 }
 console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
+
