@@ -30,7 +30,20 @@ assert.match(code,/pauseAuto\('同步設定與既有資料已保留；Google 授
 assert.match(code,/await auth\.authStateReady\(\);\s*googleAuthReady=\{authSdk,auth\};/,'prepare persisted Firebase login');
 assert.match(code,/const \{authSdk,auth\}=await prepareGoogleAuth\(\);\s*const candidate=await waitForLogin\(authSdk,auth\)/,'wait for propagated iframe login');
 assert.match(code,/if\(returningOwner\)[\s\S]*?void prepareGoogleAuth\(\)/,'returning user preloads login before their tap');
+assert.match(code,/else void prepareGoogleAuth\(\)\.catch\(\(\)=>\{\}\)/,'first-time user also warms auth before tap');
 assert.match(code,/const uid=localStorage\.getItem\(LOCAL_OWNER_KEY\)/,'resume only saved local owner');
+const savedStateSource=code.match(/function savedCalendarState\(\)\{[\s\S]*?\n\}\nfunction prepareGoogleAuth\(/);
+assert.ok(savedStateSource);
+const readSavedState=new Function('localStorage','LOCAL_OWNER_KEY','AUTO_KEY',
+ savedStateSource[0].replace(/\nfunction prepareGoogleAuth\($/,'')+'\nreturn savedCalendarState();');
+const savedStore={honbin_calendar_local_todos_account_owner_v1:'same',
+ 'honbin_calendar_auto_foreground_v1:same:calendar':'enabled',
+ getItem(key){return this[key]||null}};
+assert.deepEqual(readSavedState(savedStore,'honbin_calendar_local_todos_account_owner_v1',
+ 'honbin_calendar_auto_foreground_v1'),{uid:'same',autoEnabled:true});
+delete savedStore['honbin_calendar_auto_foreground_v1:same:calendar'];
+assert.deepEqual(readSavedState(savedStore,'honbin_calendar_local_todos_account_owner_v1',
+ 'honbin_calendar_auto_foreground_v1'),{uid:'same',autoEnabled:false});
 assert.match(code,/getElementById\('logout'\)\?\.disabled!==false/,'visible signed-in workspace returns to setup');
 assert.match(code,/calendarLoginGuide[\s\S]*?data-tab="cloud"/,'missing login routes to cloud tab');
 assert.match(html,/id="calendarLoginReturn"/,'clear return path after sign-in');
