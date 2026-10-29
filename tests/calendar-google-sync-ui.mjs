@@ -26,6 +26,7 @@ assert.equal(backupData.honbin_calendar_local_todos_account_owner_v1,'u');
 assert.equal(backupData['honbin_calendar_auto_foreground_v1:u:owned'],undefined,'restored backup is never automatically armed');
 assert.match(code,/reauthenticateWithPopup\(user,provider\)/,'reuse already signed-in user');
 assert.match(code,/let googleAuthReady=null/,'explicit first-tap initialization');
+assert.match(code,/pauseAuto\('同步設定與既有資料已保留；Google 授權到期或帳號變更，請重新連線。',[\s\S]*?\{keepPreference:true\}\)/,'expiring token does not erase saved sync preference');
 assert.match(code,/await auth\.authStateReady\(\);\s*googleAuthReady=\{authSdk,auth\};\s*const candidate=await waitForLogin\(authSdk,auth\)/,'wait for propagated iframe login');
 assert.match(code,/getElementById\('logout'\)\?\.disabled!==false/,'visible signed-in workspace returns to setup');
 assert.match(code,/calendarLoginGuide[\s\S]*?data-tab="cloud"/,'missing login routes to cloud tab');
