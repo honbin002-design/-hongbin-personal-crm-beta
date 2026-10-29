@@ -467,7 +467,11 @@ async function runAutoSync({foreground=false}={}){
    '；'+(plan.operations.length?'同步 '+plan.operations.length+' 筆。':'資料已是最新。');
  }catch(error){
   state.preview=null;$('googleCalendarConfirm').disabled=true;
-  pauseAuto('自動同步已安全暫停（'+String(error.message||error)+ '）。請手動預覽核對後再啟用。');
+  // A temporary network failure or a conflict must not erase the user's
+  // saved preference. Resume only after a fresh authorization/review; no
+  // blind replay of an uncertain Google write.
+  pauseAuto('自動同步已安全暫停（'+String(error.message||error)+ '）。設定與資料保留，請重新預覽核對。',
+   {keepPreference:true});
  }finally{
   state.running=false;buttonDisable(false);
   $('googleCalendarCreate').disabled=!state.user||!state.token||!!state.calendarId||state.createAttempted||Date.now()>=state.expiresAt;
