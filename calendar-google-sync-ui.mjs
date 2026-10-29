@@ -7,7 +7,8 @@
 import {planCalendarSync,todoFingerprint,eventFingerprint,googleEventFromTodo,
  notesWithoutCrmCustomerFooter}
  from './calendar-sync-core.mjs?v=20261027b';
-// Firebase's already existing public config is loaded only when the user taps Connect.
+// Load public Firebase config ahead of a returning user's tap; never request
+// Calendar access or store an OAuth token without their explicit action.
 const $=id=>document.getElementById(id);
 const CAL='鴻繽 CRM 待辦';
 const CRM_KEY='hongbin_personal_crm_v3';
@@ -38,7 +39,29 @@ const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
  events:[],preview:null,running:false,createAttempted:false,createdCalendarId:'',
  autoActive:false,baselineReady:false,lastAutoAt:0};
 let eventSnapshot={owner:'',token:'',items:new Map()};
-let googleAuthReady=null; // SDK preloaded by the first explicit tap, no tokens retained
+let googleAuthReady=null,authPreparation=null;
+function savedAutoOwner(){
+ try{
+  const uid=localStorage.getItem(LOCAL_OWNER_KEY);
+  return uid&&Object.keys(localStorage).some(key=>key.startsWith(AUTO_KEY+':'+uid+':')&&localStorage.getItem(key)==='enabled')?uid:'';
+ }catch{return ''}
+}
+function prepareGoogleAuth(){
+ if(authPreparation)return authPreparation;
+ authPreparation=(async()=>{
+  const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
+  if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
+  const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
+  const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
+  const app=appSdk.getApps().find(x=>x.name==='[DEFAULT]')||appSdk.initializeApp(firebaseConfig);
+  if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
+  const auth=authSdk.getAuth(app);
+  await auth.authStateReady();
+  googleAuthReady={authSdk,auth};
+  return googleAuthReady;
+ })().catch(error=>{authPreparation=null;throw error});
+ return authPreparation;
+}
 async function waitForLogin(authSdk,auth){
  if(auth.currentUser)return auth.currentUser;
  return new Promise(resolve=>{
@@ -265,15 +288,7 @@ async function connectGoogle(){
    safeMessage('登入已確認。請再點一次「繼續 Google 授權」開啟授權視窗。');
    return;
   }
-  const {firebaseConfig}=await import('/honbin-crm-auth-test/firebase-web-config.mjs');
-  if(firebaseConfig.projectId!=='honbin-crm-notes-spark')throw Error('WRONG_FIREBASE_PROJECT');
-  const appSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js');
-  const authSdk=await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js');
-  const app=appSdk.getApps().find(x=>x.name==='[DEFAULT]')||appSdk.initializeApp(firebaseConfig);
-  if(app.options.projectId!==firebaseConfig.projectId)throw Error('FIREBASE_PROJECT_MISMATCH');
-  const auth=authSdk.getAuth(app);
-  await auth.authStateReady();
-  googleAuthReady={authSdk,auth};
+  const {authSdk,auth}=await prepareGoogleAuth();
   const candidate=await waitForLogin(authSdk,auth);
   if(!candidate||!candidate.emailVerified||
      !candidate.providerData.some(p=>p.providerId==='google.com'))
@@ -515,6 +530,18 @@ for(const [id,kind] of [
  ['googleCalendarConfirm','apply'],['googleCalendarDisconnect','disconnect']
 ]){
  const el=$(id);if(el)el.addEventListener('click',()=>void handleClick(kind));
+}
+const returningOwner=savedAutoOwner();
+if(returningOwner){
+ $('googleCalendarConnect').textContent='重新連線並同步';
+ safeMessage('自動同步設定已保留。正在確認登入狀態；若日曆授權已失效，請點「重新連線並同步」。');
+ void prepareGoogleAuth().then(({auth})=>{
+  if(auth.currentUser?.uid===returningOwner)
+   safeMessage('自動同步設定已保留；點一次「重新連線並同步」取得 Google 日曆存取權。');
+  else safeMessage('自動同步設定已保留；請點「重新連線並同步」檢查 Google 登入。');
+ }).catch(()=>{
+  safeMessage('自動同步設定已保留；請點「重新連線並同步」重試登入檢查。');
+ });
 }
 $('googleCalendarSelect')?.addEventListener('change',event=>{
  state.autoActive=false;state.baselineReady=false;
