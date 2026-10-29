@@ -481,7 +481,7 @@
 <div id="googleCalendarStatus" role="status" aria-live="polite" class="muted">尚未連線。首次點擊會準備登入，請再點一次開啟 Google 授權。</div>
 <div id="googleCalendarPlan"></div>
 <div class="actions"><button type="button" id="googleCalendarAutoEnable" class="secondary" disabled>③ 開啟自動同步</button><button type="button" id="googleCalendarAutoPause" class="weak" disabled>暫停同步</button><button type="button" id="googleCalendarBackupNow" class="weak">下載完整備份</button></div>
-<p id="googleCalendarAutoStatus" class="muted" role="status">開啟 CRM 且連線有效時同步；關閉後停止。換手機前請下載備份並先還原。</p>
+<p id="googleCalendarAutoStatus" class="muted" role="status">同步設定與已同步資料會保留；關閉頁面或授權到期後暫停，重新開啟時可能需要再按連線。換手機前請下載備份。</p>
 <details class="help"><summary>使用說明</summary><p class="muted">建立按鈕只在本人完成 Google 授權且確實沒有專用日曆時開放。會另外要求你確認，僅建立一個私人次要日曆；不會匯入、修改或刪除現有行程。</p><p class="muted">首次同步需預覽及確認。啟用後，CRM 開啟且 Google 授權有效時每 5 分鐘自動核對；關閉頁面後不會同步。衝突或錯誤會停止，不刪除行程。Google Calendar API 必須由帳號持有人開啟並同意 OAuth 權限；若未授權，既有 CRM 資料完全不受影響。</p></details>
 </div>
 </section>
@@ -530,7 +530,7 @@
 <script src="./simple-core.js?v=20261028-calendar-backup" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>
-<script type="module" src="./calendar-google-sync-ui.mjs?v=20261029-login-state"></script>
+<script type="module" src="./calendar-google-sync-ui.mjs?v=20261029-keep-preference"></script>
 <script type="module">
  import {initCRMPush} from './crm-push-setup.mjs?v=20261023-live-free';
  initCRMPush({
