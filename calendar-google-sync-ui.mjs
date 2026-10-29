@@ -431,9 +431,9 @@ async function automaticEventId(todoId){
  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',raw));
  return 'h'+Array.from(digest.slice(0,16),b=>b.toString(16).padStart(2,'0')).join('');
 }
-async function runAutoSync(){
+async function runAutoSync({foreground=false}={}){
  if(!state.autoActive||state.running||memberBusy||document.visibilityState!=='visible')return;
- if(Date.now()-state.lastAutoAt<AUTO_INTERVAL)return;
+ if(!foreground&&Date.now()-state.lastAutoAt<AUTO_INTERVAL)return;
  state.lastAutoAt=Date.now();
  if(!autoSessionReady()){
   pauseAuto('同步設定與既有資料已保留；Google 授權到期或帳號變更，請重新連線。',
@@ -553,7 +553,9 @@ setInterval(()=>{
  }catch{}
 },750);
 setInterval(()=>void runAutoSync(),AUTO_INTERVAL);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void runAutoSync()});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible')void runAutoSync({foreground:true});
+});
 
 // Candidate B: member-owned Google calendar, CRM-assigned shared tasks only.
 // No Firestore writes; Google-side edits never mutate shared tasks or bypass approval.
