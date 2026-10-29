@@ -99,6 +99,7 @@ for(const id of ['googleCalendarAutoEnable','googleCalendarAutoPause','googleCal
  assert(html.includes('id="'+id+'"'));
 assert.match(code,/document\.visibilityState!=='visible'/,'only sync while app is visible');
 assert.match(code,/setInterval\(\(\)=>void runAutoSync\(\),AUTO_INTERVAL\)/);
+assert.match(code,/visibilitychange[\s\S]*?runAutoSync\(\{foreground:true\}\)/,'foreground entry bypasses the periodic timer');
 assert.match(code,/plan\.conflicts\.length\|\|plan\.operations\.length>AUTO_MAX_WRITES/);
 assert.match(code,/automatic&&!autoSessionReady\(\)/);
 assert.match(code,/if\(automatic\)payload\.id=await automaticEventId\(todo\.id\)/);
@@ -213,7 +214,7 @@ function environment({calendars=[[],[{id:'new-owned'}]],accept=true,response={id
  assert.equal(t.writes.length,0,'expired token cannot create calendars');
 }
 // Exercise the foreground scheduler without network, OAuth, or real CRM data.
-const autoMatch=code.match(/async function runAutoSync\(\)\{[\s\S]*?\n\}\nasync function handleClick\(action\)/);
+const autoMatch=code.match(/async function runAutoSync\(\{foreground=false\}=\{\}\)\{[\s\S]*?\n\}\nasync function handleClick\(action\)/);
 assert.ok(autoMatch,'foreground loop exists');
 const autoSource=autoMatch[0].replace(/\nasync function handleClick\(action\)$/,'');
 const makeAuto=new Function('env',`
@@ -233,6 +234,18 @@ for(const mode of ['hidden','conflict','ready']){
    operations:[{type:'CREATE_GOOGLE'}]}}},apply:async({automatic})=>calls.push(automatic?'auto-apply':'manual')};
  await makeAuto(env)();
  assert.deepEqual(calls,mode==='hidden'?[]:mode==='conflict'?['preview','pause']:['preview','auto-apply']);
+}
+{
+ const calls=[],state={autoActive:true,running:false,lastAutoAt:Date.now(),preview:null,
+  calendarId:'owned',user:{uid:'same'},expiresAt:Date.now()+600000,token:'synthetic',createAttempted:false};
+ const env={state,document:{visibilityState:'visible'},autoSessionReady:()=>true,
+  buttonDisable:()=>{},autoControls:()=>{},$:()=>({disabled:false,textContent:''}),
+  pauseAuto:()=>calls.push('pause'),preview:async()=>{calls.push('preview');state.preview={plan:{conflicts:[],operations:[]}}},
+  apply:async()=>calls.push('apply')};
+ await makeAuto(env)();
+ assert.deepEqual(calls,[],'periodic check remains throttled');
+ await makeAuto(env)({foreground:true});
+ assert.deepEqual(calls,['preview'],'returning to foreground checks even within five minutes');
 }
 console.log('IPHONE_GOOGLE_CALENDAR_CONSENT_PREVIEW_CONFLICT_NO_DELETE_GATES_PASS');
 
