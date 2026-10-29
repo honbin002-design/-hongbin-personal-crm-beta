@@ -40,11 +40,13 @@ const state={token:'',expiresAt:0,user:null,calendarId:'',calendarSummary:'',
  autoActive:false,baselineReady:false,lastAutoAt:0};
 let eventSnapshot={owner:'',token:'',items:new Map()};
 let googleAuthReady=null,authPreparation=null;
-function savedAutoOwner(){
+function savedCalendarState(){
  try{
   const uid=localStorage.getItem(LOCAL_OWNER_KEY);
-  return uid&&Object.keys(localStorage).some(key=>key.startsWith(AUTO_KEY+':'+uid+':')&&localStorage.getItem(key)==='enabled')?uid:'';
- }catch{return ''}
+  if(!uid)return {uid:'',autoEnabled:false};
+  const autoEnabled=Object.keys(localStorage).some(key=>key.startsWith(AUTO_KEY+':'+uid+':')&&localStorage.getItem(key)==='enabled');
+  return {uid,autoEnabled};
+ }catch{return {uid:'',autoEnabled:false}}
 }
 function prepareGoogleAuth(){
  if(authPreparation)return authPreparation;
@@ -531,18 +533,20 @@ for(const [id,kind] of [
 ]){
  const el=$(id);if(el)el.addEventListener('click',()=>void handleClick(kind));
 }
-const returningOwner=savedAutoOwner();
+const returning=savedCalendarState();
+const returningOwner=returning.uid;
 if(returningOwner){
+ const savedLabel=returning.autoEnabled?'自動同步設定':'日曆帳號綁定';
  $('googleCalendarConnect').textContent='重新連線並同步';
- safeMessage('自動同步設定已保留。正在確認登入狀態；若日曆授權已失效，請點「重新連線並同步」。');
+ safeMessage(savedLabel+'已保留。正在確認登入狀態；請點「重新連線並同步」。');
  void prepareGoogleAuth().then(({auth})=>{
   if(auth.currentUser?.uid===returningOwner)
-   safeMessage('自動同步設定已保留；點一次「重新連線並同步」取得 Google 日曆存取權。');
-  else safeMessage('自動同步設定已保留；請點「重新連線並同步」檢查 Google 登入。');
+   safeMessage(savedLabel+'已保留；點一次「重新連線並同步」取得 Google 日曆存取權。');
+  else safeMessage(savedLabel+'已保留；請點「重新連線並同步」檢查 Google 登入。');
  }).catch(()=>{
-  safeMessage('自動同步設定已保留；請點「重新連線並同步」重試登入檢查。');
+  safeMessage(savedLabel+'已保留；請點「重新連線並同步」重試登入檢查。');
  });
-}
+}else void prepareGoogleAuth().catch(()=>{});
 $('googleCalendarSelect')?.addEventListener('change',event=>{
  state.autoActive=false;state.baselineReady=false;
  state.calendarId=event.target.value;autoControls();
