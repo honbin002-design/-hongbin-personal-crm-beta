@@ -27,6 +27,7 @@ assert.equal(backupData['honbin_calendar_auto_foreground_v1:u:owned'],undefined,
 assert.match(code,/reauthenticateWithPopup\(user,provider\)/,'reuse already signed-in user');
 assert.match(code,/let googleAuthReady=null,authPreparation=null/,'auth preparation does not persist tokens');
 assert.match(code,/pauseAuto\('同步設定與既有資料已保留；Google 授權到期或帳號變更，請重新連線。',[\s\S]*?\{keepPreference:true\}\)/,'expiring token does not erase saved sync preference');
+assert.match(code,/自動同步已安全暫停（[\s\S]*?\{keepPreference:true\}\)/,'temporary or uncertain sync errors preserve the saved preference');
 assert.match(code,/await auth\.authStateReady\(\);\s*googleAuthReady=\{authSdk,auth\};/,'prepare persisted Firebase login');
 assert.match(code,/const \{authSdk,auth\}=await prepareGoogleAuth\(\);\s*const candidate=await waitForLogin\(authSdk,auth\)/,'wait for propagated iframe login');
 assert.match(code,/if\(returningOwner\)[\s\S]*?void prepareGoogleAuth\(\)/,'returning user preloads login before their tap');
