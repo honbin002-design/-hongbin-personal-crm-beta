@@ -79,8 +79,8 @@ function autoControls(){
  if(on)on.disabled=!state.user||!state.calendarId||!state.baselineReady||state.autoActive||state.running||Date.now()>=state.expiresAt;
  if(off)off.disabled=!state.autoActive;
 }
-function pauseAuto(message){
- if(state.user&&state.calendarId)localStorage.removeItem(autoKey());
+function pauseAuto(message,{keepPreference=false}={}){
+ if(!keepPreference&&state.user&&state.calendarId)localStorage.removeItem(autoKey());
  state.autoActive=false;state.baselineReady=false;autoControls();
  if(message)$('googleCalendarAutoStatus').textContent=message;
 }
@@ -436,7 +436,8 @@ async function runAutoSync(){
  if(Date.now()-state.lastAutoAt<AUTO_INTERVAL)return;
  state.lastAutoAt=Date.now();
  if(!autoSessionReady()){
-  pauseAuto('自動同步已暫停：Google 授權到期或帳號變更。請重新連線。');return;
+  pauseAuto('同步設定與既有資料已保留；Google 授權到期或帳號變更，請重新連線。',
+   {keepPreference:true});return;
  }
  state.running=true;buttonDisable(true);autoControls();
  try{
