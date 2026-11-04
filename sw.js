@@ -1,5 +1,5 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-r73-calendar-backup-20261028';
+const CACHE='hongbin-crm-r73-central-drive-20261104';
 const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead.jpg','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
