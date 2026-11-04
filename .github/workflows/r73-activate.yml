@@ -87,7 +87,7 @@ jobs:
           assert 'subset:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'useObjectStreams:false' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
           assert 'right-measure(representative,repSize)' in Path('quote-vector-pdf.js').read_text(encoding='utf-8')
-          assert 'hongbin-crm-r73-calendar-backup-20261028' in sw
+          assert 'hongbin-crm-r73-central-drive-20261104' in sw
           assert 'rel="manifest"' in html
           assert 'apple-mobile-web-app-capable' in html
           assert 'pushTab' in js
