@@ -18,12 +18,12 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
  const font=fs.readFileSync(fontPath);
  assert(font.length>1000000);
  assert.equal(font.subarray(0,4).toString('latin1'),'OTTO','static OTF font required');
- const jpeg=fs.readFileSync('quote-letterhead.jpg');
+ const jpeg=fs.readFileSync('quote-letterhead-20261111.png');
  global.window={PDFLib,fontkit};
  global.document={baseURI:'https://print-test.invalid/'};
  global.fetch=async url=>{
   const link=String(url);
-  const data=link.includes('quote-letterhead.jpg')?jpeg:
+  const data=link.includes('quote-letterhead-20261111.png')?jpeg:
    link.includes('NotoSansTC-Regular.otf')?font:null;
   if(!data)throw Error('UNEXPECTED_EXTERNAL_FONT_OR_URL');
   return {ok:true,arrayBuffer:async()=>asBuffer(data)};
@@ -48,7 +48,7 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
   encoding:'utf8',timeout:35000
  });
  const expected=['報價單','Messers.','測試客戶股份有限公司','測試品項',
-  '交貨日期','付款條件','交貨地點','備','業務代表'];
+  'MOQ','1000','交貨日期','付款條件','交貨地點','備','業務代表'];
  for(const value of expected)
   assert(txt.includes(value),'Invisible or unmapped PDF text: '+value+' / '+txt.slice(0,400));
  const renderRoot=path.join(dir,'render');
@@ -66,7 +66,7 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
  const pages=execFileSync('pdfinfo',[pdfFile],{encoding:'utf8'});
  assert(/Pages:\s+1\b/.test(pages),'PDF page count changed');
  const imageCount=(bytes.toString('latin1').match(/\/Subtype \/Image/g)||[]).length;
- assert.equal(imageCount,1,'Only original company JPEG embedded');
+ assert(imageCount>=1&&imageCount<=2,'Only original company PNG and optional alpha mask embedded');
  assert(!txt.includes('第 1 / 1 頁'),'Page index reintroduced');
  console.log('ACTUAL_VECTOR_PDF_TEXT_PRINT_RASTER_PASS',JSON.stringify({
   bytes:bytes.length,renderedTextPixels:dark,

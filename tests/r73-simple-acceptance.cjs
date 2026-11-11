@@ -168,12 +168,12 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const oldPaper=page.locator('#quotePreviewPages .legacy-quote').first();
  check(await oldPaper.count()===1,'報價單已使用原版紙張樣式，不是新版重製格式');
  const headers=await oldPaper.locator('.q-table th').allTextContents();
- check(headers.join('|')==='品名|品號|規格|單價 (NT)','參考圖四欄標題與順序一致，MOQ 仍保存在編輯記錄');
+ check(headers.join('|')==='品名|品號|規格|單價 (NT)|MOQ','五欄報價包含單價右側 MOQ');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
- check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===975&&img.naturalHeight===265&&img.getAttribute('src')==='quote-letterhead.jpg'),'公司抬頭使用未改動的原始 JPEG 檔');
+ check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===716&&img.naturalHeight===169&&img.getAttribute('src')==='quote-letterhead-20261111.png'),'公司抬頭使用使用者提供的 PNG 原檔');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
- check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價四欄明細在預覽中水平及垂直置中');
+ check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
  check(await oldPaper.evaluate(el=>{
    const x=el.querySelector('.q-table').getBoundingClientRect().left;
    const delivery=el.querySelector('.q-terms').getBoundingClientRect().left;
@@ -223,7 +223,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
      appHidden:getComputedStyle(document.querySelector('.app')).display==='none'};
  });
  check(webkitPrint.printRootVisible&&webkitPrint.appHidden,'Safari 列印時只保留報價單，隱藏非列印介面');
- check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價四欄明細同樣維持置中');
+ check(await page.locator('#printRoot .q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'Safari 列印版報價五欄明細同樣維持置中');
  check(await page.locator('#printRoot .legacy-quote').first().evaluate(el=>{
   const left=el.querySelector('.q-table').getBoundingClientRect().left;
   return ['.q-terms','.q-notes'].every(sel=>Math.abs(el.querySelector(sel).getBoundingClientRect().left-left)<1);

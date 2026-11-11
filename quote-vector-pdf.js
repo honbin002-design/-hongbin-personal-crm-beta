@@ -97,15 +97,16 @@ async function makePdf(data){
  }
  // Embed the existing source asset byte-for-byte, without recoloring,
  // cropping, tracing or rebuilding the client's exact company letterhead.
- const sourceResponse=await fetch(new URL('quote-letterhead.jpg',document.baseURI),{cache:'no-store'});
+ const sourceResponse=await fetch(new URL('quote-letterhead-20261111.png',document.baseURI),{cache:'no-store'});
  if(!sourceResponse.ok)throw Error('原始公司抬頭圖載入失敗，已取消 PDF 輸出');
- const originalJpeg=new Uint8Array(await sourceResponse.arrayBuffer());
- const banner=await pdf.embedJpg(originalJpeg);
+ const originalPng=new Uint8Array(await sourceResponse.arrayBuffer());
+ const banner=await pdf.embedPng(originalPng);
  const bannerWidth=tableWidth;
- const bannerHeight=bannerWidth*banner.height/banner.width;
+ const bannerHeight=bannerWidth*265/975;
+ const imageHeight=bannerWidth*banner.height/banner.width;
  if(bannerWidth<=0||bannerHeight>150)throw Error('原始公司抬頭尺寸異常，未產生 PDF');
  function drawBrand(page){
-  page.drawImage(banner,{x:left,y:824-bannerHeight,width:bannerWidth,height:bannerHeight});
+  page.drawImage(banner,{x:left,y:824-imageHeight,width:bannerWidth,height:imageHeight});
   center(page,'報價單',W/2,662,20);
   // Short rule below quotation title, without crossing the glyphs.
   rule(page,W/2-43,658.5,W/2+43,658.5,.75,black);
@@ -131,20 +132,19 @@ async function makePdf(data){
   fitText(page,'NO： '+txt(fields.qdNo),335,631,15,214);
   fitText(page,'DATE： '+txt(fields.qdDate).replace(/-/g,'/'),335,607,15,214);
   fitText(page,'聯絡人： '+txt(fields.qdContact),335,583,15,214);
-  // Exact four-column appearance of the approved original printed template.
-  // MOQ is preserved in CRM records/editor, never erased from saved quotations.
-  const columns=[.18,.28,.18,.36].map(x=>x*tableWidth);
+  // Split the previous unit-price area equally between price and MOQ.
+  const columns=[.18,.28,.18,.18,.18].map(x=>x*tableWidth);
   const starts=[left];for(const width of columns)starts.push(starts.at(-1)+width);
   const top=565,headH=34,rowH=36,bottom=top-headH-rowH*4;
-  for(let i=0;i<=4;i++)rule(page,starts[i],top,starts[i],bottom,.7);
+  for(let i=0;i<=5;i++)rule(page,starts[i],top,starts[i],bottom,.7);
   // One outer box and one header separator; do not draw lines between items.
   for(const y of [top,top-headH,bottom])rule(page,left,y,right,y,.7);
-  const headers=['品名','品號','規格','單價 (NT)'];
-  for(let j=0;j<4;j++)drawRow(page,headers[j],starts[j],top,15,columns[j],headH);
+  const headers=['品名','品號','規格','單價 (NT)','MOQ'];
+  for(let j=0;j<5;j++)drawRow(page,headers[j],starts[j],top,15,columns[j],headH);
   for(let k=0;k<4;k++){
    const row=subset[k]||{};
-   const cells=[row.name,row.model,row.spec,row.price];
-   for(let j=0;j<4;j++)drawRow(page,cells[j],starts[j],top-headH-k*rowH,14.8,columns[j],rowH);
+   const cells=[row.name,row.model,row.spec,row.price,row.moq];
+   for(let j=0;j<5;j++)drawRow(page,cells[j],starts[j],top-headH-k*rowH,14.8,columns[j],rowH);
   }
   let y=bottom-21;
   const details=[
