@@ -97,13 +97,13 @@ async function makePdf(data){
  }
  // Embed the existing source asset byte-for-byte, without recoloring,
  // cropping, tracing or rebuilding the client's exact company letterhead.
- const sourceResponse=await fetch(new URL('quote-letterhead-20261111.png',document.baseURI),{cache:'no-store'});
+ const sourceResponse=await fetch(new URL('quote-letterhead-20261112.png',document.baseURI),{cache:'no-store'});
  if(!sourceResponse.ok)throw Error('原始公司抬頭圖載入失敗，已取消 PDF 輸出');
  const originalPng=new Uint8Array(await sourceResponse.arrayBuffer());
  const banner=await pdf.embedPng(originalPng);
  const bannerWidth=tableWidth;
  const bannerHeight=bannerWidth*265/975;
- const imageHeight=bannerWidth*banner.height/banner.width;
+ const imageHeight=bannerWidth*169/716;
  if(bannerWidth<=0||bannerHeight>150)throw Error('原始公司抬頭尺寸異常，未產生 PDF');
  function drawBrand(page){
   page.drawImage(banner,{x:left,y:824-imageHeight,width:bannerWidth,height:imageHeight});

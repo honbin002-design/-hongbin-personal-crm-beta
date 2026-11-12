@@ -18,12 +18,12 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
  const font=fs.readFileSync(fontPath);
  assert(font.length>1000000);
  assert.equal(font.subarray(0,4).toString('latin1'),'OTTO','static OTF font required');
- const jpeg=fs.readFileSync('quote-letterhead-20261111.png');
+ const jpeg=fs.readFileSync('quote-letterhead-20261112.png');
  global.window={PDFLib,fontkit};
  global.document={baseURI:'https://print-test.invalid/'};
  global.fetch=async url=>{
   const link=String(url);
-  const data=link.includes('quote-letterhead-20261111.png')?jpeg:
+  const data=link.includes('quote-letterhead-20261112.png')?jpeg:
    link.includes('NotoSansTC-Regular.otf')?font:null;
   if(!data)throw Error('UNEXPECTED_EXTERNAL_FONT_OR_URL');
   return {ok:true,arrayBuffer:async()=>asBuffer(data)};

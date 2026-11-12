@@ -1,6 +1,6 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-quote-20261111-moq';
-const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead-20261111.png','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
+const CACHE='hongbin-crm-quote-20261112-letterhead';
+const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead-20261112.png','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
 )});

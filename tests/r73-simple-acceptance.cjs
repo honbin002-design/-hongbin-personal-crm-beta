@@ -170,7 +170,7 @@ function check(c,m){assert(c,m);passed++;console.log('PASS: '+m)}
  const headers=await oldPaper.locator('.q-table th').allTextContents();
  check(headers.join('|')==='品名|品號|規格|單價 (NT)|MOQ','五欄報價包含單價右側 MOQ');
  check((await oldPaper.innerText()).includes('Messers.')&&(await oldPaper.innerText()).includes('單筆交易未滿伍仟元整需自行負擔運費'),'原版報價表頭和交易條款保留');
- check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===716&&img.naturalHeight===169&&img.getAttribute('src')==='quote-letterhead-20261111.png'),'公司抬頭使用使用者提供的 PNG 原檔');
+ check(await oldPaper.locator('.q-letterhead-img').evaluate(img=>img.complete&&img.naturalWidth===4497&&img.naturalHeight===789&&img.getAttribute('src')==='quote-letterhead-20261112.png'),'公司抬頭使用使用者提供的 PNG 原檔');
  check(await oldPaper.locator('.q-title').innerText()==='報價單','原版報價單標題保留');
  check(await oldPaper.locator('.q-page-no').count()===0 && !(await oldPaper.innerText()).includes('第 1／1 頁'),'報價預覽完全移除頁次文字');
  check(await oldPaper.locator('.q-table tbody td').first().evaluate(el=>{const s=getComputedStyle(el);return s.textAlign==='center'&&s.verticalAlign==='middle'}),'報價五欄明細在預覽中水平及垂直置中');
