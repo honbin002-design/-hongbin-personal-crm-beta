@@ -945,14 +945,14 @@ fillCustomerNames();renderQuotes();openTab('quotes');
 // The cloud iframe remains the only authorized Firestore reader.
 const pushRoute=new URLSearchParams(location.search);
 const pushMode=pushRoute.get('pushTab'),pushGroup=pushRoute.get('groupId');
-const pushItem=pushMode==='Notes'?pushRoute.get('noteId'):pushRoute.get('taskId');
-if(['Tasks','Notes'].includes(pushMode)&&
+const pushItem=pushMode==='Notes'?pushRoute.get('noteId'):pushMode==='Orders'?pushRoute.get('orderId'):pushRoute.get('taskId');
+if(['Tasks','Notes','Orders'].includes(pushMode)&&
   /^[A-Za-z0-9_-]{1,150}$/.test(pushGroup||'')&&
   /^[A-Za-z0-9_-]{1,150}$/.test(pushItem||'')){
  const childUrl=new URL(cloudFrame.dataset.src,location.origin);
  childUrl.searchParams.set('tab',pushMode);
  childUrl.searchParams.set('groupId',pushGroup);
- childUrl.searchParams.set(pushMode==='Notes'?'noteId':'taskId',pushItem);
+ childUrl.searchParams.set(pushMode==='Notes'?'noteId':pushMode==='Orders'?'orderId':'taskId',pushItem);
  cloudFrame.dataset.src=childUrl.pathname+childUrl.search;
  openTab('cloud');
  // Never leak push item parameters into a future copied CRM URL.

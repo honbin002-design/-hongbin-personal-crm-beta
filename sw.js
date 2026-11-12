@@ -1,5 +1,5 @@
 /* R73 simplified seven-module service worker. No legacy script injection. */
-const CACHE='hongbin-crm-quote-20261112-letterhead-v3';
+const CACHE='hongbin-crm-quote-20261112-push-content-20261112';
 const CORE=['./','./index.html','./simple-core.js','./quote-vector-pdf.js','./quote-letterhead-20261112-v3.png','./crm-push-setup.mjs','./push-public-config.json','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(
   caches.open(CACHE).then(c=>c.addAll(CORE.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting())
@@ -31,28 +31,28 @@ self.addEventListener('fetch',event=>{
 
 /* iPhone Home Screen CRM Web Push receiver (no secrets or Firebase in SW).
    Live server delivery remains gated by active membership, approvals, and
-   public CRM kill switch; the Apple notification never includes private text. */
+   public CRM kill switch; notifications include a bounded preview for authorized recipients. */
 const pushId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,150}$/.test(id);
-const pushKinds=new Set(['TASK_ASSIGNED','TASK_COMPLETED','SHARED_NOTE_CREATED']);
+const pushKinds=new Set(['TASK_ASSIGNED','TASK_COMPLETED','SHARED_NOTE_CREATED','SHARED_NOTE_UPDATED','SHARED_NOTE_DELETED','ORDER_CREATED','ORDER_UPDATED']);
 function safePushEnvelope(payload){
  if(!payload||!pushKinds.has(payload.kind)||!pushId(payload.groupId))return null;
- const isNote=payload.kind==='SHARED_NOTE_CREATED';
- const item=isNote?payload.noteId:payload.taskId;
+ const isNote=payload.kind.startsWith('SHARED_NOTE_'),isOrder=payload.kind.startsWith('ORDER_');
+ const item=isNote?payload.noteId:isOrder?payload.orderId:payload.taskId;
  if(!pushId(item))return null;
  const route=new URL('./',self.registration.scope);
- route.searchParams.set('pushTab',isNote?'Notes':'Tasks');
+ route.searchParams.set('pushTab',isNote?'Notes':isOrder?'Orders':'Tasks');
  route.searchParams.set('groupId',payload.groupId);
- route.searchParams.set(isNote?'noteId':'taskId',item);
+ route.searchParams.set(isNote?'noteId':isOrder?'orderId':'taskId',item);
  const heading=payload.kind==='TASK_ASSIGNED'?'有新任務指派':
-   payload.kind==='TASK_COMPLETED'?'你發布的任務已完成':'共用記事有新內容';
- return {heading,url:route.href,tag:payload.kind+':'+payload.groupId+':'+item};
+   payload.kind==='TASK_COMPLETED'?'你發布的任務已完成':isOrder?'訂貨資料有新動態':'共用記事有新內容';
+ return {heading,body:typeof payload.preview==='string'?payload.preview.slice(0,160):'點一下即可開啟 CRM 查看資訊',url:route.href,tag:payload.kind+':'+payload.groupId+':'+item};
 }
 self.addEventListener('push',event=>{
  let payload=null;
  try{payload=event.data?.json()}catch{}
  const safe=safePushEnvelope(payload);
  event.waitUntil(self.registration.showNotification(safe?.heading||'鴻繽科技 CRM 有新通知',{
-  body:'點一下即可開啟 CRM 查看資訊',
+  body:safe?.body||'點一下即可開啟 CRM 查看資訊',
   tag:safe?.tag||'honbin-general-update',data:{url:safe?.url||new URL('./',self.registration.scope).href}
  }));
 });
@@ -63,8 +63,8 @@ self.addEventListener('notificationclick',event=>{
   const target=new URL(event.notification.data?.url||base.href,base);
   if(target.origin!==base.origin||target.pathname!==base.pathname||
      (target.search&&(!pushId(target.searchParams.get('groupId'))||
-       !['Notes','Tasks'].includes(target.searchParams.get('pushTab'))||
-       !pushId(target.searchParams.get(target.searchParams.get('pushTab')==='Notes'?'noteId':'taskId')))))
+       !['Notes','Tasks','Orders'].includes(target.searchParams.get('pushTab'))||
+       !pushId(target.searchParams.get(target.searchParams.get('pushTab')==='Notes'?'noteId':target.searchParams.get('pushTab')==='Orders'?'orderId':'taskId')))))
     target.href=base.href;
   const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
   for(const client of clients){

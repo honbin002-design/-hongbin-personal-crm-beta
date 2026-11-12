@@ -32,6 +32,10 @@ const completed=await send({kind:'TASK_COMPLETED',groupId:'group_123',taskId:'ta
 assert.equal(completed.title,'你發布的任務已完成');
 const note=await send({kind:'SHARED_NOTE_CREATED',groupId:'group_123',noteId:'note_8'});
 assert.equal(note.options.data.url,scope+'?pushTab=Notes&groupId=group_123&noteId=note_8');
+const updated=await send({kind:'SHARED_NOTE_UPDATED',groupId:'group_123',noteId:'note_8',preview:'透氣布 · 已更新測試結果'});
+assert.equal(updated.options.body,'透氣布 · 已更新測試結果');
+const order=await send({kind:'ORDER_UPDATED',groupId:'group_123',orderId:'order_8',preview:'訂貨內容更新'});
+assert.equal(order.options.data.url,scope+'?pushTab=Orders&groupId=group_123&orderId=order_8');
 const invalid=await send({kind:'TASK_ASSIGNED',groupId:'../../attack',taskId:'x'});
 assert.equal(invalid.options.data.url,scope);
 const empty=await send(null);
