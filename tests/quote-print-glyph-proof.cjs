@@ -17,14 +17,14 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
  if(!fontPath||!fs.existsSync(fontPath))throw Error('STATIC_FONT_REQUIRED');
  const font=fs.readFileSync(fontPath);
  assert(font.length>1000000);
- assert.equal(font.subarray(0,4).toString('latin1'),'OTTO','static OTF font required');
+ assert.equal(font.readUInt32BE(0),0x00010000,'TrueType outlines required');
  const jpeg=fs.readFileSync('quote-letterhead-20261112-v3.png');
  global.window={PDFLib,fontkit};
  global.document={baseURI:'https://print-test.invalid/'};
  global.fetch=async url=>{
   const link=String(url);
   const data=link.includes('quote-letterhead-20261112-v3.png')?jpeg:
-   link.includes('NotoSansTC-Regular.otf')?font:null;
+   link.includes('NotoSansTC-VF.ttf')?font:null;
   if(!data)throw Error('UNEXPECTED_EXTERNAL_FONT_OR_URL');
   return {ok:true,arrayBuffer:async()=>asBuffer(data)};
  };
@@ -43,7 +43,7 @@ function asBuffer(array){return array.buffer.slice(array.byteOffset,array.byteOf
  const bytes=Buffer.from(await pdf.arrayBuffer());
  const pdfFile=path.join(dir,'quote.pdf');fs.writeFileSync(pdfFile,bytes);
  assert.equal(bytes.subarray(0,5).toString(),'%PDF-');
- assert(bytes.length>150000,'complete font embedding required');
+ assert(bytes.length>100000,'font embedding required');
  const txt=execFileSync('pdftotext',['-layout','-enc','UTF-8',pdfFile,'-'],{
   encoding:'utf8',timeout:35000
  });

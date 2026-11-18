@@ -15,7 +15,7 @@
 
 
 /* R73 已驗收原始報價文件排版：取自固定回退版，不使用新版示意報價樣式 */
-.legacy-quote.quote-paper{width:794px;min-width:794px;min-height:1123px;background:#fff;color:#111;padding:20px 36px 28px;box-sizing:border-box;font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;box-shadow:0 2px 10px #0005;transform-origin:top center}
+.legacy-quote.quote-paper{width:794px;min-width:794px;min-height:1123px;background:#fff;color:#111;padding:calc(20px + 1cm) 36px 28px;box-sizing:border-box;font-family:"Noto Sans TC","PingFang TC",Arial,sans-serif;box-shadow:0 2px 10px #0005;transform-origin:top center}
 .q-letterhead{width:100%;height:auto;display:block;overflow:visible;margin:0 auto 2px}
 .q-letterhead-img{display:block;width:100%;height:auto;object-fit:contain}
 .q-title{text-align:center;font-size:34px;letter-spacing:8px;margin:4px 0 18px;text-decoration:underline;text-underline-offset:7px}
@@ -228,7 +228,7 @@
   position:static!important;display:block!important;box-sizing:border-box!important;
   width:200mm!important;min-width:0!important;max-width:200mm!important;
   height:268mm!important;min-height:0!important;max-height:268mm!important;
-  margin:2mm auto 0!important;padding:4mm 5mm 5mm!important;
+  margin:2mm auto 0!important;padding:14mm 5mm 5mm!important;
   border:0!important;overflow:hidden!important;
   transform:none!important;box-shadow:none!important;
   break-before:auto!important;page-break-before:auto!important;
@@ -532,7 +532,7 @@
 <button type="button" id="refreshCloudOuter" aria-label="重新整理雲端記事與任務" title="重新整理雲端記事與任務" hidden>↻ 重新整理</button>
 <button type="button" id="backToTop" aria-label="回到頁面最上方" title="回到最上方" hidden><span aria-hidden="true">↑</span> 回頂端</button>
 <!-- 舊版 Service Worker 相容註記：r73-fixes.js 只作識別，不載入舊功能。 -->
-<script src="./quote-vector-pdf.js?v=20261112-quote-letterhead-v3" defer></script>
+<script src="./quote-vector-pdf.js?v=20261118-ttf-margin-20261112-quote-letterhead-v3" defer></script>
 <script src="./simple-core.js?v=20261112-push-content-20261112-letterhead-v3-20261028-calendar-backup" defer></script>
 <script type="module" src="./owner-prices.mjs?v=20261022"></script>
 <script type="module" src="./calendar-ics-ui.mjs?v=20261027a"></script>

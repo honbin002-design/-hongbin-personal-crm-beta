@@ -1,15 +1,13 @@
 // Document-native quotation PDF. Text is embedded as fonts, tables and logo are
 // vector paths. No canvas, page screenshots, JPEG embedding or HTML rasterization.
-// Fontsource Noto Sans TC is licensed under SIL OFL 1.1 (pinned free public font).
+// Noto Sans TC is licensed under SIL OFL 1.1 (free public font).
 (function(){
 'use strict';
-// Apple AirPrint may silently omit glyphs from the old WOFF2/subset-embedded
-// PDF even though Safari's HTML quotation preview is fully readable.
-// Use a static desktop/print-compatible OpenType font, never WOFF2 or a
-// variable font; keep the user's original logo JPEG unchanged.
+// Embed regular-weight TrueType outlines as a self-contained CIDFontType2.
+// The CFF/OpenType stream previously mismatched the PDF font descriptor in
+// desktop readers. Subsetting also removes unused variable-font tables.
 const FONT_URLS=[
- 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/TC/NotoSansTC-Regular.otf',
- 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf'
+ 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/Variable/TTF/Subset/NotoSansTC-VF.ttf'
 ];
 let fontBytesPromise=null;
 async function fontBytes(){
@@ -46,17 +44,19 @@ function splitToWidth(input,font,size,maxWidth,maxLines=99){
 async function makePdf(data){
  if(!window.PDFLib||!window.fontkit)throw Error('免費 PDF 元件尚未載入');
  const {PDFDocument,rgb,StandardFonts}=window.PDFLib;
- const pdf=await PDFDocument.create();pdf.registerFontkit(window.fontkit);
+ const pdf=await PDFDocument.create();pdf.registerFontkit({create:bytes=>{
+  const face=window.fontkit.create(bytes);
+  return face.variationAxes?.wght?face.getVariation({wght:400}):face;
+ }});
  const bytes=await fontBytes();
  let font;
  try{
-  // Embed the complete, static CFF/OpenType font and Unicode cmap. Avoid
-  // fontkit subsetting, whose CID resource can disappear on some printers.
-  font=await pdf.embedFont(bytes,{subset:false});
+  // Keep used glyph outlines and their Unicode map inside the saved PDF.
+  font=await pdf.embedFont(bytes,{subset:true});
  }catch(primary){
-  const resp=await fetch(FONT_URLS[1],{mode:'cors',cache:'force-cache'});
-  if(!resp.ok)throw Error('完整中文字型載入失敗，已中止列印避免空白報價');
-  font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:false});
+  const resp=await fetch(FONT_URLS[0],{mode:'cors',cache:'force-cache'});
+  if(!resp.ok)throw Error('中文字型載入失敗，已中止列印避免空白報價');
+  font=await pdf.embedFont(new Uint8Array(await resp.arrayBuffer()),{subset:true});
  }
  const latinFont=await pdf.embedFont(StandardFonts.TimesRoman);
  const black=rgb(.12,.12,.12),gray=rgb(.33,.33,.33);
@@ -73,6 +73,7 @@ async function makePdf(data){
   return groups;
  };
  const measure=(value,size)=>runs(value).reduce((sum,run)=>sum+run.font.widthOfTextAtSize(run.value,size),0);
+ const topOffset=72/2.54;
  const W=595.276,H=841.890,left=47,right=W-47,tableWidth=right-left;
  const fields=data?.fields||{},items=Array.isArray(data?.items)?data.items:[],records=items.length?items:[{}];
  const pages=[];for(let i=0;i<records.length;i+=4)pages.push(records.slice(i,i+4));
@@ -80,7 +81,7 @@ async function makePdf(data){
   const t=txt(value);if(!t)return;
   let position=x;
   for(const run of runs(t)){
-   page.drawText(run.value,{x:position,y,size,font:run.font,color:opts.color||black});
+   page.drawText(run.value,{x:position,y:y-topOffset,size,font:run.font,color:opts.color||black});
    position+=run.font.widthOfTextAtSize(run.value,size);
   }
  }
@@ -93,7 +94,7 @@ async function makePdf(data){
   const t=txt(value);const w=measure(t,size);text(page,t,cx-w/2,y,size,options);
  }
  function rule(page,x1,y1,x2,y2,width=.6,color=gray){
-  page.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},thickness:width,color});
+  page.drawLine({start:{x:x1,y:y1-topOffset},end:{x:x2,y:y2-topOffset},thickness:width,color});
  }
  // Embed the existing source asset byte-for-byte, without recoloring,
  // cropping, tracing or rebuilding the client's exact company letterhead.
@@ -106,7 +107,7 @@ async function makePdf(data){
  const imageHeight=bannerWidth*169/716;
  if(bannerWidth<=0||bannerHeight>150)throw Error('原始公司抬頭尺寸異常，未產生 PDF');
  function drawBrand(page){
-  page.drawImage(banner,{x:left,y:824-imageHeight,width:bannerWidth,height:imageHeight});
+  page.drawImage(banner,{x:left,y:824-imageHeight-topOffset,width:bannerWidth,height:imageHeight});
   center(page,'報價單',W/2,662,20);
   // Short rule below quotation title, without crossing the glyphs.
   rule(page,W/2-43,658.5,W/2+43,658.5,.75,black);
